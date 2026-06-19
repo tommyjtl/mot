@@ -12,6 +12,7 @@ import {
   type PlaybackState,
 } from "../utils/overlay";
 import { overlayWordIndexAtTime } from "../utils/overlay-word-sync";
+import { phraseFromWordRange } from "../utils/overlay-phrase";
 import {
   estimatedPlaybackTimeS,
   resetPlaybackClock,
@@ -40,7 +41,9 @@ let wordTranslationRequestId = 0;
 let translationDisplayMode: "full" | "word" = "full";
 let playbackDuration = 0;
 let playbackScope: PlaybackScope = "full";
-let pinnedWordIndex: number | null = null;
+let pinnedWordStart: number | null = null;
+let pinnedWordEnd: number | null = null;
+let pinnedPhraseText: string | null = null;
 let highlightLoopId = 0;
 let highlightLoopActive = false;
 let isPlaying = false;
@@ -66,7 +69,9 @@ function invalidateActiveRequest(): void {
   setOverlayTranslation({ visible: false });
   playbackDuration = 0;
   playbackScope = "full";
-  pinnedWordIndex = null;
+  pinnedWordStart = null;
+  pinnedWordEnd = null;
+  pinnedPhraseText = null;
   wordSynthRequestId = 0;
   resetPlaybackClock();
   stopHighlightLoop();
@@ -247,7 +252,9 @@ function stopAudio(): void {
   currentPlaybackBase64 = null;
   playbackAlignment = fullAlignment;
   playbackScope = "full";
-  pinnedWordIndex = null;
+  pinnedWordStart = null;
+  pinnedWordEnd = null;
+  pinnedPhraseText = null;
   playbackDuration = alignmentDuration(fullAlignment);
 
   if (isPlaying) {
@@ -278,9 +285,27 @@ function syncOverlayHighlight(currentTime: number, duration: number): void {
     return;
   }
 
-  if (playbackScope === "word" && pinnedWordIndex !== null) {
+  if (playbackScope === "word" && pinnedWordStart !== null) {
     if (isPlaying) {
-      highlightOverlayWord(pinnedWordIndex);
+      const end = pinnedWordEnd ?? pinnedWordStart;
+      const isPhrase = end > pinnedWordStart;
+
+      if (isPhrase && playbackAlignment?.words.length && pinnedPhraseText) {
+        const localIndex = overlayWordIndexAtTime(
+          pinnedPhraseText,
+          currentTime,
+          duration,
+          playbackAlignment,
+        );
+
+        if (localIndex !== null) {
+          highlightOverlayWord(pinnedWordStart + localIndex);
+        } else {
+          highlightOverlayWord(pinnedWordStart, end);
+        }
+      } else {
+        highlightOverlayWord(pinnedWordStart, end);
+      }
     }
     return;
   }
@@ -311,9 +336,11 @@ function playFullSelection(): void {
 
   playbackScope = "full";
   playbackAlignment = fullAlignment;
-  pinnedWordIndex = null;
+  pinnedWordStart = null;
+  pinnedWordEnd = null;
+  pinnedPhraseText = null;
   playbackDuration = alignmentDuration(fullAlignment);
-  setOverlayStatusMessage("Click a word to hear it on its own.");
+  setOverlayStatusMessage("Click or drag across words to hear them.");
   requestPlayback(fullAudioBase64);
 }
 
@@ -326,18 +353,32 @@ function togglePlayback(): void {
   playFullSelection();
 }
 
-function speakWord(wordIndex: number, wordText: string): void {
+function speakWordRange(startIndex: number, endIndex: number): void {
+  if (!cachedSpeechText) {
+    return;
+  }
+
+  const phraseText = phraseFromWordRange(
+    cachedSpeechText,
+    startIndex,
+    endIndex,
+  );
+  if (!phraseText.trim()) {
+    return;
+  }
+
   stopAudio();
-  setWordLoadingIndex(wordIndex);
-  setOverlayStatusMessage(`Generating “${wordText}”…`);
-  void refreshWordTranslation(wordText);
+  setWordLoadingIndex(startIndex, endIndex);
+  setOverlayStatusMessage(`Generating “${phraseText}”…`);
+  void refreshWordTranslation(phraseText);
 
   const requestId = (wordSynthRequestId += 1);
 
   void browser.runtime.sendMessage({
     type: "speak-word",
-    word: wordText,
-    wordIndex,
+    word: phraseText,
+    wordIndex: startIndex,
+    endWordIndex: endIndex,
     requestId,
   } satisfies Message);
 }
@@ -357,7 +398,7 @@ function showReadyOverlay(
       hint,
       playback,
       onTogglePlayback: togglePlayback,
-      onWordClick: speakWord,
+      onWordSelect: speakWordRange,
     },
     rect,
     closeOverlay,
@@ -381,7 +422,9 @@ function handleWordTtsResult(
   }
 
   playbackScope = "word";
-  pinnedWordIndex = message.wordIndex;
+  pinnedWordStart = message.wordIndex;
+  pinnedWordEnd = message.endWordIndex ?? message.wordIndex;
+  pinnedPhraseText = message.payload.ok ? message.payload.word : null;
   currentPlaybackBase64 = message.payload.audioBase64;
   playbackAlignment = message.payload.alignment ?? null;
   playbackDuration = alignmentDuration(playbackAlignment);
@@ -411,7 +454,7 @@ function handlePlaybackMessage(
     highlightOverlayWord(null);
 
     if (message.state === "ended" && playbackScope === "word") {
-      setOverlayStatusMessage("Click a word to hear it on its own.");
+      setOverlayStatusMessage("Click or drag across words to hear them.");
     }
 
     return;
@@ -512,7 +555,9 @@ export default defineContentScript({
         playbackAlignment = fullAlignment;
         playbackDuration = alignmentDuration(fullAlignment);
         playbackScope = "full";
-        pinnedWordIndex = null;
+        pinnedWordStart = null;
+        pinnedWordEnd = null;
+        pinnedPhraseText = null;
 
         showReadyOverlay(payload.text, payload.rect, "playing");
       }

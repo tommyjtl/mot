@@ -247,8 +247,8 @@ export default defineBackground(() => {
         return;
       }
 
-      void stopAudioInOffscreen();
-      void abortOffscreenSynthesis(0);
+      await stopAudioInOffscreen();
+      await abortOffscreenSynthesis(0);
 
       const settings = await getSettings();
 
@@ -266,6 +266,7 @@ export default defineBackground(() => {
             type: "word-tts-result",
             requestId: message.requestId,
             wordIndex: message.wordIndex,
+            endWordIndex: message.endWordIndex,
             payload: { ok: false, error: result.error },
           } satisfies Message);
           return;
@@ -275,6 +276,7 @@ export default defineBackground(() => {
           type: "word-tts-result",
           requestId: message.requestId,
           wordIndex: message.wordIndex,
+          endWordIndex: message.endWordIndex,
           payload: {
             ok: true,
             word: result.text,
@@ -300,6 +302,7 @@ export default defineBackground(() => {
             type: "word-tts-result",
             requestId: message.requestId,
             wordIndex: message.wordIndex,
+            endWordIndex: message.endWordIndex,
             payload: { ok: false, error: errorMessage },
           } satisfies Message);
         } catch {

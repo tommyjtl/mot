@@ -22,6 +22,7 @@ declare module '#imports' {
   export { broadcastModelLoadProgress, broadcastModelLoadError, ModelLoadBroadcast } from '../utils/model-load-broadcast';
   export { setupOffscreenDocument } from '../utils/offscreen-document';
   export { OFFSCREEN_SYNTHESIZE, OFFSCREEN_WARMUP, OFFSCREEN_STATUS, ensureOffscreenDocument, warmUpOffscreenTts, synthesizeInOffscreen, playAudioInOffscreen, stopAudioInOffscreen, abortOffscreenSynthesis, getOffscreenModelStatus, TtsEngineError, OffscreenSynthResult } from '../utils/offscreen-tts';
+  export { tokenizeWords, phraseFromWordRange, WordToken } from '../utils/overlay-phrase';
   export { resetPlaybackClock, stopPlaybackClock, syncPlaybackClock, estimatedPlaybackTimeS, currentLatencyCompensationS } from '../utils/overlay-playback-clock';
   export { overlayWordIndexAtTime } from '../utils/overlay-word-sync';
   export { setOverlayTranslation, highlightOverlayWord, setWordLoadingIndex, setOverlayStatusMessage, updateOverlayProgress, hideOverlay, updatePlaybackState, showOverlay, bindOverlayDismissals, PlaybackState, OverlayState, TranslationViewState } from '../utils/overlay';

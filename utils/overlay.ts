@@ -1,7 +1,7 @@
 import type { SelectionRect } from "./messages";
 
 const OVERLAY_ID = "mot-tts-overlay-host";
-const OVERLAY_TEMPLATE_VERSION = "4";
+const OVERLAY_TEMPLATE_VERSION = "14";
 
 export type PlaybackState = "idle" | "playing";
 
@@ -9,24 +9,24 @@ export type OverlayState =
   | { kind: "loading-model"; text: string; detail?: string; percent?: number }
   | { kind: "generating"; text: string; detail?: string; percent?: number }
   | {
-      kind: "ready";
-      text: string;
-      hint?: string;
-      playback: PlaybackState;
-      onTogglePlayback: () => void;
-      onWordClick?: (wordIndex: number, wordText: string) => void;
-    }
+    kind: "ready";
+    text: string;
+    hint?: string;
+    playback: PlaybackState;
+    onTogglePlayback: () => void;
+    onWordSelect?: (startIndex: number, endIndex: number) => void;
+  }
   | { kind: "error"; message: string; text?: string };
 
 export type TranslationViewState =
   | { visible: false }
   | {
-      visible: true;
-      originalText: string;
-      translationText: string;
-      mode: "full" | "word";
-      loading?: boolean;
-    };
+    visible: true;
+    originalText: string;
+    translationText: string;
+    mode: "full" | "word";
+    loading?: boolean;
+  };
 
 type OverlayElements = {
   host: HTMLElement;
@@ -34,7 +34,6 @@ type OverlayElements = {
   card: HTMLElement;
   header: HTMLElement;
   translationSection: HTMLElement;
-  translationRestoreRow: HTMLElement;
   translationOriginalValueEl: HTMLElement;
   translationGlossValueEl: HTMLElement;
   translationRestoreBtn: HTMLButtonElement;
@@ -172,7 +171,7 @@ function ensureOverlay(): OverlayElements {
           padding: 0;
           border-radius: 10px;
           border: 1px solid rgba(15, 23, 42, 0.12);
-          background: rgba(255, 255, 255, 0.98);
+          background: #ffffff;
           color: #0f172a;
           box-shadow:
             0 10px 30px rgba(15, 23, 42, 0.12),
@@ -191,11 +190,7 @@ function ensureOverlay(): OverlayElements {
           min-height: 0;
           padding: 4px 6px 4px 8px;
           border-bottom: 1px solid rgba(15, 23, 42, 0.08);
-          background: linear-gradient(
-            180deg,
-            rgba(248, 250, 252, 0.98) 0%,
-            rgba(241, 245, 249, 0.98) 100%
-          );
+          background: #f8fafc;
           cursor: grab;
           user-select: none;
           touch-action: none;
@@ -261,26 +256,31 @@ function ensureOverlay(): OverlayElements {
           padding: 12px 14px 14px;
         }
 
-        .translation-section {
-          display: flex;
-          flex-direction: column;
-          gap: 4px;
-          margin-bottom: 8px;
-        }
-
-        .translation-restore-row[hidden] {
+        .translation-section[hidden] {
           display: none;
         }
 
-        .translation-restore-row {
+        .translation-section:not([hidden]) {
           display: flex;
-          justify-content: flex-end;
-          margin-bottom: 2px;
+          flex-direction: column;
+          gap: 8px;
+          margin-bottom: 8px;
+        }
+
+        .translation-line-header {
+          display: flex;
+          align-items: center;
+          justify-content: space-between;
+          gap: 8px;
+          width: 100%;
         }
 
         .translation-line {
           margin: 0;
           min-width: 0;
+          display: flex;
+          flex-direction: column;
+          gap: 2px;
           font-size: 14px;
           line-height: 1.4;
           color: #334155;
@@ -290,39 +290,25 @@ function ensureOverlay(): OverlayElements {
           width: 100%;
         }
 
-        .translation-line-gloss {
-          display: flex;
-          align-items: baseline;
-          justify-content: space-between;
-          gap: 10px;
-        }
-
-        .translation-gloss-main {
-          flex: 1;
-          min-width: 0;
-        }
-
-        .translation-ipa-value {
-          flex-shrink: 0;
-          color: #64748b;
-          font-size: 13px;
-          font-weight: 400;
-          font-family: "Iowan Old Style", "Palatino Linotype", "Book Antiqua", Palatino, serif;
-          white-space: nowrap;
-        }
-
-        .translation-ipa-value[hidden] {
+        .translation-line-original[hidden] {
           display: none;
+        }
+
+        .translation-line-gloss {
+          margin: 0;
         }
 
         .translation-label {
           color: #64748b;
-          font-weight: 400;
-          margin-right: 0.35em;
+          font-weight: 500;
+          font-size: 11px;
+          line-height: 1.3;
+          letter-spacing: 0.04em;
+          text-transform: uppercase;
         }
 
         .translation-original-value {
-          font-weight: 400;
+          font-weight: 700;
           white-space: pre-wrap;
           word-break: break-word;
         }
@@ -343,14 +329,19 @@ function ensureOverlay(): OverlayElements {
           border: 0;
           background: transparent;
           color: #64748b;
-          font: inherit;
-          font-size: 12px;
-          line-height: 1.35;
+          font-weight: 500;
+          font-size: 11px;
+          line-height: 1.3;
           cursor: pointer;
           margin: 0;
           padding: 0;
           text-align: right;
           white-space: nowrap;
+          flex-shrink: 0;
+        }
+
+        .translation-restore[hidden] {
+          display: none;
         }
 
         .translation-restore:hover {
@@ -385,6 +376,15 @@ function ensureOverlay(): OverlayElements {
 
         .word.is-loading {
           opacity: 0.65;
+        }
+
+        .text.is-selecting {
+          user-select: none;
+          cursor: text;
+        }
+
+        .word.is-in-range:not(.is-active):not(.is-loading) {
+          background: rgba(79, 70, 229, 0.18);
         }
 
         .word.is-active {
@@ -485,21 +485,18 @@ function ensureOverlay(): OverlayElements {
         </header>
         <div class="body">
           <section class="translation-section" hidden>
-            <div class="translation-restore-row" hidden>
-              <button class="translation-restore" type="button">
-                Show full translation
-              </button>
-            </div>
             <p class="translation-line translation-line-original">
-              <span class="translation-label">Original:</span>
+              <span class="translation-label">Original</span>
               <span class="translation-original-value"></span>
             </p>
             <p class="translation-line translation-line-gloss">
-              <span class="translation-gloss-main">
-                <span class="translation-label">Translation:</span>
-                <span class="translation-gloss-value"></span>
+              <span class="translation-line-header">
+                <span class="translation-label">Translation</span>
+                <button class="translation-restore" type="button" hidden>
+                  Show full translation
+                </button>
               </span>
-              <span class="translation-ipa-value" hidden></span>
+              <span class="translation-gloss-value"></span>
             </p>
             <hr class="translation-divider" />
           </section>
@@ -517,9 +514,6 @@ function ensureOverlay(): OverlayElements {
   const header = shadow.querySelector(".header") as HTMLElement;
   const translationSection = shadow.querySelector(
     ".translation-section",
-  ) as HTMLElement;
-  const translationRestoreRow = shadow.querySelector(
-    ".translation-restore-row",
   ) as HTMLElement;
   const translationOriginalValueEl = shadow.querySelector(
     ".translation-original-value",
@@ -543,7 +537,6 @@ function ensureOverlay(): OverlayElements {
     card,
     header,
     translationSection,
-    translationRestoreRow,
     translationOriginalValueEl,
     translationGlossValueEl,
     translationRestoreBtn,
@@ -604,20 +597,60 @@ function placeOverlayDefault(card: HTMLElement): void {
 
 let toggleHandler: (() => void) | null = null;
 let closeHandler: (() => void) | null = null;
-let wordClickHandler: ((wordIndex: number, wordText: string) => void) | null =
+let wordSelectHandler: ((startIndex: number, endIndex: number) => void) | null =
   null;
+let wordDragBound = false;
+let dragAnchorIndex: number | null = null;
+let dragPointerId: number | null = null;
 let translationRestoreHandler: (() => void) | null = null;
 let wordSpans: HTMLSpanElement[] = [];
+let overlayPresentationPhase: "idle" | "loading" | "ready" | "error" = "idle";
+
+function getTranslationSectionElements():
+  | {
+      translationSection: HTMLElement;
+      translationRestoreBtn: HTMLButtonElement;
+    }
+  | null {
+  const host = document.getElementById(OVERLAY_ID);
+  const translationSection = host?.shadowRoot?.querySelector(
+    ".translation-section",
+  ) as HTMLElement | undefined;
+  const translationRestoreBtn = host?.shadowRoot?.querySelector(
+    ".translation-restore",
+  ) as HTMLButtonElement | undefined;
+
+  if (!translationSection || !translationRestoreBtn) {
+    return null;
+  }
+
+  return { translationSection, translationRestoreBtn };
+}
 
 function hideTranslationSection(
   translationSection: HTMLElement,
-  translationRestoreRow: HTMLElement,
   translationRestoreBtn: HTMLButtonElement,
 ): void {
   translationSection.hidden = true;
-  translationRestoreRow.hidden = true;
+  translationRestoreBtn.hidden = true;
   translationRestoreBtn.onclick = null;
   translationRestoreHandler = null;
+
+  const translationOriginalValueEl = translationSection.querySelector(
+    ".translation-original-value",
+  ) as HTMLElement | null;
+  const translationGlossValueEl = translationSection.querySelector(
+    ".translation-gloss-value",
+  ) as HTMLElement | null;
+
+  if (translationOriginalValueEl) {
+    translationOriginalValueEl.textContent = "";
+  }
+
+  if (translationGlossValueEl) {
+    translationGlossValueEl.textContent = "";
+    translationGlossValueEl.classList.remove("is-loading");
+  }
 }
 
 export function setOverlayTranslation(
@@ -628,8 +661,8 @@ export function setOverlayTranslation(
   const translationSection = host?.shadowRoot?.querySelector(
     ".translation-section",
   ) as HTMLElement | undefined;
-  const translationRestoreRow = host?.shadowRoot?.querySelector(
-    ".translation-restore-row",
+  const translationOriginalLineEl = host?.shadowRoot?.querySelector(
+    ".translation-line-original",
   ) as HTMLElement | undefined;
   const translationOriginalValueEl = host?.shadowRoot?.querySelector(
     ".translation-original-value",
@@ -643,7 +676,7 @@ export function setOverlayTranslation(
 
   if (
     !translationSection ||
-    !translationRestoreRow ||
+    !translationOriginalLineEl ||
     !translationOriginalValueEl ||
     !translationGlossValueEl ||
     !translationRestoreBtn
@@ -651,22 +684,19 @@ export function setOverlayTranslation(
     return;
   }
 
-  if (!state.visible) {
-    hideTranslationSection(
-      translationSection,
-      translationRestoreRow,
-      translationRestoreBtn,
-    );
+  if (!state.visible || overlayPresentationPhase !== "ready") {
+    hideTranslationSection(translationSection, translationRestoreBtn);
     return;
   }
 
   translationSection.hidden = false;
+  translationOriginalLineEl.hidden = state.mode === "full";
   translationOriginalValueEl.textContent = state.originalText;
   translationGlossValueEl.textContent = state.loading
     ? "Translating…"
     : state.translationText;
   translationGlossValueEl.classList.toggle("is-loading", state.loading === true);
-  translationRestoreRow.hidden =
+  translationRestoreBtn.hidden =
     state.mode !== "word" || state.loading === true;
   translationRestoreHandler = onRestoreFull ?? null;
   translationRestoreBtn.onclick = () => {
@@ -676,27 +706,168 @@ export function setOverlayTranslation(
 
 function clearWordSpans(): void {
   for (const span of wordSpans) {
-    span.classList.remove("is-active", "is-loading");
+    span.classList.remove("is-active", "is-loading", "is-in-range");
   }
   wordSpans = [];
 }
 
-export function highlightOverlayWord(index: number | null): void {
+function wordIndexInRange(
+  wordIndex: number,
+  start: number | null,
+  end: number | null,
+): boolean {
+  if (start === null || end === null) {
+    return false;
+  }
+
+  const lo = Math.min(start, end);
+  const hi = Math.max(start, end);
+  return wordIndex >= lo && wordIndex <= hi;
+}
+
+export function highlightOverlayWord(
+  index: number | null,
+  endIndex?: number | null,
+): void {
+  const end = endIndex ?? index;
+
   for (let wordIndex = 0; wordIndex < wordSpans.length; wordIndex += 1) {
     wordSpans[wordIndex]?.classList.toggle(
       "is-active",
-      index !== null && wordIndex === index,
+      wordIndexInRange(wordIndex, index, end),
+    );
+    wordSpans[wordIndex]?.classList.remove("is-in-range");
+  }
+}
+
+export function setWordLoadingIndex(
+  index: number | null,
+  endIndex?: number | null,
+): void {
+  const end = endIndex ?? index;
+
+  for (let wordIndex = 0; wordIndex < wordSpans.length; wordIndex += 1) {
+    wordSpans[wordIndex]?.classList.toggle(
+      "is-loading",
+      wordIndexInRange(wordIndex, index, end),
     );
   }
 }
 
-export function setWordLoadingIndex(index: number | null): void {
+function wordIndexFromElement(element: Element | null): number | null {
+  if (!(element instanceof HTMLElement)) {
+    return null;
+  }
+
+  const wordEl = element.closest(".word");
+  if (!(wordEl instanceof HTMLSpanElement)) {
+    return null;
+  }
+
+  const index = wordSpans.indexOf(wordEl);
+  return index >= 0 ? index : null;
+}
+
+function wordIndexFromPoint(
+  shadow: ShadowRoot,
+  clientX: number,
+  clientY: number,
+): number | null {
+  return wordIndexFromElement(shadow.elementFromPoint(clientX, clientY));
+}
+
+function previewWordRange(start: number, end: number): void {
+  const lo = Math.min(start, end);
+  const hi = Math.max(start, end);
+
   for (let wordIndex = 0; wordIndex < wordSpans.length; wordIndex += 1) {
     wordSpans[wordIndex]?.classList.toggle(
-      "is-loading",
-      index !== null && wordIndex === index,
+      "is-in-range",
+      wordIndex >= lo && wordIndex <= hi,
     );
   }
+}
+
+function clearWordRangePreview(): void {
+  for (const span of wordSpans) {
+    span.classList.remove("is-in-range");
+  }
+}
+
+function resetWordDragState(textEl: HTMLElement): void {
+  clearWordRangePreview();
+  textEl.classList.remove("is-selecting");
+  dragAnchorIndex = null;
+  dragPointerId = null;
+}
+
+function bindWordDragSelection(textEl: HTMLElement, shadow: ShadowRoot): void {
+  if (wordDragBound) {
+    return;
+  }
+
+  wordDragBound = true;
+
+  textEl.addEventListener("pointerdown", (event) => {
+    if (event.button !== 0) {
+      return;
+    }
+
+    const index = wordIndexFromElement(event.target as Element);
+    if (index === null) {
+      return;
+    }
+
+    dragAnchorIndex = index;
+    dragPointerId = event.pointerId;
+    textEl.classList.add("is-selecting");
+    textEl.setPointerCapture(event.pointerId);
+    previewWordRange(index, index);
+    event.preventDefault();
+    event.stopPropagation();
+  });
+
+  textEl.addEventListener("pointermove", (event) => {
+    if (dragAnchorIndex === null || dragPointerId !== event.pointerId) {
+      return;
+    }
+
+    const index = wordIndexFromPoint(shadow, event.clientX, event.clientY);
+    if (index === null) {
+      return;
+    }
+
+    previewWordRange(dragAnchorIndex, index);
+  });
+
+  const finishDrag = (event: PointerEvent): void => {
+    if (dragAnchorIndex === null || dragPointerId !== event.pointerId) {
+      return;
+    }
+
+    const endIndex =
+      wordIndexFromPoint(shadow, event.clientX, event.clientY) ??
+      dragAnchorIndex;
+    const startIndex = dragAnchorIndex;
+
+    resetWordDragState(textEl);
+    textEl.releasePointerCapture(event.pointerId);
+
+    wordSelectHandler?.(
+      Math.min(startIndex, endIndex),
+      Math.max(startIndex, endIndex),
+    );
+    event.stopPropagation();
+  };
+
+  textEl.addEventListener("pointerup", finishDrag);
+  textEl.addEventListener("pointercancel", (event) => {
+    if (dragPointerId !== event.pointerId) {
+      return;
+    }
+
+    resetWordDragState(textEl);
+  });
 }
 
 export function setOverlayStatusMessage(message: string): void {
@@ -710,7 +881,11 @@ export function setOverlayStatusMessage(message: string): void {
   }
 }
 
-function renderTextWithWordSpans(textEl: HTMLElement, text: string): void {
+function renderTextWithWordSpans(
+  textEl: HTMLElement,
+  text: string,
+  shadow: ShadowRoot,
+): void {
   textEl.replaceChildren();
   clearWordSpans();
 
@@ -724,18 +899,14 @@ function renderTextWithWordSpans(textEl: HTMLElement, text: string): void {
       continue;
     }
 
-    const wordIndex = wordSpans.length;
     const span = document.createElement("span");
     span.className = "word";
     span.textContent = part;
-    span.title = "Click to hear this word";
-    span.addEventListener("click", (event) => {
-      event.stopPropagation();
-      wordClickHandler?.(wordIndex, part);
-    });
     textEl.appendChild(span);
     wordSpans.push(span);
   }
+
+  bindWordDragSelection(textEl, shadow);
 }
 
 function setPlainText(textEl: HTMLElement, text: string): void {
@@ -776,6 +947,16 @@ export function updateOverlayProgress(
   detail?: string,
   percent?: number,
 ): void {
+  overlayPresentationPhase = "loading";
+
+  const translationElements = getTranslationSectionElements();
+  if (translationElements) {
+    hideTranslationSection(
+      translationElements.translationSection,
+      translationElements.translationRestoreBtn,
+    );
+  }
+
   const host = document.getElementById(OVERLAY_ID);
   const statusEl = host?.shadowRoot?.querySelector(".status") as
     | HTMLElement
@@ -794,11 +975,12 @@ export function hideOverlay(): void {
   dragCleanup?.();
   dragCleanup = null;
   userMovedOverlay = false;
+  overlayPresentationPhase = "idle";
   translationRestoreHandler = null;
   document.getElementById(OVERLAY_ID)?.remove();
   toggleHandler = null;
   closeHandler = null;
-  wordClickHandler = null;
+  wordSelectHandler = null;
 }
 
 export function updatePlaybackState(playback: PlaybackState): void {
@@ -823,7 +1005,6 @@ export function showOverlay(
     host,
     card,
     translationSection,
-    translationRestoreRow,
     translationRestoreBtn,
     textEl,
     statusEl,
@@ -831,11 +1012,7 @@ export function showOverlay(
     closeButton,
   } = ensureOverlay();
 
-  hideTranslationSection(
-    translationSection,
-    translationRestoreRow,
-    translationRestoreBtn,
-  );
+  hideTranslationSection(translationSection, translationRestoreBtn);
   actionButton.hidden = true;
   actionButton.onclick = null;
   actionButton.classList.remove("is-playing");
@@ -848,6 +1025,7 @@ export function showOverlay(
   };
 
   if (state.kind === "loading-model") {
+    overlayPresentationPhase = "loading";
     setPlainText(textEl, state.text);
     renderLoadingStatus(
       statusEl,
@@ -858,14 +1036,17 @@ export function showOverlay(
   }
 
   if (state.kind === "generating") {
+    overlayPresentationPhase = "loading";
     setPlainText(textEl, state.text);
     renderLoadingStatus(statusEl, "generating", state.detail, state.percent);
   }
 
   if (state.kind === "ready") {
-    wordClickHandler = state.onWordClick ?? null;
-    renderTextWithWordSpans(textEl, state.text);
-    statusEl.textContent = state.hint ?? "Click a word to hear it on its own.";
+    overlayPresentationPhase = "ready";
+    wordSelectHandler = state.onWordSelect ?? null;
+    renderTextWithWordSpans(textEl, state.text, host.shadowRoot!);
+    statusEl.textContent =
+      state.hint ?? "Click or drag across words to hear them.";
     actionButton.hidden = false;
     applyPlaybackState(actionButton, state.playback);
     toggleHandler = state.onTogglePlayback;
@@ -873,6 +1054,7 @@ export function showOverlay(
   }
 
   if (state.kind === "error") {
+    overlayPresentationPhase = "error";
     setPlainText(textEl, state.text ?? "");
     statusEl.textContent = state.message;
     statusEl.classList.add("error");
@@ -895,6 +1077,19 @@ export function showOverlay(
   }
 }
 
+function isOverlayVisible(): boolean {
+  return document.getElementById(OVERLAY_ID) !== null;
+}
+
+function isPointerInsideOverlay(event: Event): boolean {
+  const host = document.getElementById(OVERLAY_ID);
+  if (!host) {
+    return false;
+  }
+
+  return event.composedPath().includes(host);
+}
+
 export function bindOverlayDismissals(onDismiss?: () => void): () => void {
   const onKeyDown = (event: KeyboardEvent) => {
     if (event.key === "Escape") {
@@ -902,6 +1097,23 @@ export function bindOverlayDismissals(onDismiss?: () => void): () => void {
     }
   };
 
+  const onPointerDown = (event: PointerEvent) => {
+    if (event.button !== 0 || !isOverlayVisible()) {
+      return;
+    }
+
+    if (isPointerInsideOverlay(event)) {
+      return;
+    }
+
+    onDismiss?.();
+  };
+
   window.addEventListener("keydown", onKeyDown);
-  return () => window.removeEventListener("keydown", onKeyDown);
+  document.addEventListener("pointerdown", onPointerDown);
+
+  return () => {
+    window.removeEventListener("keydown", onKeyDown);
+    document.removeEventListener("pointerdown", onPointerDown);
+  };
 }

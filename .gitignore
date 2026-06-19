@@ -140,6 +140,9 @@ dist
 # Local Supertonic model assets (downloaded via scripts/models.py)
 models/
 
+# Local Python venv used during G2P investigation
+.venv-g2p/
+
 # ONNX Runtime wasm assets (copied on postinstall)
 public/ort/
 vite.config.js.timestamp-*

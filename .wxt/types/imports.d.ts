@@ -49,6 +49,7 @@ declare global {
   const invalidateTabRequest: typeof import('/Users/tommyjtl/Documents/Projects/mot/utils/tab-requests').invalidateTabRequest
   const isCurrentTabRequest: typeof import('/Users/tommyjtl/Documents/Projects/mot/utils/tab-requests').isCurrentTabRequest
   const overlayWordIndexAtTime: typeof import('/Users/tommyjtl/Documents/Projects/mot/utils/overlay-word-sync').overlayWordIndexAtTime
+  const phraseFromWordRange: typeof import('/Users/tommyjtl/Documents/Projects/mot/utils/overlay-phrase').phraseFromWordRange
   const playAudioInOffscreen: typeof import('/Users/tommyjtl/Documents/Projects/mot/utils/offscreen-tts').playAudioInOffscreen
   const resetPlaybackClock: typeof import('/Users/tommyjtl/Documents/Projects/mot/utils/overlay-playback-clock').resetPlaybackClock
   const saveSettings: typeof import('/Users/tommyjtl/Documents/Projects/mot/utils/settings').saveSettings
@@ -64,6 +65,7 @@ declare global {
   const storage: typeof import('wxt/utils/storage').storage
   const syncPlaybackClock: typeof import('/Users/tommyjtl/Documents/Projects/mot/utils/overlay-playback-clock').syncPlaybackClock
   const synthesizeInOffscreen: typeof import('/Users/tommyjtl/Documents/Projects/mot/utils/offscreen-tts').synthesizeInOffscreen
+  const tokenizeWords: typeof import('/Users/tommyjtl/Documents/Projects/mot/utils/overlay-phrase').tokenizeWords
   const updateOverlayProgress: typeof import('/Users/tommyjtl/Documents/Projects/mot/utils/overlay').updateOverlayProgress
   const updatePlaybackState: typeof import('/Users/tommyjtl/Documents/Projects/mot/utils/overlay').updatePlaybackState
   const useAppConfig: typeof import('wxt/utils/app-config').useAppConfig
@@ -107,6 +109,9 @@ declare global {
   // @ts-ignore
   export type { TtsEngineError, OffscreenSynthResult } from '/Users/tommyjtl/Documents/Projects/mot/utils/offscreen-tts'
   import('/Users/tommyjtl/Documents/Projects/mot/utils/offscreen-tts')
+  // @ts-ignore
+  export type { WordToken } from '/Users/tommyjtl/Documents/Projects/mot/utils/overlay-phrase'
+  import('/Users/tommyjtl/Documents/Projects/mot/utils/overlay-phrase')
   // @ts-ignore
   export type { PlaybackState, OverlayState, TranslationViewState } from '/Users/tommyjtl/Documents/Projects/mot/utils/overlay'
   import('/Users/tommyjtl/Documents/Projects/mot/utils/overlay')

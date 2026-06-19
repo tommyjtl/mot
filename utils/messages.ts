@@ -80,11 +80,18 @@ export type Message =
     }
   | { type: "session-idle" }
   | { type: "request-cancelled"; requestId: number }
-  | { type: "speak-word"; word: string; wordIndex: number; requestId: number }
+  | {
+      type: "speak-word";
+      word: string;
+      wordIndex: number;
+      endWordIndex?: number;
+      requestId: number;
+    }
   | {
       type: "word-tts-result";
       requestId: number;
       wordIndex: number;
+      endWordIndex?: number;
       payload:
         | {
             ok: true;
