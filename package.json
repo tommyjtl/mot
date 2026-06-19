@@ -1,0 +1,34 @@
+{
+  "name": "mot",
+  "version": "1.0.0",
+  "description": "",
+  "main": "index.js",
+  "scripts": {
+    "test": "echo \"Error: no test specified\" && exit 1",
+    "dev": "wxt",
+    "build": "wxt build",
+    "zip": "wxt zip",
+    "postinstall": "wxt prepare && node scripts/copy-ort-wasm.mjs",
+    "models:download": "python3 scripts/models.py download",
+    "models:serve": "python3 scripts/models.py serve --port 8091"
+  },
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/tommyjtl/mot.git"
+  },
+  "keywords": [],
+  "author": "",
+  "license": "ISC",
+  "type": "module",
+  "bugs": {
+    "url": "https://github.com/tommyjtl/mot/issues"
+  },
+  "homepage": "https://github.com/tommyjtl/mot#readme",
+  "devDependencies": {
+    "typescript": "^6.0.3",
+    "wxt": "^0.20.26"
+  },
+  "dependencies": {
+    "onnxruntime-web": "^1.21.0"
+  }
+}
