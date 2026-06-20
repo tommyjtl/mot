@@ -1,4 +1,4 @@
-import type { TranscriptWordTranslationState } from "../../components/overlay/TranslationPanel";
+import type { TranslationState } from "../../components/overlay/TranslationPanel";
 import type { WordRange } from "../../components/overlay/InteractiveWordText";
 
 export const MAX_VISIBLE_TRANSCRIPT_LINES = 3;
@@ -25,19 +25,25 @@ export type TranscriptOverlayHandlers = {
   onToggleRealtimeTranslation?: (enabled: boolean) => void;
 };
 
+export type HandlersRef<T> = { current: T };
+
+export const transcriptHandlersRef: HandlersRef<TranscriptOverlayHandlers> = {
+  current: {},
+};
+
 export type TranscriptOverlayStoreState = {
   visible: boolean;
   view: TranscriptOverlayViewState;
   editMode: boolean;
   editDraft: string | null;
-  translation: TranscriptWordTranslationState;
+  translation: TranslationState;
   wordHighlight: WordRange | null;
   wordLoading: WordRange | null;
   playbackVisible: boolean;
   showRealtimeTranslation: boolean;
   statusMessage: string | null;
   statusError: boolean;
-  handlers: TranscriptOverlayHandlers;
+  handlersRef: HandlersRef<TranscriptOverlayHandlers>;
 };
 
 export const initialTranscriptOverlayState = (): TranscriptOverlayStoreState => ({
@@ -52,7 +58,7 @@ export const initialTranscriptOverlayState = (): TranscriptOverlayStoreState => 
   showRealtimeTranslation: false,
   statusMessage: null,
   statusError: false,
-  handlers: {},
+  handlersRef: transcriptHandlersRef,
 });
 
 export type TranscriptOverlayState = Exclude<

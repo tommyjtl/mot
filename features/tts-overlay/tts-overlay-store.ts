@@ -1,5 +1,4 @@
-import { useSyncExternalStore } from "react";
-import { createStore } from "../../lib/create-store";
+import { createStore, createStoreHook } from "../../lib/create-store";
 import {
   initialTtsOverlayState,
   type TtsOverlayStoreState,
@@ -9,13 +8,10 @@ export const ttsOverlayStore = createStore<TtsOverlayStoreState>(
   initialTtsOverlayState(),
 );
 
-export function useTtsOverlayStore(): TtsOverlayStoreState {
-  return useSyncExternalStore(
-    ttsOverlayStore.subscribe,
-    ttsOverlayStore.getState,
-    ttsOverlayStore.getState,
-  );
-}
+export const {
+  useStore: useTtsOverlayStore,
+  useStoreSelector: useTtsOverlaySelector,
+} = createStoreHook(ttsOverlayStore);
 
 export function resetTtsOverlayStore(): void {
   ttsOverlayStore.setState(initialTtsOverlayState());

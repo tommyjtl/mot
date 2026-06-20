@@ -9,6 +9,7 @@ import type {
   TranscriptOverlayHandlers,
   TranscriptOverlayState,
 } from "./types";
+import { transcriptHandlersRef } from "./types";
 import { isTranscriptOverlayMounted } from "./TranscriptOverlay";
 
 export type { TranscriptWordTranslationState };
@@ -22,24 +23,12 @@ function applyViewState(
   state: TranscriptOverlayState,
   handlers: TranscriptOverlayHandlers,
 ): void {
-  let statusMessage: string | null = null;
-  let statusError = false;
-
-  if (state.kind === "loading") {
-    statusMessage = state.detail;
-  } else if (state.kind === "needs-capture") {
-    statusMessage =
-      state.message ??
-      "Tab audio capture needs your confirmation on this page.";
-  } else if (state.kind === "error") {
-    statusMessage = state.message;
-    statusError = true;
-  }
-
   const clearsTranslation =
     state.kind === "loading" ||
     state.kind === "needs-capture" ||
     state.kind === "error";
+
+  transcriptHandlersRef.current = handlers;
 
   transcriptOverlayStore.setState({
     visible: true,
@@ -50,9 +39,8 @@ function applyViewState(
     wordHighlight: null,
     wordLoading: null,
     playbackVisible: false,
-    statusMessage,
-    statusError,
-    handlers,
+    statusMessage: null,
+    statusError: false,
   });
 }
 
@@ -66,8 +54,8 @@ export const transcriptOverlay = {
         ? current.editDraft
         : null;
 
-    if (pendingEditText && current.handlers.onTranscriptEdited) {
-      current.handlers.onTranscriptEdited(pendingEditText);
+    if (pendingEditText && transcriptHandlersRef.current.onTranscriptEdited) {
+      transcriptHandlersRef.current.onTranscriptEdited(pendingEditText);
     }
 
     applyViewState(state, handlers);
@@ -86,14 +74,11 @@ export const transcriptOverlay = {
       return;
     }
 
-    const current = transcriptOverlayStore.getState();
-    transcriptOverlayStore.setState({
-      translation: state,
-      handlers: {
-        ...current.handlers,
-        onRestoreFullTranslation: onRestoreFull,
-      },
-    });
+    transcriptOverlayStore.setState({ translation: state });
+    transcriptHandlersRef.current = {
+      ...transcriptHandlersRef.current,
+      onRestoreFullTranslation: onRestoreFull,
+    };
   },
 
   highlightWord(index: number | null, endIndex?: number | null): void {
@@ -195,20 +180,6 @@ export const transcriptOverlay = {
   isVisible(): boolean {
     return isTranscriptOverlayMounted();
   },
-
-  bindDismissals(onClose: () => void): void {
-    const handleKeyDown = (event: KeyboardEvent): void => {
-      if (event.key !== "Escape" || !isTranscriptOverlayMounted()) {
-        return;
-      }
-
-      event.preventDefault();
-      event.stopImmediatePropagation();
-      onClose();
-    };
-
-    window.addEventListener("keydown", handleKeyDown, true);
-  },
 };
 
 export const showTranscriptOverlay = (
@@ -246,7 +217,5 @@ export const updateTranscriptLoadingProgress = (
 export const updateTranscriptOverlay = (lines: string[], partial: string) =>
   transcriptOverlay.update(lines, partial);
 export const isTranscriptOverlayVisible = () => transcriptOverlay.isVisible();
-export const bindTranscriptDismissals = (onClose: () => void) =>
-  transcriptOverlay.bindDismissals(onClose);
 
 export type { TranscriptOverlayState };

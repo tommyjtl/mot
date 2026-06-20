@@ -1,6 +1,5 @@
 import type { Message, SelectionRect } from "../utils/messages";
 import {
-  bindOverlayDismissals,
   highlightOverlayWord,
   hideOverlay,
   setOverlayStatusMessage,
@@ -11,6 +10,12 @@ import {
   updatePlaybackState,
   type PlaybackState,
 } from "../features/tts-overlay/tts-overlay-controller";
+import {
+  getTtsSession,
+  isActiveTtsRequest,
+  nextTtsRequestId,
+  patchTtsSession,
+} from "../features/tts-overlay/tts-session-store";
 import { mountTtsOverlay } from "../features/tts-overlay/mount";
 import { overlayWordIndexAtTime } from "../utils/overlay-word-sync";
 import { phraseFromWordRange } from "../utils/overlay-phrase";
@@ -41,32 +46,8 @@ import {
   isLearningTranslationSupported,
   translateForLearning,
 } from "../utils/translation";
-
 import { evaluateSelection } from "../utils/selection";
 import { isSpeakSelectionShortcut } from "../utils/speak-shortcut";
-
-type PlaybackScope = "full" | "word";
-
-let fullAudioBase64: string | null = null;
-let fullAlignment: TtsAlignment | null = null;
-let currentPlaybackBase64: string | null = null;
-let playbackAlignment: TtsAlignment | null = null;
-let cachedSpeechText: string | null = null;
-let cachedFullTranslation: string | null = null;
-let fullTranslationRequestId = 0;
-let wordTranslationRequestId = 0;
-let translationDisplayMode: "full" | "word" = "full";
-let playbackDuration = 0;
-let playbackScope: PlaybackScope = "full";
-let pinnedWordStart: number | null = null;
-let pinnedWordEnd: number | null = null;
-let pinnedPhraseText: string | null = null;
-let highlightLoopId = 0;
-let highlightLoopActive = false;
-let isPlaying = false;
-let activeRequestId = 0;
-let wordSynthRequestId = 0;
-let lastReportedPlaybackTimeS = 0;
 
 function estimateSessionAlignment(
   audioBase64: string,
@@ -79,24 +60,26 @@ function estimateSessionAlignment(
 }
 
 function alignmentDebugHost(): AlignmentDebugHost {
+  const session = getTtsSession();
   return {
-    getAlignment: () => playbackAlignment ?? fullAlignment,
+    getAlignment: () => session.playbackAlignment ?? session.fullAlignment,
     getActiveWordIndex: () => {
-      if (!cachedSpeechText) {
+      if (!session.cachedSpeechText) {
         return null;
       }
       return overlayWordIndexAtTime(
-        cachedSpeechText,
+        session.cachedSpeechText,
         estimatedPlaybackTimeS(),
-        playbackDuration,
-        playbackAlignment,
+        session.playbackDuration,
+        session.playbackAlignment,
       );
     },
-    getReportedTimeS: () => lastReportedPlaybackTimeS,
+    getReportedTimeS: () => session.lastReportedPlaybackTimeS,
     getEstimatedTimeS: () => estimatedPlaybackTimeS(),
     getLatencyCompensationS: () => currentLatencyCompensationS(),
-    getDurationS: () => playbackDuration,
-    hasClip: () => Boolean(currentPlaybackBase64 ?? fullAudioBase64),
+    getDurationS: () => session.playbackDuration,
+    hasClip: () =>
+      Boolean(session.currentPlaybackBase64 ?? session.fullAudioBase64),
     onRealign: () => applyEstimatedAlignmentToSession(),
   };
 }
@@ -107,39 +90,46 @@ function alignmentDuration(alignment: TtsAlignment | null): number {
 }
 
 function invalidateActiveRequest(): void {
-  activeRequestId = 0;
-  fullAudioBase64 = null;
-  fullAlignment = null;
-  currentPlaybackBase64 = null;
-  playbackAlignment = null;
-  cachedSpeechText = null;
-  cachedFullTranslation = null;
-  fullTranslationRequestId += 1;
-  wordTranslationRequestId += 1;
-  translationDisplayMode = "full";
+  const session = getTtsSession();
+  patchTtsSession({
+    activeRequestId: 0,
+    fullAudioBase64: null,
+    fullAlignment: null,
+    currentPlaybackBase64: null,
+    playbackAlignment: null,
+    cachedSpeechText: null,
+    cachedFullTranslation: null,
+    fullTranslationRequestId: session.fullTranslationRequestId + 1,
+    wordTranslationRequestId: session.wordTranslationRequestId + 1,
+    translationDisplayMode: "full",
+    playbackDuration: 0,
+    playbackScope: "full",
+    pinnedWordStart: null,
+    pinnedWordEnd: null,
+    pinnedPhraseText: null,
+    wordSynthRequestId: 0,
+    lastReportedPlaybackTimeS: 0,
+  });
   setOverlayTranslation({ visible: false });
-  playbackDuration = 0;
-  playbackScope = "full";
-  pinnedWordStart = null;
-  pinnedWordEnd = null;
-  pinnedPhraseText = null;
-  wordSynthRequestId = 0;
   resetAlignmentDebugBindings();
-  lastReportedPlaybackTimeS = 0;
   resetPlaybackClock();
   stopHighlightLoop();
 }
 
 function showFullTranslation(): void {
-  wordTranslationRequestId += 1;
-  translationDisplayMode = "full";
+  const session = getTtsSession();
+  patchTtsSession({
+    wordTranslationRequestId: session.wordTranslationRequestId + 1,
+    translationDisplayMode: "full",
+  });
 
-  if (cachedFullTranslation) {
+  const next = getTtsSession();
+  if (next.cachedFullTranslation) {
     setOverlayTranslation(
       {
         visible: true,
-        originalText: cachedSpeechText ?? "",
-        translationText: cachedFullTranslation,
+        originalText: next.cachedSpeechText ?? "",
+        translationText: next.cachedFullTranslation,
         mode: "full",
       },
       showFullTranslation,
@@ -147,8 +137,8 @@ function showFullTranslation(): void {
     return;
   }
 
-  if (cachedSpeechText) {
-    void refreshFullTranslation(cachedSpeechText);
+  if (next.cachedSpeechText) {
+    void refreshFullTranslation(next.cachedSpeechText);
   }
 }
 
@@ -158,8 +148,8 @@ async function refreshFullTranslation(text: string): Promise<void> {
     return;
   }
 
-  const requestId = (fullTranslationRequestId += 1);
-  if (translationDisplayMode === "full") {
+  const requestId = nextTtsRequestId("fullTranslationRequestId");
+  if (getTtsSession().translationDisplayMode === "full") {
     setOverlayTranslation(
       {
         visible: true,
@@ -173,19 +163,19 @@ async function refreshFullTranslation(text: string): Promise<void> {
   }
 
   const result = await translateForLearning(text);
-  if (requestId !== fullTranslationRequestId) {
+  if (requestId !== getTtsSession().fullTranslationRequestId) {
     return;
   }
 
   if (!result.ok) {
     if (result.unavailable) {
-      if (translationDisplayMode === "full") {
+      if (getTtsSession().translationDisplayMode === "full") {
         setOverlayTranslation({ visible: false });
       }
       return;
     }
 
-    if (translationDisplayMode === "full") {
+    if (getTtsSession().translationDisplayMode === "full") {
       setOverlayTranslation(
         {
           visible: true,
@@ -199,8 +189,8 @@ async function refreshFullTranslation(text: string): Promise<void> {
     return;
   }
 
-  cachedFullTranslation = result.text;
-  if (translationDisplayMode === "full") {
+  patchTtsSession({ cachedFullTranslation: result.text });
+  if (getTtsSession().translationDisplayMode === "full") {
     setOverlayTranslation(
       {
         visible: true,
@@ -218,8 +208,8 @@ async function refreshWordTranslation(word: string): Promise<void> {
     return;
   }
 
-  translationDisplayMode = "word";
-  const requestId = (wordTranslationRequestId += 1);
+  patchTtsSession({ translationDisplayMode: "word" });
+  const requestId = nextTtsRequestId("wordTranslationRequestId");
   setOverlayTranslation(
     {
       visible: true,
@@ -232,7 +222,7 @@ async function refreshWordTranslation(word: string): Promise<void> {
   );
 
   const result = await translateForLearning(word);
-  if (requestId !== wordTranslationRequestId) {
+  if (requestId !== getTtsSession().wordTranslationRequestId) {
     return;
   }
 
@@ -260,12 +250,8 @@ async function refreshWordTranslation(word: string): Promise<void> {
   );
 }
 
-function isActiveRequest(requestId: number): boolean {
-  return requestId > 0 && requestId === activeRequestId;
-}
-
 function setPlayingState(playing: boolean): void {
-  isPlaying = playing;
+  patchTtsSession({ isPlaying: playing });
   updatePlaybackState(playing ? "playing" : "idle");
 }
 
@@ -274,44 +260,54 @@ function requestStopEverywhere(): void {
 }
 
 function stopHighlightLoop(): void {
-  highlightLoopActive = false;
-  if (highlightLoopId) {
-    cancelAnimationFrame(highlightLoopId);
-    highlightLoopId = 0;
+  const session = getTtsSession();
+  patchTtsSession({ highlightLoopActive: false });
+  if (session.highlightLoopId) {
+    cancelAnimationFrame(session.highlightLoopId);
+    patchTtsSession({ highlightLoopId: 0 });
   }
 }
 
 function startHighlightLoop(): void {
   stopHighlightLoop();
-  highlightLoopActive = true;
+  patchTtsSession({ highlightLoopActive: true });
 
   const frame = (): void => {
-    if (!highlightLoopActive || !cachedSpeechText) {
+    const session = getTtsSession();
+    if (!session.highlightLoopActive || !session.cachedSpeechText) {
       return;
     }
 
-    syncOverlayHighlight(highlightPlaybackTimeS(), playbackDuration);
+    syncOverlayHighlight(
+      highlightPlaybackTimeS(),
+      session.playbackDuration,
+    );
     updateAlignmentDebugDuringPlayback(alignmentDebugHost());
-    highlightLoopId = requestAnimationFrame(frame);
+    const loopId = requestAnimationFrame(frame);
+    patchTtsSession({ highlightLoopId: loopId });
   };
 
-  highlightLoopId = requestAnimationFrame(frame);
+  const loopId = requestAnimationFrame(frame);
+  patchTtsSession({ highlightLoopId: loopId });
 }
 
 function stopAudio(): void {
+  const session = getTtsSession();
   stopHighlightLoop();
   stopPlaybackClock();
   highlightOverlayWord(null);
   setWordLoadingIndex(null);
-  currentPlaybackBase64 = null;
-  playbackAlignment = fullAlignment;
-  playbackScope = "full";
-  pinnedWordStart = null;
-  pinnedWordEnd = null;
-  pinnedPhraseText = null;
-  playbackDuration = alignmentDuration(fullAlignment);
+  patchTtsSession({
+    currentPlaybackBase64: null,
+    playbackAlignment: session.fullAlignment,
+    playbackScope: "full",
+    pinnedWordStart: null,
+    pinnedWordEnd: null,
+    pinnedPhraseText: null,
+    playbackDuration: alignmentDuration(session.fullAlignment),
+  });
 
-  if (isPlaying) {
+  if (session.isPlaying) {
     setPlayingState(false);
   }
 
@@ -336,30 +332,35 @@ function closeOverlay(): void {
 }
 
 function syncOverlayHighlight(currentTime: number, duration: number): void {
-  if (!cachedSpeechText) {
+  const session = getTtsSession();
+  if (!session.cachedSpeechText) {
     return;
   }
 
-  if (playbackScope === "word" && pinnedWordStart !== null) {
-    if (isPlaying) {
-      const end = pinnedWordEnd ?? pinnedWordStart;
-      const isPhrase = end > pinnedWordStart;
+  if (session.playbackScope === "word" && session.pinnedWordStart !== null) {
+    if (session.isPlaying) {
+      const end = session.pinnedWordEnd ?? session.pinnedWordStart;
+      const isPhrase = end > session.pinnedWordStart;
 
-      if (isPhrase && playbackAlignment?.words.length && pinnedPhraseText) {
+      if (
+        isPhrase &&
+        session.playbackAlignment?.words.length &&
+        session.pinnedPhraseText
+      ) {
         const localIndex = overlayWordIndexAtTime(
-          pinnedPhraseText,
+          session.pinnedPhraseText,
           currentTime,
           duration,
-          playbackAlignment,
+          session.playbackAlignment,
         );
 
         if (localIndex !== null) {
-          highlightOverlayWord(pinnedWordStart + localIndex);
+          highlightOverlayWord(session.pinnedWordStart + localIndex);
         } else {
-          highlightOverlayWord(pinnedWordStart, end);
+          highlightOverlayWord(session.pinnedWordStart, end);
         }
       } else {
-        highlightOverlayWord(pinnedWordStart, end);
+        highlightOverlayWord(session.pinnedWordStart, end);
       }
     }
     return;
@@ -367,34 +368,38 @@ function syncOverlayHighlight(currentTime: number, duration: number): void {
 
   highlightOverlayWord(
     overlayWordIndexAtTime(
-      cachedSpeechText,
+      session.cachedSpeechText,
       currentTime,
       duration,
-      playbackAlignment,
+      session.playbackAlignment,
     ),
   );
 }
 
 function applyEstimatedAlignmentToSession(): void {
-  if (!cachedSpeechText || !fullAudioBase64) {
+  const session = getTtsSession();
+  if (!session.cachedSpeechText || !session.fullAudioBase64) {
     return;
   }
 
-  const estimated = estimateSessionAlignment(fullAudioBase64, cachedSpeechText);
+  const estimated = estimateSessionAlignment(
+    session.fullAudioBase64,
+    session.cachedSpeechText,
+  );
   if (!estimated) {
     return;
   }
 
-  fullAlignment = estimated;
-  if (playbackScope === "full") {
-    playbackAlignment = estimated;
-  }
-  playbackDuration = alignmentDuration(fullAlignment);
+  patchTtsSession({
+    fullAlignment: estimated,
+    playbackAlignment:
+      session.playbackScope === "full" ? estimated : session.playbackAlignment,
+    playbackDuration: alignmentDuration(estimated),
+  });
 }
 
 function requestPlayback(audioBase64: string): void {
-  currentPlaybackBase64 = audioBase64;
-
+  patchTtsSession({ currentPlaybackBase64: audioBase64 });
   void browser.runtime.sendMessage({
     type: "play-audio",
     audioBase64,
@@ -402,23 +407,26 @@ function requestPlayback(audioBase64: string): void {
 }
 
 function playFullSelection(): void {
-  if (!fullAudioBase64) {
+  const session = getTtsSession();
+  if (!session.fullAudioBase64) {
     return;
   }
 
   resetPlaybackClock();
-  playbackScope = "full";
-  playbackAlignment = fullAlignment;
-  pinnedWordStart = null;
-  pinnedWordEnd = null;
-  pinnedPhraseText = null;
-  playbackDuration = alignmentDuration(fullAlignment);
+  patchTtsSession({
+    playbackScope: "full",
+    playbackAlignment: session.fullAlignment,
+    pinnedWordStart: null,
+    pinnedWordEnd: null,
+    pinnedPhraseText: null,
+    playbackDuration: alignmentDuration(session.fullAlignment),
+  });
   setOverlayStatusMessage("Click or drag across words to hear them.");
-  requestPlayback(fullAudioBase64);
+  requestPlayback(session.fullAudioBase64);
 }
 
 function togglePlayback(): void {
-  if (isPlaying) {
+  if (getTtsSession().isPlaying) {
     stopAudio();
     return;
   }
@@ -427,12 +435,13 @@ function togglePlayback(): void {
 }
 
 function speakWordRange(startIndex: number, endIndex: number): void {
-  if (!cachedSpeechText) {
+  const session = getTtsSession();
+  if (!session.cachedSpeechText) {
     return;
   }
 
   const phraseText = phraseFromWordRange(
-    cachedSpeechText,
+    session.cachedSpeechText,
     startIndex,
     endIndex,
   );
@@ -445,8 +454,7 @@ function speakWordRange(startIndex: number, endIndex: number): void {
   setOverlayStatusMessage(`Generating “${phraseText}”…`);
   void refreshWordTranslation(phraseText);
 
-  const requestId = (wordSynthRequestId += 1);
-
+  const requestId = nextTtsRequestId("wordSynthRequestId");
   void browser.runtime.sendMessage({
     type: "speak-word",
     word: phraseText,
@@ -462,7 +470,7 @@ function showReadyOverlay(
   playback: PlaybackState,
   hint?: string,
 ): void {
-  cachedSpeechText = text;
+  patchTtsSession({ cachedSpeechText: text });
 
   showOverlay(
     {
@@ -484,7 +492,7 @@ function showReadyOverlay(
 function handleWordTtsResult(
   message: Extract<Message, { type: "word-tts-result" }>,
 ): void {
-  if (message.requestId !== wordSynthRequestId) {
+  if (message.requestId !== getTtsSession().wordSynthRequestId) {
     return;
   }
 
@@ -495,17 +503,23 @@ function handleWordTtsResult(
     return;
   }
 
-  playbackScope = "word";
-  pinnedWordStart = message.wordIndex;
-  pinnedWordEnd = message.endWordIndex ?? message.wordIndex;
-  pinnedPhraseText = message.payload.ok ? message.payload.word : null;
-  currentPlaybackBase64 = message.payload.audioBase64;
   const aligned = estimateSessionAlignment(
     message.payload.audioBase64,
     message.payload.word,
   );
-  playbackAlignment = aligned ?? message.payload.alignment ?? null;
-  playbackDuration = alignmentDuration(playbackAlignment);
+
+  patchTtsSession({
+    playbackScope: "word",
+    pinnedWordStart: message.wordIndex,
+    pinnedWordEnd: message.endWordIndex ?? message.wordIndex,
+    pinnedPhraseText: message.payload.ok ? message.payload.word : null,
+    currentPlaybackBase64: message.payload.audioBase64,
+    playbackAlignment: aligned ?? message.payload.alignment ?? null,
+    playbackDuration: alignmentDuration(
+      aligned ?? message.payload.alignment ?? null,
+    ),
+  });
+
   resetPlaybackClock();
   setOverlayStatusMessage(`Playing “${message.payload.word}”.`);
   syncAlignmentDebug(alignmentDebugHost());
@@ -514,20 +528,21 @@ function handleWordTtsResult(
 function handlePlaybackMessage(
   message: Extract<Message, { type: "tts-playback" }>,
 ): void {
-  if (!currentPlaybackBase64 || activeRequestId === 0) {
+  const session = getTtsSession();
+  if (!session.currentPlaybackBase64 || session.activeRequestId === 0) {
     return;
   }
 
   if (message.duration > 0) {
-    playbackDuration = message.duration;
+    patchTtsSession({ playbackDuration: message.duration });
   }
 
-  lastReportedPlaybackTimeS = message.currentTime;
+  patchTtsSession({ lastReportedPlaybackTimeS: message.currentTime });
 
   const duration =
-    playbackDuration ||
+    getTtsSession().playbackDuration ||
     message.duration ||
-    alignmentDuration(playbackAlignment);
+    alignmentDuration(getTtsSession().playbackAlignment);
 
   if (message.state === "paused" || message.state === "ended") {
     stopHighlightLoop();
@@ -535,7 +550,7 @@ function handlePlaybackMessage(
     setPlayingState(false);
     highlightOverlayWord(null);
 
-    if (message.state === "ended" && playbackScope === "word") {
+    if (message.state === "ended" && session.playbackScope === "word") {
       setOverlayStatusMessage("Click or drag across words to hear them.");
     }
 
@@ -555,7 +570,6 @@ export default defineContentScript({
 
   main() {
     mountTtsOverlay();
-    bindOverlayDismissals(closeOverlay);
 
     window.addEventListener(
       "keydown",
@@ -580,17 +594,21 @@ export default defineContentScript({
         hideSelectionToast();
         hideCaptureOverlay();
         hideOverlay();
-        activeRequestId = message.requestId;
-        fullAudioBase64 = null;
-        fullAlignment = null;
-        cachedSpeechText = null;
-        cachedFullTranslation = null;
-        fullTranslationRequestId += 1;
-        wordTranslationRequestId += 1;
-        translationDisplayMode = "full";
+        patchTtsSession({
+          activeRequestId: message.requestId,
+          fullAudioBase64: null,
+          fullAlignment: null,
+          cachedSpeechText: null,
+          cachedFullTranslation: null,
+          fullTranslationRequestId:
+            getTtsSession().fullTranslationRequestId + 1,
+          wordTranslationRequestId:
+            getTtsSession().wordTranslationRequestId + 1,
+          translationDisplayMode: "full",
+          playbackDuration: 0,
+          wordSynthRequestId: 0,
+        });
         setOverlayTranslation({ visible: false });
-        playbackDuration = 0;
-        wordSynthRequestId = 0;
         resetPlaybackClock();
 
         const evaluated = evaluateSelection();
@@ -625,7 +643,7 @@ export default defineContentScript({
       }
 
       if (message.type === "start-capture-mode") {
-        if (!isActiveRequest(message.requestId)) {
+        if (!isActiveTtsRequest(message.requestId)) {
           return;
         }
 
@@ -642,7 +660,7 @@ export default defineContentScript({
       }
 
       if (message.type === "ocr-started") {
-        if (!isActiveRequest(message.requestId)) {
+        if (!isActiveTtsRequest(message.requestId)) {
           return;
         }
 
@@ -659,7 +677,7 @@ export default defineContentScript({
       }
 
       if (message.type === "tts-progress") {
-        if (!isActiveRequest(message.requestId)) {
+        if (!isActiveTtsRequest(message.requestId)) {
           return;
         }
 
@@ -668,7 +686,7 @@ export default defineContentScript({
       }
 
       if (message.type === "tts-result") {
-        if (!isActiveRequest(message.requestId)) {
+        if (!isActiveTtsRequest(message.requestId)) {
           return;
         }
 
@@ -689,19 +707,25 @@ export default defineContentScript({
           return;
         }
 
-        fullAudioBase64 = payload.audioBase64;
-        currentPlaybackBase64 = payload.audioBase64;
-        cachedSpeechText = payload.text;
-        playbackScope = "full";
+        patchTtsSession({
+          fullAudioBase64: payload.audioBase64,
+          currentPlaybackBase64: payload.audioBase64,
+          cachedSpeechText: payload.text,
+          playbackScope: "full",
+          pinnedWordStart: null,
+          pinnedWordEnd: null,
+          pinnedPhraseText: null,
+        });
         applyEstimatedAlignmentToSession();
-        if (!fullAlignment) {
-          fullAlignment = payload.alignment ?? null;
+
+        const session = getTtsSession();
+        if (!session.fullAlignment) {
+          patchTtsSession({ fullAlignment: payload.alignment ?? null });
         }
-        playbackAlignment = fullAlignment;
-        playbackDuration = alignmentDuration(fullAlignment);
-        pinnedWordStart = null;
-        pinnedWordEnd = null;
-        pinnedPhraseText = null;
+        patchTtsSession({
+          playbackAlignment: getTtsSession().fullAlignment,
+          playbackDuration: alignmentDuration(getTtsSession().fullAlignment),
+        });
         resetPlaybackClock();
 
         showReadyOverlay(payload.text, payload.rect, "playing");
@@ -718,7 +742,7 @@ export default defineContentScript({
       }
 
       if (message.type === "request-cancelled") {
-        if (message.requestId === activeRequestId) {
+        if (message.requestId === getTtsSession().activeRequestId) {
           invalidateActiveRequest();
           stopAudio();
           hideSelectionToast();

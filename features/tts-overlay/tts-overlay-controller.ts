@@ -1,8 +1,5 @@
 import type { TranslationViewState } from "../../components/overlay/TranslationPanel";
-import {
-  destroyShadowReactMount,
-} from "../../components/overlay/mount-shadow-react";
-import { isCaptureOverlayVisible } from "../../utils/capture-region";
+import { destroyShadowReactMount } from "../../components/overlay/mount-shadow-react";
 import type { SelectionRect } from "../../utils/messages";
 import type { AlignmentDebugHost } from "../../utils/overlay-alignment-debug";
 import { resetAlignmentDebugBindings } from "../../utils/overlay-alignment-debug";
@@ -12,7 +9,8 @@ import {
   resetTtsOverlayStore,
   ttsOverlayStore,
 } from "./tts-overlay-store";
-import type { OverlayViewState, PlaybackState, TtsOverlayStoreState } from "./types";
+import type { OverlayViewState, PlaybackState } from "./types";
+import { ttsHandlersRef } from "./types";
 import { isTtsOverlayVisible } from "./TtsOverlay";
 
 export type {
@@ -33,21 +31,23 @@ export const ttsOverlay = {
   ): void {
     ensureMounted();
 
-    const handlers: TtsOverlayStoreState["handlers"] = {
-      ...ttsOverlayStore.getState().handlers,
+    const current = ttsOverlayStore.getState();
+    ttsHandlersRef.current = {
+      ...ttsHandlersRef.current,
       onClose,
     };
 
     if (view.kind === "ready") {
-      handlers.onTogglePlayback = view.onTogglePlayback;
-      handlers.onWordSelect = view.onWordSelect;
+      ttsHandlersRef.current.onTogglePlayback = view.onTogglePlayback;
+      ttsHandlersRef.current.onWordSelect = view.onWordSelect;
     }
 
     ttsOverlayStore.setState({
       visible: true,
       view,
       selectionRect: rect,
-      userMoved: ttsOverlayStore.getState().userMoved,
+      userMoved: current.userMoved,
+      position: current.userMoved ? current.position : null,
       translation: { visible: false },
       wordHighlight: null,
       wordLoading: null,
@@ -55,7 +55,6 @@ export const ttsOverlay = {
       loadingPhase: undefined,
       loadingDetail: undefined,
       loadingPercent: undefined,
-      handlers,
     });
   },
 
@@ -76,23 +75,19 @@ export const ttsOverlay = {
 
     const current = ttsOverlayStore.getState();
     if (!state.visible || current.view.kind !== "ready") {
-      ttsOverlayStore.setState({
-        translation: { visible: false },
-        handlers: {
-          ...current.handlers,
-          onRestoreFullTranslation: undefined,
-        },
-      });
+      ttsOverlayStore.setState({ translation: { visible: false } });
+      ttsHandlersRef.current = {
+        ...ttsHandlersRef.current,
+        onRestoreFullTranslation: undefined,
+      };
       return;
     }
 
-    ttsOverlayStore.setState({
-      translation: state,
-      handlers: {
-        ...current.handlers,
-        onRestoreFullTranslation: onRestoreFull,
-      },
-    });
+    ttsOverlayStore.setState({ translation: state });
+    ttsHandlersRef.current = {
+      ...ttsHandlersRef.current,
+      onRestoreFullTranslation: onRestoreFull,
+    };
   },
 
   highlightWord(index: number | null, endIndex?: number | null): void {
@@ -170,40 +165,8 @@ export const ttsOverlay = {
       alignmentDebugTick: ttsOverlayStore.getState().alignmentDebugTick + 1,
     });
   },
-
-  bindDismissals(onDismiss?: () => void): () => void {
-    const onKeyDown = (event: KeyboardEvent) => {
-      if (event.key === "Escape") {
-        onDismiss?.();
-      }
-    };
-
-    const onPointerDown = (event: PointerEvent) => {
-      if (
-        event.button !== 0 ||
-        !isTtsOverlayVisible() ||
-        isCaptureOverlayVisible()
-      ) {
-        return;
-      }
-
-      const host = document.getElementById("mot-tts-overlay-host");
-      if (!host || !event.composedPath().includes(host)) {
-        onDismiss?.();
-      }
-    };
-
-    window.addEventListener("keydown", onKeyDown);
-    document.addEventListener("pointerdown", onPointerDown);
-
-    return () => {
-      window.removeEventListener("keydown", onKeyDown);
-      document.removeEventListener("pointerdown", onPointerDown);
-    };
-  },
 };
 
-// Back-compat named exports for content script migration
 export const showOverlay = (
   state: Exclude<OverlayViewState, { kind: "hidden" }> & {
     onTogglePlayback?: () => void;
@@ -212,11 +175,6 @@ export const showOverlay = (
   rect?: SelectionRect,
   onClose?: () => void,
 ) => {
-  if (state.kind === "ready") {
-    ttsOverlay.show(state, rect, onClose);
-    return;
-  }
-
   ttsOverlay.show(state, rect, onClose);
 };
 
@@ -242,5 +200,3 @@ export const updateOverlayProgress = (
 ) => ttsOverlay.updateProgress(phase, detail, percent);
 export const updatePlaybackState = (playback: PlaybackState) =>
   ttsOverlay.updatePlaybackState(playback);
-export const bindOverlayDismissals = (onDismiss?: () => void) =>
-  ttsOverlay.bindDismissals(onDismiss);

@@ -1,4 +1,4 @@
-export type TranslationViewState =
+export type TranslationState =
   | { visible: false }
   | {
       visible: true;
@@ -8,8 +8,14 @@ export type TranslationViewState =
       loading?: boolean;
     };
 
+/** @deprecated Use TranslationState */
+export type TranslationViewState = TranslationState;
+
+/** @deprecated Use TranslationState */
+export type TranscriptWordTranslationState = TranslationState;
+
 type TranslationPanelProps = {
-  state: TranslationViewState;
+  state: TranslationState;
   showRestore?: boolean;
   onRestore?: () => void;
 };
@@ -55,20 +61,10 @@ export function TranslationPanel({
   );
 }
 
-export type TranscriptWordTranslationState =
-  | { visible: false }
-  | {
-      visible: true;
-      originalText: string;
-      translationText: string;
-      mode: "full" | "word";
-      loading?: boolean;
-    };
-
 export function TranscriptTranslationPanel({
   state,
 }: {
-  state: TranscriptWordTranslationState;
+  state: TranslationState;
 }) {
   if (!state.visible) {
     return null;

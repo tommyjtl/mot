@@ -6,9 +6,11 @@ import { defineConfig } from "wxt";
  * - https://www.youtube.com/watch?v=axzZ3zvdA9M
  * - https://www.rfi.fr/fr/france/
  * - https://www.instagram.com/p/DWrTxvjgv_g/
+ * - https://www.youtube.com/watch?v=IVo5R2yaxB0
+ * - https://youtu.be/tA3YBYYmIrg?t=18
  */
 const DEV_START_URL =
-  "https://youtu.be/tA3YBYYmIrg?t=18";
+  "https://www.youtube.com/watch?v=IVo5R2yaxB0";
 
 /** Reuse one Chrome profile during dev instead of tmp-web-ext copies (~400 MB/model each). */
 const DEV_CHROME_PROFILE = resolve(".wxt/chrome-data");

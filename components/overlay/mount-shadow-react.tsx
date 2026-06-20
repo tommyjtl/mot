@@ -1,4 +1,10 @@
-import { useEffect, type ComponentType } from "react";
+import {
+  createContext,
+  useContext,
+  useEffect,
+  type ComponentType,
+  type ReactNode,
+} from "react";
 import { createRoot, type Root } from "react-dom/client";
 
 export type MountShadowReactOptions = {
@@ -13,6 +19,38 @@ export type ShadowMount = {
   shadow: ShadowRoot;
   root: Root;
 };
+
+export type ShadowMountContextValue = {
+  host: HTMLElement;
+  shadow: ShadowRoot;
+};
+
+export const ShadowMountContext = createContext<ShadowMountContextValue | null>(null);
+
+export function ShadowMountProvider({
+  host,
+  shadow,
+  children,
+}: {
+  host: HTMLElement;
+  shadow: ShadowRoot;
+  children: ReactNode;
+}) {
+  return (
+    <ShadowMountContext.Provider value={{ host, shadow }}>
+      {children}
+    </ShadowMountContext.Provider>
+  );
+}
+
+export function useShadowMount(): ShadowMountContextValue {
+  const value = useContext(ShadowMountContext);
+  if (!value) {
+    throw new Error("useShadowMount must be used within ShadowMountProvider");
+  }
+
+  return value;
+}
 
 const mounts = new Map<string, ShadowMount>();
 
@@ -62,10 +100,10 @@ function createShadowHost(options: MountShadowReactOptions): ShadowMount {
   const App = options.App;
   const root = createRoot(reactHost);
   root.render(
-    <>
+    <ShadowMountProvider host={host} shadow={shadow}>
       <ShadowStyleInjector shadow={shadow} styles={options.styles} />
       <App />
-    </>,
+    </ShadowMountProvider>,
   );
 
   return { host, shadow, root };

@@ -1,98 +1,151 @@
-import { useEffect, useRef } from "react";
+import { useCallback, useEffect, useMemo, useRef, type CSSProperties } from "react";
+import { OverlayHost } from "../../components/overlay/OverlayHost";
+import { OverlayPanel } from "../../components/overlay/OverlayPanel";
 import {
-  getShadowReactMount,
-  isShadowHostMounted,
-} from "../../components/overlay/mount-shadow-react";
-import { InteractiveWordText, PlainWordText } from "../../components/overlay/InteractiveWordText";
+  InteractiveWordText,
+  PlainWordText,
+} from "../../components/overlay/InteractiveWordText";
 import { StatusFooter } from "../../components/overlay/StatusFooter";
 import { TranslationPanel } from "../../components/overlay/TranslationPanel";
+import { useShadowMount } from "../../components/overlay/mount-shadow-react";
+import { isShadowHostMounted } from "../../components/overlay/mount-shadow-react";
+import { useOverlayDismissals } from "../../hooks/useOverlayDismissals";
+import { useOverlayDrag } from "../../hooks/useOverlayDrag";
 import {
-  placeCardDefault,
-  positionCardNearSelection,
-  useOverlayDrag,
-} from "../../hooks/useOverlayDrag";
+  computeCardPositionNearSelection,
+  type PanelPosition,
+} from "../../utils/overlay-layout";
+import { isCaptureOverlayVisible } from "../../utils/capture-region";
+import { deriveStatusFromTtsView } from "../../utils/overlay-view-status";
 import { AlignmentDebugPanel } from "./AlignmentDebugPanel";
-import { useTtsOverlayStore, ttsOverlayStore } from "./tts-overlay-store";
+import {
+  ttsOverlayStore,
+  useTtsOverlaySelector,
+} from "./tts-overlay-store";
 
 const HOST_ID = "mot-tts-overlay-host";
 
+function panelStyle(position: PanelPosition | null): CSSProperties | undefined {
+  if (!position) {
+    return undefined;
+  }
+
+  return {
+    position: "fixed",
+    left: position.left,
+    top: position.top,
+    right: "auto",
+    bottom: "auto",
+    transform: "none",
+  };
+}
+
 export function TtsOverlay() {
-  const state = useTtsOverlayStore();
+  const visible = useTtsOverlaySelector((state) => state.visible);
+  const view = useTtsOverlaySelector((state) => state.view);
+  const selectionRect = useTtsOverlaySelector((state) => state.selectionRect);
+  const userMoved = useTtsOverlaySelector((state) => state.userMoved);
+  const position = useTtsOverlaySelector((state) => state.position);
+  const translation = useTtsOverlaySelector((state) => state.translation);
+  const wordHighlight = useTtsOverlaySelector((state) => state.wordHighlight);
+  const wordLoading = useTtsOverlaySelector((state) => state.wordLoading);
+  const statusMessage = useTtsOverlaySelector((state) => state.statusMessage);
+  const loadingPhase = useTtsOverlaySelector((state) => state.loadingPhase);
+  const loadingDetail = useTtsOverlaySelector((state) => state.loadingDetail);
+  const loadingPercent = useTtsOverlaySelector((state) => state.loadingPercent);
+  const handlersRef = useTtsOverlaySelector((state) => state.handlersRef);
+
   const cardRef = useRef<HTMLDivElement>(null);
   const headerRef = useRef<HTMLElement>(null);
-  const shadowRootRef = useRef<ShadowRoot | null>(null);
+  const { host } = useShadowMount();
+  const hostRef = useRef<HTMLElement | null>(null);
+  hostRef.current = host;
+
+  const onDismiss = useCallback(() => {
+    handlersRef.current.onClose?.();
+  }, [handlersRef]);
+
+  useOverlayDismissals({
+    hostRef,
+    onDismiss,
+    enabled: visible && view.kind !== "hidden",
+    ignoreCaptureOverlay: isCaptureOverlayVisible,
+  });
+
   const { headerProps } = useOverlayDrag(cardRef, headerRef, {
     onDragStart: () => {
       if (!ttsOverlayStore.getState().userMoved) {
         ttsOverlayStore.setState({ userMoved: true });
       }
     },
+    onDragEnd: (nextPosition) => {
+      ttsOverlayStore.setState({
+        position: nextPosition,
+        userMoved: true,
+      });
+    },
   });
 
   useEffect(() => {
-    shadowRootRef.current = getShadowReactMount(HOST_ID)?.shadow ?? null;
-  }, []);
-
-  useEffect(() => {
-    if (!state.visible || state.userMoved || !cardRef.current) {
+    if (!visible || userMoved || !cardRef.current) {
       return;
     }
 
-    if (state.selectionRect) {
-      positionCardNearSelection(cardRef.current, state.selectionRect);
-      return;
-    }
+    const card = cardRef.current;
+    const panelSize = {
+      width: card.offsetWidth || 280,
+      height: card.offsetHeight || 80,
+    };
+    const viewport = {
+      width: window.innerWidth,
+      height: window.innerHeight,
+    };
 
-    placeCardDefault(cardRef.current);
-  }, [state.visible, state.selectionRect, state.userMoved, state.view.kind]);
+    const nextPosition = selectionRect
+      ? computeCardPositionNearSelection(selectionRect, panelSize, viewport)
+      : null;
 
-  if (!state.visible || state.view.kind === "hidden") {
+    ttsOverlayStore.setState({ position: nextPosition });
+  }, [visible, selectionRect, userMoved, view.kind]);
+
+  const derivedStatus = useMemo(
+    () => deriveStatusFromTtsView(view),
+    [view],
+  );
+
+  if (!visible || view.kind === "hidden") {
     return null;
   }
 
-  const view = state.view;
-  const showTranslation =
-    state.translation.visible && view.kind === "ready";
+  const showTranslation = translation.visible && view.kind === "ready";
+  const cardClassName = `card ttsCard${position ? "" : " ttsCardDefault"}`;
 
   return (
-    <div className="ttsHost">
-      <div ref={cardRef} className="card ttsCard">
-        <header
-          ref={headerRef}
-          className="header"
-          aria-label="Drag pronunciation panel"
-          {...headerProps}
-        >
-          <div className="dragHandle" aria-hidden="true">
-            <span />
-            <span />
-            <span />
-          </div>
-          <button
-            type="button"
-            className="closeButton closeButton"
-            aria-label="Close"
-            title="Close"
-            onClick={() => state.handlers.onClose?.()}
-          >
-            ×
-          </button>
-        </header>
+    <OverlayHost className="ttsHost">
+      <OverlayPanel
+        panelRef={cardRef}
+        headerRef={headerRef}
+        headerProps={headerProps}
+        className={cardClassName}
+        style={panelStyle(position)}
+        ariaLabel="Drag pronunciation panel"
+        onClose={() => handlersRef.current.onClose?.()}
+        showDragHandle
+      >
         <div className="body">
           {showTranslation ? (
             <TranslationPanel
-              state={state.translation}
-              onRestore={state.handlers.onRestoreFullTranslation}
+              state={translation}
+              onRestore={() => handlersRef.current.onRestoreFullTranslation?.()}
             />
           ) : null}
 
           {view.kind === "ready" ? (
             <InteractiveWordText
               text={view.text}
-              shadowRootRef={shadowRootRef}
-              highlight={state.wordHighlight}
-              loading={state.wordLoading}
-              onWordSelect={state.handlers.onWordSelect}
+              highlight={wordHighlight}
+              loading={wordLoading}
+              onWordSelect={handlersRef.current.onWordSelect}
             />
           ) : (
             <PlainWordText
@@ -114,7 +167,7 @@ export function TtsOverlay() {
                   className={`actionButton${
                     view.playback === "playing" ? " isPlaying" : ""
                   }`}
-                  onClick={() => state.handlers.onTogglePlayback?.()}
+                  onClick={() => handlersRef.current.onTogglePlayback?.()}
                 >
                   {view.playback === "playing"
                     ? "Stop pronunciation"
@@ -125,34 +178,43 @@ export function TtsOverlay() {
 
             {view.kind === "loading-model" ||
             view.kind === "generating" ||
-            state.loadingPhase ? (
+            loadingPhase ? (
               <StatusFooter
                 loadingPhase={
-                  state.loadingPhase ??
+                  loadingPhase ??
                   (view.kind === "generating" ? "generating" : "loading-model")
                 }
                 loadingDetail={
-                  state.loadingDetail ??
+                  loadingDetail ??
                   (view.kind === "loading-model" || view.kind === "generating"
                     ? view.detail
                     : undefined)
                 }
                 loadingPercent={
-                  state.loadingPercent ??
+                  loadingPercent ??
                   (view.kind === "loading-model" ? view.percent : undefined)
                 }
               />
             ) : view.kind === "ready" ? (
-              <StatusFooter message={state.statusMessage ?? view.hint ?? "Click or drag across words to hear them."} />
+              <StatusFooter
+                message={
+                  statusMessage ??
+                  view.hint ??
+                  "Click or drag across words to hear them."
+                }
+              />
             ) : view.kind === "error" ? (
-              <StatusFooter message={view.message} error />
+              <StatusFooter
+                message={derivedStatus.message ?? view.message}
+                error
+              />
             ) : null}
 
             <AlignmentDebugPanel />
           </div>
         </div>
-      </div>
-    </div>
+      </OverlayPanel>
+    </OverlayHost>
   );
 }
 

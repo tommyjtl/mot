@@ -123,6 +123,14 @@
   width: min(360px, calc(100vw - 24px));
 }
 
+.ttsCardDefault {
+  position: fixed;
+  top: 16px;
+  right: 16px;
+  left: auto;
+  bottom: auto;
+}
+
 .ttsHost {
   position: fixed;
   top: 0;

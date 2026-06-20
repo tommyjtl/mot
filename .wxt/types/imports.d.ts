@@ -22,6 +22,7 @@ declare global {
   const STOP_AUDIO: typeof import('/Users/tommyjtl/Documents/Projects/mot/utils/offscreen-document').STOP_AUDIO
   const TtsEngineError: typeof import('/Users/tommyjtl/Documents/Projects/mot/utils/offscreen-tts').TtsEngineError
   const abortOffscreenSynthesis: typeof import('/Users/tommyjtl/Documents/Projects/mot/utils/offscreen-tts').abortOffscreenSynthesis
+  const applyPanelPosition: typeof import('/Users/tommyjtl/Documents/Projects/mot/utils/overlay-layout').applyPanelPosition
   const arrayBufferToBase64: typeof import('/Users/tommyjtl/Documents/Projects/mot/utils/audio-encoding').arrayBufferToBase64
   const base64ToArrayBuffer: typeof import('/Users/tommyjtl/Documents/Projects/mot/utils/audio-encoding').base64ToArrayBuffer
   const beginCaptureWait: typeof import('/Users/tommyjtl/Documents/Projects/mot/utils/capture-session').beginCaptureWait
@@ -33,20 +34,25 @@ declare global {
   const cancelCaptureWait: typeof import('/Users/tommyjtl/Documents/Projects/mot/utils/capture-session').cancelCaptureWait
   const cancelTabTranscriptionInOffscreen: typeof import('/Users/tommyjtl/Documents/Projects/mot/utils/offscreen-stt').cancelTabTranscriptionInOffscreen
   const captureVisibleRegionBase64: typeof import('/Users/tommyjtl/Documents/Projects/mot/utils/capture-screenshot').captureVisibleRegionBase64
+  const clampPanelPosition: typeof import('/Users/tommyjtl/Documents/Projects/mot/utils/overlay-layout').clampPanelPosition
   const clearPageUi: typeof import('/Users/tommyjtl/Documents/Projects/mot/utils/page-ui').clearPageUi
   const clearTabRequest: typeof import('/Users/tommyjtl/Documents/Projects/mot/utils/tab-requests').clearTabRequest
   const clearTabSession: typeof import('/Users/tommyjtl/Documents/Projects/mot/utils/session').clearTabSession
+  const computeCardPositionNearSelection: typeof import('/Users/tommyjtl/Documents/Projects/mot/utils/overlay-layout').computeCardPositionNearSelection
   const createIframeUi: typeof import('wxt/utils/content-script-ui/iframe').createIframeUi
   const createIntegratedUi: typeof import('wxt/utils/content-script-ui/integrated').createIntegratedUi
   const createShadowRootUi: typeof import('wxt/utils/content-script-ui/shadow-root').createShadowRootUi
   const createTranscriptMediaSyncController: typeof import('/Users/tommyjtl/Documents/Projects/mot/utils/transcript-media-sync').createTranscriptMediaSyncController
   const cropScreenshotToBase64: typeof import('/Users/tommyjtl/Documents/Projects/mot/utils/capture-screenshot').cropScreenshotToBase64
   const currentLatencyCompensationS: typeof import('/Users/tommyjtl/Documents/Projects/mot/utils/overlay-playback-clock').currentLatencyCompensationS
+  const defaultCardPosition: typeof import('/Users/tommyjtl/Documents/Projects/mot/utils/overlay-layout').defaultCardPosition
   const defineAppConfig: typeof import('wxt/utils/define-app-config').defineAppConfig
   const defineBackground: typeof import('wxt/utils/define-background').defineBackground
   const defineContentScript: typeof import('wxt/utils/define-content-script').defineContentScript
   const defineUnlistedScript: typeof import('wxt/utils/define-unlisted-script').defineUnlistedScript
   const defineWxtPlugin: typeof import('wxt/utils/define-wxt-plugin').defineWxtPlugin
+  const deriveStatusFromTranscriptView: typeof import('/Users/tommyjtl/Documents/Projects/mot/utils/overlay-view-status').deriveStatusFromTranscriptView
+  const deriveStatusFromTtsView: typeof import('/Users/tommyjtl/Documents/Projects/mot/utils/overlay-view-status').deriveStatusFromTtsView
   const dispatchMediaPlaybackState: typeof import('/Users/tommyjtl/Documents/Projects/mot/utils/media-playback-sync').dispatchMediaPlaybackState
   const ensureOffscreenDocument: typeof import('/Users/tommyjtl/Documents/Projects/mot/utils/offscreen-tts').ensureOffscreenDocument
   const estimateAlignmentFromAudio: typeof import('/Users/tommyjtl/Documents/Projects/mot/utils/alignment-from-audio').estimateAlignmentFromAudio
@@ -75,9 +81,9 @@ declare global {
   const isTabCapturePermissionError: typeof import('/Users/tommyjtl/Documents/Projects/mot/utils/tab-capture').isTabCapturePermissionError
   const overlayWordIndexAtTime: typeof import('/Users/tommyjtl/Documents/Projects/mot/utils/overlay-word-sync').overlayWordIndexAtTime
   const phraseFromWordRange: typeof import('/Users/tommyjtl/Documents/Projects/mot/utils/overlay-phrase').phraseFromWordRange
-  const placeCardDefault: typeof import('/Users/tommyjtl/Documents/Projects/mot/hooks/useOverlayDrag').placeCardDefault
+  const placeCardDefault: typeof import('/Users/tommyjtl/Documents/Projects/mot/utils/overlay-layout').placeCardDefault
   const playAudioInOffscreen: typeof import('/Users/tommyjtl/Documents/Projects/mot/utils/offscreen-tts').playAudioInOffscreen
-  const positionCardNearSelection: typeof import('/Users/tommyjtl/Documents/Projects/mot/hooks/useOverlayDrag').positionCardNearSelection
+  const positionCardNearSelection: typeof import('/Users/tommyjtl/Documents/Projects/mot/utils/overlay-layout').positionCardNearSelection
   const recognizeInOffscreen: typeof import('/Users/tommyjtl/Documents/Projects/mot/utils/offscreen-ocr').recognizeInOffscreen
   const requestTabCaptureStreamId: typeof import('/Users/tommyjtl/Documents/Projects/mot/utils/tab-capture').requestTabCaptureStreamId
   const resetAlignmentDebugBindings: typeof import('/Users/tommyjtl/Documents/Projects/mot/utils/overlay-alignment-debug').resetAlignmentDebugBindings
@@ -100,16 +106,24 @@ declare global {
   const tokenizeWords: typeof import('/Users/tommyjtl/Documents/Projects/mot/utils/overlay-phrase').tokenizeWords
   const updateAlignmentDebugDuringPlayback: typeof import('/Users/tommyjtl/Documents/Projects/mot/utils/overlay-alignment-debug').updateAlignmentDebugDuringPlayback
   const useAppConfig: typeof import('wxt/utils/app-config').useAppConfig
+  const useAutoGrowRows: typeof import('/Users/tommyjtl/Documents/Projects/mot/hooks/useAutoGrowRows').useAutoGrowRows
   const useCallback: typeof import('react').useCallback
   const useContext: typeof import('react').useContext
+  const useDocumentEvent: typeof import('/Users/tommyjtl/Documents/Projects/mot/hooks/useDocumentEvent').useDocumentEvent
   const useEffect: typeof import('react').useEffect
+  const useEscapeKey: typeof import('/Users/tommyjtl/Documents/Projects/mot/hooks/useEscapeKey').useEscapeKey
+  const useEventListener: typeof import('/Users/tommyjtl/Documents/Projects/mot/hooks/useEventListener').useEventListener
   const useMemo: typeof import('react').useMemo
+  const useOverlayDismissals: typeof import('/Users/tommyjtl/Documents/Projects/mot/hooks/useOverlayDismissals').useOverlayDismissals
   const useOverlayDrag: typeof import('/Users/tommyjtl/Documents/Projects/mot/hooks/useOverlayDrag').useOverlayDrag
   const useOverlayPanelDrag: typeof import('/Users/tommyjtl/Documents/Projects/mot/hooks/useOverlayDrag').useOverlayPanelDrag
+  const usePointerDownOutside: typeof import('/Users/tommyjtl/Documents/Projects/mot/hooks/usePointerDownOutside').usePointerDownOutside
   const useReducer: typeof import('react').useReducer
   const useRef: typeof import('react').useRef
   const useState: typeof import('react').useState
+  const useTranscriptEditGuard: typeof import('/Users/tommyjtl/Documents/Projects/mot/hooks/useTranscriptEditGuard').useTranscriptEditGuard
   const useTranscriptHostDrag: typeof import('/Users/tommyjtl/Documents/Projects/mot/hooks/useOverlayDrag').useTranscriptHostDrag
+  const useWindowEvent: typeof import('/Users/tommyjtl/Documents/Projects/mot/hooks/useWindowEvent').useWindowEvent
   const viewportRectToSelectionRect: typeof import('/Users/tommyjtl/Documents/Projects/mot/utils/capture-region').viewportRectToSelectionRect
   const warmUpOffscreenOcr: typeof import('/Users/tommyjtl/Documents/Projects/mot/utils/offscreen-ocr').warmUpOffscreenOcr
   const warmUpOffscreenStt: typeof import('/Users/tommyjtl/Documents/Projects/mot/utils/offscreen-stt').warmUpOffscreenStt
@@ -169,8 +183,14 @@ declare global {
   export type { AlignmentDebugHost } from '/Users/tommyjtl/Documents/Projects/mot/utils/overlay-alignment-debug'
   import('/Users/tommyjtl/Documents/Projects/mot/utils/overlay-alignment-debug')
   // @ts-ignore
+  export type { PanelSize, ViewportSize, PanelPosition, SelectionRectLike } from '/Users/tommyjtl/Documents/Projects/mot/utils/overlay-layout'
+  import('/Users/tommyjtl/Documents/Projects/mot/utils/overlay-layout')
+  // @ts-ignore
   export type { WordToken } from '/Users/tommyjtl/Documents/Projects/mot/utils/overlay-phrase'
   import('/Users/tommyjtl/Documents/Projects/mot/utils/overlay-phrase')
+  // @ts-ignore
+  export type { OverlayStatus } from '/Users/tommyjtl/Documents/Projects/mot/utils/overlay-view-status'
+  import('/Users/tommyjtl/Documents/Projects/mot/utils/overlay-view-status')
   // @ts-ignore
   export type { SelectionResult } from '/Users/tommyjtl/Documents/Projects/mot/utils/selection'
   import('/Users/tommyjtl/Documents/Projects/mot/utils/selection')

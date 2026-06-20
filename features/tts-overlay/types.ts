@@ -1,5 +1,5 @@
 import type { SelectionRect } from "../../utils/messages";
-import type { TranslationViewState } from "../../components/overlay/TranslationPanel";
+import type { TranslationState } from "../../components/overlay/TranslationPanel";
 import type { WordRange } from "../../components/overlay/InteractiveWordText";
 import type { AlignmentDebugHost } from "../../utils/overlay-alignment-debug";
 
@@ -19,36 +19,51 @@ export type OverlayViewState =
     }
   | { kind: "error"; message: string; text?: string };
 
+export type PanelPosition = {
+  left: number;
+  top: number;
+};
+
+export type TtsOverlayHandlers = {
+  onClose?: () => void;
+  onTogglePlayback?: () => void;
+  onWordSelect?: (startIndex: number, endIndex: number) => void;
+  onRestoreFullTranslation?: () => void;
+};
+
+export type HandlersRef<T> = { current: T };
+
+export const ttsHandlersRef: HandlersRef<TtsOverlayHandlers> = {
+  current: {},
+};
+
 export type TtsOverlayStoreState = {
   visible: boolean;
   view: OverlayViewState;
   selectionRect?: SelectionRect;
   userMoved: boolean;
+  position: PanelPosition | null;
   statusMessage?: string;
   loadingPhase?: "loading-model" | "generating" | "recognizing";
   loadingDetail?: string;
   loadingPercent?: number;
-  translation: TranslationViewState;
+  translation: TranslationState;
   wordHighlight: WordRange | null;
   wordLoading: WordRange | null;
   alignmentDebugHost: AlignmentDebugHost | null;
   alignmentDebugTick: number;
-  handlers: {
-    onClose?: () => void;
-    onTogglePlayback?: () => void;
-    onWordSelect?: (startIndex: number, endIndex: number) => void;
-    onRestoreFullTranslation?: () => void;
-  };
+  handlersRef: HandlersRef<TtsOverlayHandlers>;
 };
 
 export const initialTtsOverlayState = (): TtsOverlayStoreState => ({
   visible: false,
   view: { kind: "hidden" },
   userMoved: false,
+  position: null,
   translation: { visible: false },
   wordHighlight: null,
   wordLoading: null,
   alignmentDebugHost: null,
   alignmentDebugTick: 0,
-  handlers: {},
+  handlersRef: ttsHandlersRef,
 });

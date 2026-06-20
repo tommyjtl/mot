@@ -10,7 +10,6 @@ import {
   syncPlaybackClock,
 } from "../utils/overlay-playback-clock";
 import {
-  bindTranscriptDismissals,
   hideTranscriptOverlay,
   highlightTranscriptWord,
   isTranscriptOverlayVisible,
@@ -40,34 +39,13 @@ import {
   getSettings,
   type MotSettings,
 } from "../utils/settings";
-
-let transcribing = false;
-let overlayDismissed = false;
-let stopExpectedFromUi = false;
-let captureInitiatedLocally = false;
-let preserveLinesOnNextStart = false;
-let finalizedLines: string[] = [];
-let partialLine = "";
-
-let cachedVisibleSpeechText: string | null = null;
-let cachedFullTranslation: string | null = null;
-let cachedFullTranslationText: string | null = null;
-let wordSynthRequestId = 0;
-let wordTranslationRequestId = 0;
-let fullTranslationRequestId = 0;
-let translationDisplayMode: "full" | "word" = "full";
-let showRealtimeTranslation = false;
-let fullTranslationDebounceId: ReturnType<typeof setTimeout> | null = null;
-
-const FULL_TRANSLATION_DEBOUNCE_MS = 600;
-let currentPlaybackBase64: string | null = null;
-let playbackAlignment: TtsAlignment | null = null;
-let playbackDuration = 0;
-let pinnedWordStart: number | null = null;
-let pinnedWordEnd: number | null = null;
-let pinnedPhraseText: string | null = null;
-let highlightLoopId = 0;
-let highlightLoopActive = false;
+import {
+  FULL_TRANSLATION_DEBOUNCE_MS,
+  getTranscriptSession,
+  nextTranscriptRequestId,
+  patchTranscriptSession,
+  resetTranscriptSession,
+} from "../features/transcript-overlay/transcript-session-store";
 
 type StartCaptureResponse = {
   ok?: boolean;
@@ -76,6 +54,7 @@ type StartCaptureResponse = {
 };
 
 function getVisibleTranscriptText(): string {
+  const { finalizedLines, partialLine } = getTranscriptSession();
   const entries = [...finalizedLines];
   if (partialLine) {
     entries.push(partialLine);
@@ -94,14 +73,14 @@ function alignmentDuration(alignment: TtsAlignment | null): number {
 }
 
 function pauseTranscriptionFromMedia(): void {
-  stopExpectedFromUi = true;
+  patchTranscriptSession({ stopExpectedFromUi: true });
   stopTranscriptAudio();
   clearReadModeUi();
   void requestStopTranscription();
 }
 
 const mediaSync = createTranscriptMediaSyncController({
-  isTranscribing: () => transcribing,
+  isTranscribing: () => getTranscriptSession().transcribing,
   pauseFromMedia: pauseTranscriptionFromMedia,
   resumeFromMedia: () => {
     stopTranscriptAudio();
@@ -116,29 +95,21 @@ async function loadMediaSyncSettings(): Promise<void> {
 }
 
 function resetTranscriptState(): void {
-  transcribing = false;
-  finalizedLines = [];
-  partialLine = "";
-  captureInitiatedLocally = false;
-  preserveLinesOnNextStart = false;
-  wordTranslationRequestId += 1;
-  fullTranslationRequestId += 1;
-  cachedVisibleSpeechText = null;
-  cachedFullTranslation = null;
-  cachedFullTranslationText = null;
-  translationDisplayMode = "full";
-  showRealtimeTranslation = false;
-  mediaSync.reset();
-  if (fullTranslationDebounceId !== null) {
-    clearTimeout(fullTranslationDebounceId);
-    fullTranslationDebounceId = null;
+  const session = getTranscriptSession();
+  if (session.fullTranslationDebounceId !== null) {
+    clearTimeout(session.fullTranslationDebounceId);
   }
+  resetTranscriptSession();
+  mediaSync.reset();
 }
 
 function finalizePartialLine(): void {
-  if (partialLine.trim()) {
-    finalizedLines.push(partialLine.trim());
-    partialLine = "";
+  const session = getTranscriptSession();
+  if (session.partialLine.trim()) {
+    patchTranscriptSession({
+      finalizedLines: [...session.finalizedLines, session.partialLine.trim()],
+      partialLine: "",
+    });
   }
 }
 
@@ -153,15 +124,16 @@ function requestStopAudio(): void {
 }
 
 function stopHighlightLoop(): void {
-  highlightLoopActive = false;
-  if (highlightLoopId) {
-    cancelAnimationFrame(highlightLoopId);
-    highlightLoopId = 0;
+  const session = getTranscriptSession();
+  patchTranscriptSession({ highlightLoopActive: false });
+  if (session.highlightLoopId) {
+    cancelAnimationFrame(session.highlightLoopId);
+    patchTranscriptSession({ highlightLoopId: 0 });
   }
 }
 
 function stopTranscriptAudio(): void {
-  wordSynthRequestId += 1;
+  nextTranscriptRequestId("wordSynthRequestId");
   stopHighlightLoop();
   stopPlaybackClock();
   if (isTranscriptOverlayVisible()) {
@@ -170,22 +142,27 @@ function stopTranscriptAudio(): void {
     setTranscriptPlaybackVisible(false);
     setTranscriptReadStatus(null);
   }
-  currentPlaybackBase64 = null;
-  playbackAlignment = null;
-  playbackDuration = 0;
-  pinnedWordStart = null;
-  pinnedWordEnd = null;
-  pinnedPhraseText = null;
+  patchTranscriptSession({
+    currentPlaybackBase64: null,
+    playbackAlignment: null,
+    playbackDuration: 0,
+    pinnedWordStart: null,
+    pinnedWordEnd: null,
+    pinnedPhraseText: null,
+  });
   requestStopAudio();
 }
 
 function clearTranslationUi(): void {
-  wordTranslationRequestId += 1;
-  fullTranslationRequestId += 1;
-  if (fullTranslationDebounceId !== null) {
-    clearTimeout(fullTranslationDebounceId);
-    fullTranslationDebounceId = null;
+  const session = getTranscriptSession();
+  if (session.fullTranslationDebounceId !== null) {
+    clearTimeout(session.fullTranslationDebounceId);
   }
+  patchTranscriptSession({
+    wordTranslationRequestId: session.wordTranslationRequestId + 1,
+    fullTranslationRequestId: session.fullTranslationRequestId + 1,
+    fullTranslationDebounceId: null,
+  });
 
   if (isTranscriptOverlayVisible()) {
     setTranscriptWordTranslation({ visible: false });
@@ -193,10 +170,13 @@ function clearTranslationUi(): void {
 }
 
 function clearReadModeUi(): void {
-  wordTranslationRequestId += 1;
-  translationDisplayMode = "full";
+  const session = getTranscriptSession();
+  patchTranscriptSession({
+    wordTranslationRequestId: session.wordTranslationRequestId + 1,
+    translationDisplayMode: "full",
+  });
 
-  if (showRealtimeTranslation) {
+  if (getTranscriptSession().showRealtimeTranslation) {
     showFullTranslation();
     return;
   }
@@ -207,31 +187,40 @@ function clearReadModeUi(): void {
 }
 
 function setShowRealtimeTranslationEnabled(enabled: boolean): void {
-  showRealtimeTranslation = enabled;
+  patchTranscriptSession({ showRealtimeTranslation: enabled });
   setTranscriptShowRealtimeTranslation(enabled);
 
   if (enabled) {
-    translationDisplayMode = "full";
+    patchTranscriptSession({ translationDisplayMode: "full" });
     showFullTranslation();
     return;
   }
 
-  fullTranslationRequestId += 1;
-  if (fullTranslationDebounceId !== null) {
-    clearTimeout(fullTranslationDebounceId);
-    fullTranslationDebounceId = null;
+  const session = getTranscriptSession();
+  if (session.fullTranslationDebounceId !== null) {
+    clearTimeout(session.fullTranslationDebounceId);
   }
+  patchTranscriptSession({
+    fullTranslationRequestId: session.fullTranslationRequestId + 1,
+    fullTranslationDebounceId: null,
+  });
 
-  if (translationDisplayMode === "full" && isTranscriptOverlayVisible()) {
+  if (
+    getTranscriptSession().translationDisplayMode === "full" &&
+    isTranscriptOverlayVisible()
+  ) {
     setTranscriptWordTranslation({ visible: false });
   }
 }
 
 function showFullTranslation(): void {
-  wordTranslationRequestId += 1;
-  translationDisplayMode = "full";
+  const session = getTranscriptSession();
+  patchTranscriptSession({
+    wordTranslationRequestId: session.wordTranslationRequestId + 1,
+    translationDisplayMode: "full",
+  });
 
-  if (!showRealtimeTranslation) {
+  if (!getTranscriptSession().showRealtimeTranslation) {
     if (isTranscriptOverlayVisible()) {
       setTranscriptWordTranslation({ visible: false });
     }
@@ -244,15 +233,16 @@ function showFullTranslation(): void {
     return;
   }
 
+  const next = getTranscriptSession();
   if (
-    cachedFullTranslation &&
-    cachedFullTranslationText === text
+    next.cachedFullTranslation &&
+    next.cachedFullTranslationText === text
   ) {
     setTranscriptWordTranslation(
       {
         visible: true,
         originalText: text,
-        translationText: cachedFullTranslation,
+        translationText: next.cachedFullTranslation,
         mode: "full",
       },
       showFullTranslation,
@@ -264,15 +254,15 @@ function showFullTranslation(): void {
 }
 
 async function refreshFullTranslation(text: string): Promise<void> {
-  if (!showRealtimeTranslation || !isLearningTranslationSupported()) {
+  if (!getTranscriptSession().showRealtimeTranslation || !isLearningTranslationSupported()) {
     if (isTranscriptOverlayVisible()) {
       setTranscriptWordTranslation({ visible: false });
     }
     return;
   }
 
-  const requestId = (fullTranslationRequestId += 1);
-  if (translationDisplayMode === "full") {
+  const requestId = nextTranscriptRequestId("fullTranslationRequestId");
+  if (getTranscriptSession().translationDisplayMode === "full") {
     setTranscriptWordTranslation(
       {
         visible: true,
@@ -286,19 +276,19 @@ async function refreshFullTranslation(text: string): Promise<void> {
   }
 
   const result = await translateForLearning(text);
-  if (requestId !== fullTranslationRequestId) {
+  if (requestId !== getTranscriptSession().fullTranslationRequestId) {
     return;
   }
 
   if (!result.ok) {
     if (result.unavailable) {
-      if (translationDisplayMode === "full") {
+      if (getTranscriptSession().translationDisplayMode === "full") {
         setTranscriptWordTranslation({ visible: false });
       }
       return;
     }
 
-    if (translationDisplayMode === "full") {
+    if (getTranscriptSession().translationDisplayMode === "full") {
       setTranscriptWordTranslation(
         {
           visible: true,
@@ -312,9 +302,11 @@ async function refreshFullTranslation(text: string): Promise<void> {
     return;
   }
 
-  cachedFullTranslation = result.text;
-  cachedFullTranslationText = text;
-  if (translationDisplayMode === "full") {
+  patchTranscriptSession({
+    cachedFullTranslation: result.text,
+    cachedFullTranslationText: text,
+  });
+  if (getTranscriptSession().translationDisplayMode === "full") {
     setTranscriptWordTranslation(
       {
         visible: true,
@@ -328,22 +320,26 @@ async function refreshFullTranslation(text: string): Promise<void> {
 }
 
 function scheduleFullTranslationRefresh(immediate = false): void {
-  if (!showRealtimeTranslation) {
+  if (!getTranscriptSession().showRealtimeTranslation) {
     return;
   }
 
   const text = getVisibleTranscriptText();
   if (!text.trim()) {
-    fullTranslationRequestId += 1;
+    const session = getTranscriptSession();
+    patchTranscriptSession({
+      fullTranslationRequestId: session.fullTranslationRequestId + 1,
+    });
     setTranscriptWordTranslation({ visible: false });
     return;
   }
 
-  if (translationDisplayMode !== "full") {
+  if (getTranscriptSession().translationDisplayMode !== "full") {
     return;
   }
 
-  if (cachedFullTranslationText !== text) {
+  const session = getTranscriptSession();
+  if (session.cachedFullTranslationText !== text) {
     setTranscriptWordTranslation(
       {
         visible: true,
@@ -356,21 +352,22 @@ function scheduleFullTranslationRefresh(immediate = false): void {
     );
   }
 
-  if (fullTranslationDebounceId !== null) {
-    clearTimeout(fullTranslationDebounceId);
-    fullTranslationDebounceId = null;
+  if (session.fullTranslationDebounceId !== null) {
+    clearTimeout(session.fullTranslationDebounceId);
+    patchTranscriptSession({ fullTranslationDebounceId: null });
   }
 
   if (immediate) {
+    const current = getTranscriptSession();
     if (
-      cachedFullTranslation &&
-      cachedFullTranslationText === text
+      current.cachedFullTranslation &&
+      current.cachedFullTranslationText === text
     ) {
       setTranscriptWordTranslation(
         {
           visible: true,
           originalText: text,
-          translationText: cachedFullTranslation,
+          translationText: current.cachedFullTranslation,
           mode: "full",
         },
         showFullTranslation,
@@ -382,27 +379,28 @@ function scheduleFullTranslationRefresh(immediate = false): void {
     return;
   }
 
-  fullTranslationDebounceId = setTimeout(() => {
-    fullTranslationDebounceId = null;
+  const debounceId = setTimeout(() => {
+    patchTranscriptSession({ fullTranslationDebounceId: null });
     const currentText = getVisibleTranscriptText();
     if (!currentText.trim()) {
       setTranscriptWordTranslation({ visible: false });
       return;
     }
 
-    if (translationDisplayMode !== "full") {
+    if (getTranscriptSession().translationDisplayMode !== "full") {
       return;
     }
 
+    const current = getTranscriptSession();
     if (
-      cachedFullTranslation &&
-      cachedFullTranslationText === currentText
+      current.cachedFullTranslation &&
+      current.cachedFullTranslationText === currentText
     ) {
       setTranscriptWordTranslation(
         {
           visible: true,
           originalText: currentText,
-          translationText: cachedFullTranslation,
+          translationText: current.cachedFullTranslation,
           mode: "full",
         },
         showFullTranslation,
@@ -412,54 +410,65 @@ function scheduleFullTranslationRefresh(immediate = false): void {
 
     void refreshFullTranslation(currentText);
   }, FULL_TRANSLATION_DEBOUNCE_MS);
+  patchTranscriptSession({ fullTranslationDebounceId: debounceId });
 }
 
 function startHighlightLoop(): void {
   stopHighlightLoop();
-  highlightLoopActive = true;
+  patchTranscriptSession({ highlightLoopActive: true });
 
   const frame = (): void => {
-    if (!highlightLoopActive || !cachedVisibleSpeechText) {
+    const session = getTranscriptSession();
+    if (!session.highlightLoopActive || !session.cachedVisibleSpeechText) {
       return;
     }
 
-    syncTranscriptHighlight(highlightPlaybackTimeS(), playbackDuration);
-    highlightLoopId = requestAnimationFrame(frame);
+    syncTranscriptHighlight(
+      highlightPlaybackTimeS(),
+      session.playbackDuration,
+    );
+    const loopId = requestAnimationFrame(frame);
+    patchTranscriptSession({ highlightLoopId: loopId });
   };
 
-  highlightLoopId = requestAnimationFrame(frame);
+  const loopId = requestAnimationFrame(frame);
+  patchTranscriptSession({ highlightLoopId: loopId });
 }
 
 function syncTranscriptHighlight(currentTime: number, duration: number): void {
-  if (!cachedVisibleSpeechText || pinnedWordStart === null) {
+  const session = getTranscriptSession();
+  if (!session.cachedVisibleSpeechText || session.pinnedWordStart === null) {
     return;
   }
 
-  const end = pinnedWordEnd ?? pinnedWordStart;
-  const isPhrase = end > pinnedWordStart;
+  const end = session.pinnedWordEnd ?? session.pinnedWordStart;
+  const isPhrase = end > session.pinnedWordStart;
 
-  if (isPhrase && playbackAlignment?.words.length && pinnedPhraseText) {
+  if (
+    isPhrase &&
+    session.playbackAlignment?.words.length &&
+    session.pinnedPhraseText
+  ) {
     const localIndex = overlayWordIndexAtTime(
-      pinnedPhraseText,
+      session.pinnedPhraseText,
       currentTime,
       duration,
-      playbackAlignment,
+      session.playbackAlignment,
     );
 
     if (localIndex !== null) {
-      highlightTranscriptWord(pinnedWordStart + localIndex);
+      highlightTranscriptWord(session.pinnedWordStart + localIndex);
     } else {
-      highlightTranscriptWord(pinnedWordStart, end);
+      highlightTranscriptWord(session.pinnedWordStart, end);
     }
     return;
   }
 
-  highlightTranscriptWord(pinnedWordStart, end);
+  highlightTranscriptWord(session.pinnedWordStart, end);
 }
 
 function requestPlayback(audioBase64: string): void {
-  currentPlaybackBase64 = audioBase64;
-
+  patchTranscriptSession({ currentPlaybackBase64: audioBase64 });
   void browser.runtime.sendMessage({
     type: "play-audio",
     audioBase64,
@@ -471,8 +480,8 @@ async function refreshWordTranslation(word: string): Promise<void> {
     return;
   }
 
-  translationDisplayMode = "word";
-  const requestId = (wordTranslationRequestId += 1);
+  patchTranscriptSession({ translationDisplayMode: "word" });
+  const requestId = nextTranscriptRequestId("wordTranslationRequestId");
   setTranscriptWordTranslation(
     {
       visible: true,
@@ -485,7 +494,7 @@ async function refreshWordTranslation(word: string): Promise<void> {
   );
 
   const result = await translateForLearning(word);
-  if (requestId !== wordTranslationRequestId) {
+  if (requestId !== getTranscriptSession().wordTranslationRequestId) {
     return;
   }
 
@@ -524,7 +533,7 @@ function speakWordRange(startIndex: number, endIndex: number): void {
     return;
   }
 
-  cachedVisibleSpeechText = text;
+  patchTranscriptSession({ cachedVisibleSpeechText: text });
   const phraseText = phraseFromWordRange(text, startIndex, endIndex);
   if (!phraseText.trim()) {
     return;
@@ -535,8 +544,7 @@ function speakWordRange(startIndex: number, endIndex: number): void {
   setTranscriptReadStatus(`Generating “${phraseText}”…`);
   void refreshWordTranslation(phraseText);
 
-  const requestId = (wordSynthRequestId += 1);
-
+  const requestId = nextTranscriptRequestId("wordSynthRequestId");
   void browser.runtime.sendMessage({
     type: "speak-word",
     word: phraseText,
@@ -553,7 +561,7 @@ function handleWordTtsResult(
     return;
   }
 
-  if (message.requestId !== wordSynthRequestId) {
+  if (message.requestId !== getTranscriptSession().wordSynthRequestId) {
     return;
   }
 
@@ -564,15 +572,20 @@ function handleWordTtsResult(
     return;
   }
 
-  pinnedWordStart = message.wordIndex;
-  pinnedWordEnd = message.endWordIndex ?? message.wordIndex;
-  pinnedPhraseText = message.payload.word;
   const aligned = estimateAlignmentFromAudio(
     message.payload.audioBase64,
     message.payload.word,
   );
-  playbackAlignment = aligned ?? message.payload.alignment ?? null;
-  playbackDuration = alignmentDuration(playbackAlignment);
+  const playbackAlignment = aligned ?? message.payload.alignment ?? null;
+
+  patchTranscriptSession({
+    pinnedWordStart: message.wordIndex,
+    pinnedWordEnd: message.endWordIndex ?? message.wordIndex,
+    pinnedPhraseText: message.payload.word,
+    playbackAlignment,
+    playbackDuration: alignmentDuration(playbackAlignment),
+  });
+
   resetPlaybackClock();
   setTranscriptReadStatus(`Playing “${message.payload.word}”.`);
   setTranscriptPlaybackVisible(true);
@@ -582,18 +595,19 @@ function handleWordTtsResult(
 function handlePlaybackMessage(
   message: Extract<Message, { type: "tts-playback" }>,
 ): void {
-  if (!isTranscriptOverlayVisible() || !currentPlaybackBase64) {
+  const session = getTranscriptSession();
+  if (!isTranscriptOverlayVisible() || !session.currentPlaybackBase64) {
     return;
   }
 
   if (message.duration > 0) {
-    playbackDuration = message.duration;
+    patchTranscriptSession({ playbackDuration: message.duration });
   }
 
   const duration =
-    playbackDuration ||
+    getTranscriptSession().playbackDuration ||
     message.duration ||
-    alignmentDuration(playbackAlignment);
+    alignmentDuration(getTranscriptSession().playbackAlignment);
 
   if (message.state === "paused" || message.state === "ended") {
     stopHighlightLoop();
@@ -601,7 +615,7 @@ function handlePlaybackMessage(
     highlightTranscriptWord(null);
     setTranscriptPlaybackVisible(false);
     setTranscriptReadStatus(null);
-    currentPlaybackBase64 = null;
+    patchTranscriptSession({ currentPlaybackBase64: null });
     return;
   }
 
@@ -612,7 +626,7 @@ function handlePlaybackMessage(
 }
 
 async function closeOverlay(): Promise<void> {
-  overlayDismissed = true;
+  patchTranscriptSession({ overlayDismissed: true });
   stopTranscriptAudio();
   clearReadModeUi();
   hideTranscriptOverlay();
@@ -626,10 +640,13 @@ async function closeOverlay(): Promise<void> {
 }
 
 function showStartCaptureError(message: string): void {
-  transcribing = false;
-  captureInitiatedLocally = false;
-  preserveLinesOnNextStart =
-    finalizedLines.length > 0 || partialLine.trim().length > 0;
+  const session = getTranscriptSession();
+  patchTranscriptSession({
+    transcribing: false,
+    captureInitiatedLocally: false,
+    preserveLinesOnNextStart:
+      session.finalizedLines.length > 0 || session.partialLine.trim().length > 0,
+  });
   stopTranscriptAudio();
   clearReadModeUi();
   showTranscriptOverlay(
@@ -645,7 +662,7 @@ function handleStartCaptureResponse(
     return;
   }
 
-  if (overlayDismissed) {
+  if (getTranscriptSession().overlayDismissed) {
     return;
   }
 
@@ -659,29 +676,35 @@ function startCaptureAndTranscribe(options: {
   detail: string;
   preserveLines: boolean;
 }): void {
-  overlayDismissed = false;
-  captureInitiatedLocally = true;
-  preserveLinesOnNextStart = options.preserveLines;
-  transcribing = true;
+  const session = getTranscriptSession();
+  patchTranscriptSession({
+    overlayDismissed: false,
+    captureInitiatedLocally: true,
+    preserveLinesOnNextStart: options.preserveLines,
+    transcribing: true,
+  });
   mediaSync.resumeFromUser();
   stopTranscriptAudio();
   clearReadModeUi();
 
   if (options.preserveLines) {
+    const current = getTranscriptSession();
     showTranscriptOverlay(
       {
         kind: "streaming",
-        lines: finalizedLines,
-        partial: partialLine,
+        lines: current.finalizedLines,
+        partial: current.partialLine,
       },
       overlayHandlers(),
     );
     updateTranscriptLoadingProgress(options.detail);
     scheduleFullTranslationRefresh();
   } else {
-    finalizedLines = [];
-    partialLine = "";
-    preserveLinesOnNextStart = false;
+    patchTranscriptSession({
+      finalizedLines: [],
+      partialLine: "",
+      preserveLinesOnNextStart: false,
+    });
     showTranscriptOverlay(
       { kind: "loading", detail: options.detail },
       overlayHandlers(),
@@ -694,7 +717,7 @@ function startCaptureAndTranscribe(options: {
     } satisfies Message)
     .then((response) => handleStartCaptureResponse(response))
     .catch((error: unknown) => {
-      if (overlayDismissed) {
+      if (getTranscriptSession().overlayDismissed) {
         return;
       }
 
@@ -720,24 +743,28 @@ function resumeTranscriptionFromGesture(
 
 function resetTranscriptContent(): void {
   stopTranscriptAudio();
-  translationDisplayMode = "full";
+  patchTranscriptSession({ translationDisplayMode: "full" });
   clearTranslationUi();
-  finalizedLines = [];
-  partialLine = "";
-  cachedVisibleSpeechText = null;
-  cachedFullTranslation = null;
-  cachedFullTranslationText = null;
+  patchTranscriptSession({
+    finalizedLines: [],
+    partialLine: "",
+    cachedVisibleSpeechText: null,
+    cachedFullTranslation: null,
+    cachedFullTranslationText: null,
+  });
+  const { transcribing, finalizedLines, partialLine } = getTranscriptSession();
   if (transcribing) {
-    updateTranscriptOverlay([], "");
+    updateTranscriptOverlay(finalizedLines, partialLine);
   } else {
-    refreshPausedTranscriptOverlay([], "");
+    refreshPausedTranscriptOverlay(finalizedLines, partialLine);
   }
 }
 
 function applyEditedTranscript(text: string): void {
-  const entries = [...finalizedLines];
-  if (partialLine) {
-    entries.push(partialLine);
+  const session = getTranscriptSession();
+  const entries = [...session.finalizedLines];
+  if (session.partialLine) {
+    entries.push(session.partialLine);
   }
 
   const hiddenCount = Math.max(
@@ -756,30 +783,37 @@ function applyEditedTranscript(text: string): void {
 
   const merged = [...hidden, ...visibleEdited];
 
-  if (transcribing && merged.length > 0) {
-    partialLine = merged[merged.length - 1];
-    finalizedLines = merged.slice(0, -1);
+  if (session.transcribing && merged.length > 0) {
+    patchTranscriptSession({
+      partialLine: merged[merged.length - 1] ?? "",
+      finalizedLines: merged.slice(0, -1),
+    });
   } else {
-    finalizedLines = merged.filter((line) => line.length > 0);
-    partialLine = "";
+    patchTranscriptSession({
+      finalizedLines: merged.filter((line) => line.length > 0),
+      partialLine: "",
+    });
   }
 
-  cachedVisibleSpeechText = getVisibleTranscriptText();
+  patchTranscriptSession({
+    cachedVisibleSpeechText: getVisibleTranscriptText(),
+  });
 
-  if (transcribing) {
-    updateTranscriptOverlay(finalizedLines, partialLine);
+  const next = getTranscriptSession();
+  if (next.transcribing) {
+    updateTranscriptOverlay(next.finalizedLines, next.partialLine);
   } else {
-    refreshPausedTranscriptOverlay(finalizedLines, partialLine);
+    refreshPausedTranscriptOverlay(next.finalizedLines, next.partialLine);
   }
 
-  scheduleFullTranslationRefresh(!transcribing);
+  scheduleFullTranslationRefresh(!next.transcribing);
 }
 
 function overlayHandlers() {
   return {
     onStop: () => {
       mediaSync.pauseFromUser();
-      stopExpectedFromUi = true;
+      patchTranscriptSession({ stopExpectedFromUi: true });
       stopTranscriptAudio();
       clearReadModeUi();
       void requestStopTranscription();
@@ -808,17 +842,36 @@ function appendTranscript(text: string, isFinal: boolean): void {
     return;
   }
 
+  const session = getTranscriptSession();
+  let partialLine = session.partialLine;
+  let finalizedLines = session.finalizedLines;
+
   if (text) {
     partialLine += text;
   }
 
   if (isFinal && partialLine.trim()) {
-    finalizedLines.push(partialLine.trim());
+    finalizedLines = [...finalizedLines, partialLine.trim()];
     partialLine = "";
   }
 
-  cachedVisibleSpeechText = getVisibleTranscriptText();
-  updateTranscriptOverlay(finalizedLines, partialLine);
+  patchTranscriptSession({
+    partialLine,
+    finalizedLines,
+    cachedVisibleSpeechText: (() => {
+      const entries = [...finalizedLines];
+      if (partialLine) {
+        entries.push(partialLine);
+      }
+      if (entries.length === 0) {
+        return "";
+      }
+      return entries.slice(-MAX_VISIBLE_TRANSCRIPT_LINES).join("\n");
+    })(),
+  });
+
+  const next = getTranscriptSession();
+  updateTranscriptOverlay(next.finalizedLines, next.partialLine);
   scheduleFullTranslationRefresh();
 }
 
@@ -828,7 +881,6 @@ export default defineContentScript({
 
   main() {
     mountTranscriptOverlay();
-    bindTranscriptDismissals(closeOverlay);
     void loadMediaSyncSettings();
 
     browser.storage.onChanged.addListener((changes, areaName) => {
@@ -858,7 +910,7 @@ export default defineContentScript({
       });
 
     browser.runtime.onMessage.addListener((message: Message) => {
-      if (overlayDismissed) {
+      if (getTranscriptSession().overlayDismissed) {
         if (
           message.type === "transcript-error" ||
           message.type === "transcript-status" ||
@@ -879,25 +931,30 @@ export default defineContentScript({
       }
 
       if (message.type === "transcript-started") {
-        overlayDismissed = false;
-        transcribing = true;
+        patchTranscriptSession({
+          overlayDismissed: false,
+          transcribing: true,
+        });
         stopTranscriptAudio();
         clearReadModeUi();
 
-        if (captureInitiatedLocally) {
-          captureInitiatedLocally = false;
-          preserveLinesOnNextStart = false;
+        const session = getTranscriptSession();
+        if (session.captureInitiatedLocally) {
+          patchTranscriptSession({
+            captureInitiatedLocally: false,
+            preserveLinesOnNextStart: false,
+          });
           updateTranscriptLoadingProgress("Connecting to tab audio…");
           return;
         }
 
-        if (preserveLinesOnNextStart) {
-          preserveLinesOnNextStart = false;
+        if (session.preserveLinesOnNextStart) {
+          patchTranscriptSession({ preserveLinesOnNextStart: false });
           showTranscriptOverlay(
             {
               kind: "streaming",
-              lines: finalizedLines,
-              partial: partialLine,
+              lines: session.finalizedLines,
+              partial: session.partialLine,
             },
             overlayHandlers(),
           );
@@ -906,8 +963,7 @@ export default defineContentScript({
           return;
         }
 
-        finalizedLines = [];
-        partialLine = "";
+        patchTranscriptSession({ finalizedLines: [], partialLine: "" });
         showTranscriptOverlay(
           { kind: "loading", detail: "Connecting to tab audio…" },
           overlayHandlers(),
@@ -916,12 +972,14 @@ export default defineContentScript({
       }
 
       if (message.type === "transcript-request-capture") {
-        overlayDismissed = false;
-        transcribing = false;
-        captureInitiatedLocally = false;
-        preserveLinesOnNextStart = false;
-        finalizedLines = [];
-        partialLine = "";
+        patchTranscriptSession({
+          overlayDismissed: false,
+          transcribing: false,
+          captureInitiatedLocally: false,
+          preserveLinesOnNextStart: false,
+          finalizedLines: [],
+          partialLine: "",
+        });
         stopTranscriptAudio();
         clearReadModeUi();
         showTranscriptOverlay(
@@ -937,8 +995,8 @@ export default defineContentScript({
       }
 
       if (message.type === "transcript-status") {
-        if (!transcribing) {
-          transcribing = true;
+        if (!getTranscriptSession().transcribing) {
+          patchTranscriptSession({ transcribing: true });
         }
 
         const detail = message.text.trim().toLowerCase();
@@ -952,11 +1010,12 @@ export default defineContentScript({
         if (message.ready || detail.startsWith("listening")) {
           stopTranscriptAudio();
           clearReadModeUi();
+          const session = getTranscriptSession();
           showTranscriptOverlay(
             {
               kind: "streaming",
-              lines: finalizedLines,
-              partial: partialLine,
+              lines: session.finalizedLines,
+              partial: session.partialLine,
             },
             overlayHandlers(),
           );
@@ -988,8 +1047,8 @@ export default defineContentScript({
       }
 
       if (message.type === "transcript-chunk") {
-        if (!transcribing) {
-          transcribing = true;
+        if (!getTranscriptSession().transcribing) {
+          patchTranscriptSession({ transcribing: true });
         }
 
         appendTranscript(message.text, message.isFinal);
@@ -997,33 +1056,39 @@ export default defineContentScript({
       }
 
       if (message.type === "transcript-stopped") {
-        if (overlayDismissed) {
-          overlayDismissed = false;
+        if (getTranscriptSession().overlayDismissed) {
+          patchTranscriptSession({ overlayDismissed: false });
           return;
         }
 
-        if (!stopExpectedFromUi && transcribing) {
+        const session = getTranscriptSession();
+        if (!session.stopExpectedFromUi && session.transcribing) {
           return;
         }
 
-        stopExpectedFromUi = false;
         finalizePartialLine();
-        transcribing = false;
-        captureInitiatedLocally = false;
-        preserveLinesOnNextStart =
-          finalizedLines.length > 0 || partialLine.trim().length > 0;
+        const afterFinalize = getTranscriptSession();
+        patchTranscriptSession({
+          stopExpectedFromUi: false,
+          transcribing: false,
+          captureInitiatedLocally: false,
+          preserveLinesOnNextStart:
+            afterFinalize.finalizedLines.length > 0 ||
+            afterFinalize.partialLine.trim().length > 0,
+          cachedVisibleSpeechText: getVisibleTranscriptText(),
+        });
         stopTranscriptAudio();
         clearReadModeUi();
-        cachedVisibleSpeechText = getVisibleTranscriptText();
 
-        if (finalizedLines.length === 0 && partialLine.trim().length === 0) {
+        const next = getTranscriptSession();
+        if (next.finalizedLines.length === 0 && next.partialLine.trim().length === 0) {
           hideTranscriptOverlay();
           resetTranscriptState();
           return;
         }
 
         showTranscriptOverlay(
-          { kind: "paused", lines: finalizedLines },
+          { kind: "paused", lines: next.finalizedLines },
           overlayHandlers(),
         );
         scheduleFullTranslationRefresh(true);
@@ -1032,14 +1097,18 @@ export default defineContentScript({
       }
 
       if (message.type === "transcript-error") {
-        if (overlayDismissed) {
+        if (getTranscriptSession().overlayDismissed) {
           return;
         }
 
-        transcribing = false;
-        captureInitiatedLocally = false;
-        preserveLinesOnNextStart =
-          finalizedLines.length > 0 || partialLine.trim().length > 0;
+        const session = getTranscriptSession();
+        patchTranscriptSession({
+          transcribing: false,
+          captureInitiatedLocally: false,
+          preserveLinesOnNextStart:
+            session.finalizedLines.length > 0 ||
+            session.partialLine.trim().length > 0,
+        });
         stopTranscriptAudio();
         clearReadModeUi();
         showTranscriptOverlay(

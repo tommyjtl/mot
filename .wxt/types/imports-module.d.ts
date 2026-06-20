@@ -18,7 +18,15 @@ declare module '#imports' {
   export { InvalidMatchPattern, MatchPattern } from 'wxt/utils/match-patterns';
   export { useState, useCallback, useMemo, useEffect, useRef, useContext, useReducer } from 'react';
   export { fakeBrowser } from 'wxt/testing';
-  export { useOverlayPanelDrag, useOverlayDrag, useTranscriptHostDrag, positionCardNearSelection, placeCardDefault } from '../hooks/useOverlayDrag';
+  export { useAutoGrowRows } from '../hooks/useAutoGrowRows';
+  export { useDocumentEvent } from '../hooks/useDocumentEvent';
+  export { useEscapeKey } from '../hooks/useEscapeKey';
+  export { useEventListener } from '../hooks/useEventListener';
+  export { useOverlayDismissals } from '../hooks/useOverlayDismissals';
+  export { useOverlayPanelDrag, useOverlayDrag, useTranscriptHostDrag } from '../hooks/useOverlayDrag';
+  export { usePointerDownOutside } from '../hooks/usePointerDownOutside';
+  export { useTranscriptEditGuard } from '../hooks/useTranscriptEditGuard';
+  export { useWindowEvent } from '../hooks/useWindowEvent';
   export { estimateAlignmentFromAudio } from '../utils/alignment-from-audio';
   export { arrayBufferToBase64, base64ToArrayBuffer } from '../utils/audio-encoding';
   export { viewportRectToSelectionRect, showCaptureOverlay, hideCaptureOverlay, isCaptureOverlayVisible, ViewportCaptureRect, ViewportCaptureSelection } from '../utils/capture-region';
@@ -32,8 +40,10 @@ declare module '#imports' {
   export { OFFSCREEN_STT_START, OFFSCREEN_STT_STOP, OFFSCREEN_STT_CANCEL, OFFSCREEN_STT_WARMUP, OFFSCREEN_STT_STATUS, OFFSCREEN_STT_SESSION, startTabTranscriptionInOffscreen, stopTabTranscriptionInOffscreen, cancelTabTranscriptionInOffscreen, warmUpOffscreenStt, getOffscreenSttStatus, getOffscreenTranscriptionSession, OffscreenSttStartResult } from '../utils/offscreen-stt';
   export { OFFSCREEN_SYNTHESIZE, OFFSCREEN_WARMUP, OFFSCREEN_STATUS, ensureOffscreenDocument, warmUpOffscreenTts, synthesizeInOffscreen, playAudioInOffscreen, stopAudioInOffscreen, abortOffscreenSynthesis, getOffscreenModelStatus, TtsEngineError, OffscreenSynthResult } from '../utils/offscreen-tts';
   export { resetAlignmentDebugBindings, syncAlignmentDebug, updateAlignmentDebugDuringPlayback, estimateAlignmentWithDebugTuning, AlignmentDebugHost } from '../utils/overlay-alignment-debug';
+  export { clampPanelPosition, computeCardPositionNearSelection, defaultCardPosition, applyPanelPosition, positionCardNearSelection, placeCardDefault, PanelSize, ViewportSize, PanelPosition, SelectionRectLike } from '../utils/overlay-layout';
   export { tokenizeWords, phraseFromWordRange, WordToken } from '../utils/overlay-phrase';
   export { resetPlaybackClock, stopPlaybackClock, syncPlaybackClock, estimatedPlaybackTimeS, highlightPlaybackTimeS, currentLatencyCompensationS } from '../utils/overlay-playback-clock';
+  export { deriveStatusFromTranscriptView, deriveStatusFromTtsView, OverlayStatus } from '../utils/overlay-view-status';
   export { overlayWordIndexAtTime } from '../utils/overlay-word-sync';
   export { clearPageUi } from '../utils/page-ui';
   export { MAX_SELECTION_LENGTH, expandIndicesToWordBoundaries, evaluateSelection, getSelectionPayload, SelectionResult } from '../utils/selection';

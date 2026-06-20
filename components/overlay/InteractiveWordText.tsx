@@ -1,11 +1,13 @@
 import {
   useCallback,
+  useContext,
   useEffect,
   useMemo,
   useRef,
   useState,
   type RefObject,
 } from "react";
+import { ShadowMountContext } from "./mount-shadow-react";
 
 export type WordRange = {
   start: number | null;
@@ -15,7 +17,7 @@ export type WordRange = {
 type InteractiveWordTextProps = {
   text: string;
   interactive?: boolean;
-  shadowRootRef: RefObject<ShadowRoot | null>;
+  shadowRootRef?: RefObject<ShadowRoot | null>;
   innerRef?: RefObject<HTMLElement | null>;
   dataRows?: string;
   highlight?: WordRange | null;
@@ -101,6 +103,7 @@ export function InteractiveWordText({
   className,
   onWordSelect,
 }: InteractiveWordTextProps) {
+  const shadowMount = useContext(ShadowMountContext);
   const containerRef = useRef<HTMLElement | null>(null);
   const [dragPreview, setDragPreview] = useState<WordRange | null>(null);
   const dragAnchorRef = useRef<number | null>(null);
@@ -136,14 +139,14 @@ export function InteractiveWordText({
 
   const wordIndexFromPoint = useCallback(
     (clientX: number, clientY: number): number | null => {
-      const shadow = shadowRootRef.current;
+      const shadow = shadowRootRef?.current ?? shadowMount?.shadow ?? null;
       if (!shadow) {
         return null;
       }
 
       return wordIndexFromElement(shadow.elementFromPoint(clientX, clientY));
     },
-    [shadowRootRef, wordIndexFromElement],
+    [shadowMount?.shadow, shadowRootRef, wordIndexFromElement],
   );
 
   const wordIndexFromPointInContainer = useCallback(
