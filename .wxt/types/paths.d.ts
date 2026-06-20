@@ -9,6 +9,7 @@ declare module "wxt/browser" {
     | "/content-scripts/overlay.js"
     | "/content-scripts/transcript-edit-guard.js"
     | "/content-scripts/transcript.js"
+    | "/content-scripts/youtube-media-sync.js"
     | "/offscreen.html"
     | "/options.html"
     | "/ort/ort-wasm-simd-threaded.jsep.mjs"

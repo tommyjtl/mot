@@ -71,12 +71,36 @@
       }
 
       select,
-      input {
+      input[type="text"],
+      input:not([type]) {
         font: inherit;
         padding: 10px 12px;
         border: 1px solid rgba(15, 23, 42, 0.15);
         border-radius: 8px;
         background: #fff;
+      }
+
+      .checkboxField {
+        display: flex;
+        align-items: flex-start;
+        gap: 10px;
+        font-weight: 600;
+        cursor: pointer;
+      }
+
+      .checkboxField input {
+        width: 16px;
+        height: 16px;
+        margin: 2px 0 0;
+        padding: 0;
+        flex: 0 0 auto;
+        cursor: pointer;
+      }
+
+      .checkboxFieldBody {
+        display: grid;
+        gap: 4px;
+        min-width: 0;
       }
 
       .hint {
@@ -279,6 +303,30 @@
             </li>
           </ul>
         </div>
+      </section>
+
+      <section class="section" aria-labelledby="transcription-heading">
+        <h2 id="transcription-heading">Live transcription</h2>
+        <form id="transcription-form">
+          <label class="checkboxField">
+            <input
+              id="youtube-transcript-sync"
+              name="youtubeTranscriptSync"
+              type="checkbox"
+            />
+            <span class="checkboxFieldBody">
+              Sync transcription with YouTube playback
+              <span class="hint">
+                Pause transcription when a YouTube video pauses or ends, and
+                resume when it plays again. Only applies after you start
+                transcription on a YouTube tab.
+              </span>
+            </span>
+          </label>
+
+          <button type="submit">Save transcription settings</button>
+          <p class="status" id="transcription-status" aria-live="polite"></p>
+        </form>
       </section>
 
       <section class="section" aria-labelledby="settings-heading">

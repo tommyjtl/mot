@@ -5,6 +5,7 @@ declare global {
   const DEFAULT_SETTINGS: typeof import('/Users/tommyjtl/Documents/Projects/mot/utils/settings').DEFAULT_SETTINGS
   const InvalidMatchPattern: typeof import('wxt/utils/match-patterns').InvalidMatchPattern
   const MAX_SELECTION_LENGTH: typeof import('/Users/tommyjtl/Documents/Projects/mot/utils/selection').MAX_SELECTION_LENGTH
+  const MEDIA_PLAYBACK_EVENT: typeof import('/Users/tommyjtl/Documents/Projects/mot/utils/media-playback-sync').MEDIA_PLAYBACK_EVENT
   const MatchPattern: typeof import('wxt/utils/match-patterns').MatchPattern
   const OFFSCREEN_OCR: typeof import('/Users/tommyjtl/Documents/Projects/mot/utils/offscreen-ocr').OFFSCREEN_OCR
   const OFFSCREEN_OCR_WARMUP: typeof import('/Users/tommyjtl/Documents/Projects/mot/utils/offscreen-ocr').OFFSCREEN_OCR_WARMUP
@@ -38,6 +39,7 @@ declare global {
   const createIframeUi: typeof import('wxt/utils/content-script-ui/iframe').createIframeUi
   const createIntegratedUi: typeof import('wxt/utils/content-script-ui/integrated').createIntegratedUi
   const createShadowRootUi: typeof import('wxt/utils/content-script-ui/shadow-root').createShadowRootUi
+  const createTranscriptMediaSyncController: typeof import('/Users/tommyjtl/Documents/Projects/mot/utils/transcript-media-sync').createTranscriptMediaSyncController
   const cropScreenshotToBase64: typeof import('/Users/tommyjtl/Documents/Projects/mot/utils/capture-screenshot').cropScreenshotToBase64
   const currentLatencyCompensationS: typeof import('/Users/tommyjtl/Documents/Projects/mot/utils/overlay-playback-clock').currentLatencyCompensationS
   const defineAppConfig: typeof import('wxt/utils/define-app-config').defineAppConfig
@@ -45,6 +47,7 @@ declare global {
   const defineContentScript: typeof import('wxt/utils/define-content-script').defineContentScript
   const defineUnlistedScript: typeof import('wxt/utils/define-unlisted-script').defineUnlistedScript
   const defineWxtPlugin: typeof import('wxt/utils/define-wxt-plugin').defineWxtPlugin
+  const dispatchMediaPlaybackState: typeof import('/Users/tommyjtl/Documents/Projects/mot/utils/media-playback-sync').dispatchMediaPlaybackState
   const ensureOffscreenDocument: typeof import('/Users/tommyjtl/Documents/Projects/mot/utils/offscreen-tts').ensureOffscreenDocument
   const estimateAlignmentFromAudio: typeof import('/Users/tommyjtl/Documents/Projects/mot/utils/alignment-from-audio').estimateAlignmentFromAudio
   const estimateAlignmentWithDebugTuning: typeof import('/Users/tommyjtl/Documents/Projects/mot/utils/overlay-alignment-debug').estimateAlignmentWithDebugTuning
@@ -145,6 +148,9 @@ declare global {
   export type { ViewportCaptureRect, ViewportCaptureSelection } from '/Users/tommyjtl/Documents/Projects/mot/utils/capture-region'
   import('/Users/tommyjtl/Documents/Projects/mot/utils/capture-region')
   // @ts-ignore
+  export type { MediaPlaybackState, MediaPlaybackEventDetail } from '/Users/tommyjtl/Documents/Projects/mot/utils/media-playback-sync'
+  import('/Users/tommyjtl/Documents/Projects/mot/utils/media-playback-sync')
+  // @ts-ignore
   export type { SelectionRect, SelectionPayload, ModelLoadBroadcastMessage, Message } from '/Users/tommyjtl/Documents/Projects/mot/utils/messages'
   import('/Users/tommyjtl/Documents/Projects/mot/utils/messages')
   // @ts-ignore
@@ -174,6 +180,9 @@ declare global {
   // @ts-ignore
   export type { Voice, Lang, MotSettings } from '/Users/tommyjtl/Documents/Projects/mot/utils/settings'
   import('/Users/tommyjtl/Documents/Projects/mot/utils/settings')
+  // @ts-ignore
+  export type { TranscriptPauseSource, TranscriptMediaSyncController } from '/Users/tommyjtl/Documents/Projects/mot/utils/transcript-media-sync'
+  import('/Users/tommyjtl/Documents/Projects/mot/utils/transcript-media-sync')
   // @ts-ignore
   export type { WordTiming, TtsAlignment, SynthesizeResult } from '/Users/tommyjtl/Documents/Projects/mot/utils/tts-types'
   import('/Users/tommyjtl/Documents/Projects/mot/utils/tts-types')

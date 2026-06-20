@@ -24,6 +24,7 @@ declare module '#imports' {
   export { viewportRectToSelectionRect, showCaptureOverlay, hideCaptureOverlay, isCaptureOverlayVisible, ViewportCaptureRect, ViewportCaptureSelection } from '../utils/capture-region';
   export { cropScreenshotToBase64, captureVisibleRegionBase64 } from '../utils/capture-screenshot';
   export { beginCaptureWait, resolveCaptureWait, cancelCaptureWait, cancelAllCaptureWaits } from '../utils/capture-session';
+  export { MEDIA_PLAYBACK_EVENT, dispatchMediaPlaybackState, MediaPlaybackState, MediaPlaybackEventDetail } from '../utils/media-playback-sync';
   export { SelectionRect, SelectionPayload, ModelLoadBroadcastMessage, Message } from '../utils/messages';
   export { broadcastModelLoadProgress, broadcastModelLoadError, ModelLoadBroadcast } from '../utils/model-load-broadcast';
   export { PLAY_AUDIO, STOP_AUDIO, setupOffscreenDocument } from '../utils/offscreen-document';
@@ -43,5 +44,6 @@ declare module '#imports' {
   export { formatTabCaptureError, requestTabCaptureStreamId, isTabCapturePermissionError } from '../utils/tab-capture';
   export { beginTabRequest, getTabRequestGeneration, isCurrentTabRequest, invalidateTabRequest, clearTabRequest } from '../utils/tab-requests';
   export { hideSelectionToast, showSelectionLimitToast } from '../utils/toast';
+  export { createTranscriptMediaSyncController, TranscriptPauseSource, TranscriptMediaSyncController } from '../utils/transcript-media-sync';
   export { WordTiming, TtsAlignment, SynthesizeResult } from '../utils/tts-types';
 }

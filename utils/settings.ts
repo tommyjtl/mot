@@ -4,11 +4,13 @@ export type Lang = "fr" | "na";
 export type MotSettings = {
   voice: Voice;
   lang: Lang;
+  youtubeTranscriptSync: boolean;
 };
 
 export const DEFAULT_SETTINGS: MotSettings = {
   voice: "F1",
   lang: "fr",
+  youtubeTranscriptSync: true,
 };
 
 const STORAGE_KEY = "motSettings";

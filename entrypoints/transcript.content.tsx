@@ -30,10 +30,20 @@ import {
   isLearningTranslationSupported,
   translateForLearning,
 } from "../utils/translation";
+import {
+  MEDIA_PLAYBACK_EVENT,
+  type MediaPlaybackEventDetail,
+} from "../utils/media-playback-sync";
+import { createTranscriptMediaSyncController } from "../utils/transcript-media-sync";
+import {
+  DEFAULT_SETTINGS,
+  getSettings,
+  type MotSettings,
+} from "../utils/settings";
 
 let transcribing = false;
 let overlayDismissed = false;
-let stopExpectedFromFooter = false;
+let stopExpectedFromUi = false;
 let captureInitiatedLocally = false;
 let preserveLinesOnNextStart = false;
 let finalizedLines: string[] = [];
@@ -83,6 +93,28 @@ function alignmentDuration(alignment: TtsAlignment | null): number {
   return lastEnd && lastEnd > 0 ? lastEnd : 0;
 }
 
+function pauseTranscriptionFromMedia(): void {
+  stopExpectedFromUi = true;
+  stopTranscriptAudio();
+  clearReadModeUi();
+  void requestStopTranscription();
+}
+
+const mediaSync = createTranscriptMediaSyncController({
+  isTranscribing: () => transcribing,
+  pauseFromMedia: pauseTranscriptionFromMedia,
+  resumeFromMedia: () => {
+    stopTranscriptAudio();
+    clearReadModeUi();
+    resumeTranscriptionFromGesture();
+  },
+});
+
+async function loadMediaSyncSettings(): Promise<void> {
+  const settings = await getSettings();
+  mediaSync.setEnabled(settings.youtubeTranscriptSync);
+}
+
 function resetTranscriptState(): void {
   transcribing = false;
   finalizedLines = [];
@@ -96,6 +128,7 @@ function resetTranscriptState(): void {
   cachedFullTranslationText = null;
   translationDisplayMode = "full";
   showRealtimeTranslation = false;
+  mediaSync.reset();
   if (fullTranslationDebounceId !== null) {
     clearTimeout(fullTranslationDebounceId);
     fullTranslationDebounceId = null;
@@ -630,6 +663,7 @@ function startCaptureAndTranscribe(options: {
   captureInitiatedLocally = true;
   preserveLinesOnNextStart = options.preserveLines;
   transcribing = true;
+  mediaSync.resumeFromUser();
   stopTranscriptAudio();
   clearReadModeUi();
 
@@ -744,12 +778,14 @@ function applyEditedTranscript(text: string): void {
 function overlayHandlers() {
   return {
     onStop: () => {
-      stopExpectedFromFooter = true;
+      mediaSync.pauseFromUser();
+      stopExpectedFromUi = true;
       stopTranscriptAudio();
       clearReadModeUi();
       void requestStopTranscription();
     },
     onResume: () => {
+      mediaSync.resumeFromUser();
       stopTranscriptAudio();
       clearReadModeUi();
       resumeTranscriptionFromGesture();
@@ -793,6 +829,24 @@ export default defineContentScript({
   main() {
     mountTranscriptOverlay();
     bindTranscriptDismissals(closeOverlay);
+    void loadMediaSyncSettings();
+
+    browser.storage.onChanged.addListener((changes, areaName) => {
+      if (areaName !== "sync" && areaName !== "local") {
+        return;
+      }
+
+      const update = changes.motSettings?.newValue as Partial<MotSettings> | undefined;
+      if (update?.youtubeTranscriptSync !== undefined) {
+        mediaSync.setEnabled(update.youtubeTranscriptSync);
+      }
+    });
+
+    document.addEventListener(MEDIA_PLAYBACK_EVENT, (event) => {
+      mediaSync.handleMediaPlayback(
+        (event as CustomEvent<MediaPlaybackEventDetail>).detail,
+      );
+    });
 
     void browser.runtime
       .sendMessage({ type: "get-transcription-state" })
@@ -948,11 +1002,11 @@ export default defineContentScript({
           return;
         }
 
-        if (!stopExpectedFromFooter && transcribing) {
+        if (!stopExpectedFromUi && transcribing) {
           return;
         }
 
-        stopExpectedFromFooter = false;
+        stopExpectedFromUi = false;
         finalizePartialLine();
         transcribing = false;
         captureInitiatedLocally = false;
@@ -973,6 +1027,7 @@ export default defineContentScript({
           overlayHandlers(),
         );
         scheduleFullTranslationRefresh(true);
+        mediaSync.onTranscriptStopped();
         return;
       }
 
