@@ -16,6 +16,10 @@ type SttClientInstance = {
   startStream(stream: MediaStream): Promise<void>;
   stopRecording(): void;
   abortCapture(): void;
+  releaseCapture(options?: {
+    flush?: boolean;
+    trackStopDelayMs?: number;
+  }): Promise<void>;
   waitUntilStopped(): Promise<void>;
   destroy(): void;
   reset(): void;
@@ -64,14 +68,23 @@ function abortCaptureImmediately(): void {
   }
 }
 
-/** Sync teardown — must not wait on the session queue (e.g. during model init). */
-function releaseTranscriptionSession(): number | null {
-  sessionGeneration += 1;
-  const tabId = activeTabId;
-  activeTabId = null;
-  pendingInitTabId = null;
-  abortCaptureImmediately();
-  return tabId;
+async function releaseCaptureGracefully(options: {
+  flush: boolean;
+  trackStopDelayMs: number;
+}): Promise<void> {
+  stopStreamTracks(sessionStream);
+  sessionStream = null;
+
+  if (!client?.isReady()) {
+    return;
+  }
+
+  if (client.isCapturing()) {
+    await client.releaseCapture(options);
+    return;
+  }
+
+  client.abortCapture();
 }
 
 function resetWorkerSession(): void {
@@ -428,21 +441,39 @@ export async function startTabTranscription(
 }
 
 export async function stopTabTranscription(): Promise<void> {
-  const tabId = releaseTranscriptionSession();
-  resetWorkerSession();
+  return enqueueSession(async () => {
+    const tabId = activeTabId;
+    sessionGeneration += 1;
+    activeTabId = null;
+    pendingInitTabId = null;
 
-  if (tabId !== null) {
-    relayStatus(tabId, "Stopped", false);
-  }
+    await releaseCaptureGracefully({
+      flush: true,
+      trackStopDelayMs: 300,
+    });
+
+    if (tabId !== null) {
+      relayStatus(tabId, "Stopped", false);
+    }
+  });
 }
 
 export async function cancelTabTranscription(): Promise<void> {
-  const tabId = releaseTranscriptionSession();
-  resetWorkerSession();
+  return enqueueSession(async () => {
+    const tabId = activeTabId;
+    sessionGeneration += 1;
+    activeTabId = null;
+    pendingInitTabId = null;
 
-  if (tabId !== null) {
-    relayStatus(tabId, "Stopped", false);
-  }
+    await releaseCaptureGracefully({
+      flush: false,
+      trackStopDelayMs: 250,
+    });
+
+    if (tabId !== null) {
+      relayStatus(tabId, "Stopped", false);
+    }
+  });
 }
 
 export async function destroySttClient(): Promise<void> {
