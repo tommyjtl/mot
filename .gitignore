@@ -155,3 +155,4 @@ vite.config.ts.timestamp-*
 .wxt/chrome-data/
 
 .DS_Store
+.agents/

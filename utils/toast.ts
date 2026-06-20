@@ -1,4 +1,4 @@
-import { hideOverlay } from "./overlay";
+import { hideOverlay } from "../features/tts-overlay/tts-overlay-controller";
 import type { SelectionRect } from "./messages";
 
 const TOAST_ID = "mot-selection-toast-host";

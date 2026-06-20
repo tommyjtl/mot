@@ -1,0 +1,61 @@
+import type { TranscriptWordTranslationState } from "../../components/overlay/TranslationPanel";
+import type { WordRange } from "../../components/overlay/InteractiveWordText";
+
+export const MAX_VISIBLE_TRANSCRIPT_LINES = 3;
+export const WAITING_PLACEHOLDER = "Waiting for transcription";
+
+export type TranscriptOverlayViewState =
+  | { kind: "hidden" }
+  | { kind: "loading"; detail: string; percent?: number }
+  | { kind: "streaming"; lines: string[]; partial: string }
+  | { kind: "paused"; lines: string[]; partial?: string }
+  | { kind: "needs-capture"; message?: string }
+  | { kind: "error"; message: string };
+
+export type TranscriptOverlayHandlers = {
+  onStop?: () => void;
+  onResume?: () => void;
+  onClose?: () => void;
+  onAllowCapture?: () => void;
+  onReset?: () => void;
+  onTranscriptEdited?: (text: string) => void;
+  onWordSelect?: (startIndex: number, endIndex: number) => void;
+  onStopPlayback?: () => void;
+  onRestoreFullTranslation?: () => void;
+  onToggleRealtimeTranslation?: (enabled: boolean) => void;
+};
+
+export type TranscriptOverlayStoreState = {
+  visible: boolean;
+  view: TranscriptOverlayViewState;
+  editMode: boolean;
+  editDraft: string | null;
+  translation: TranscriptWordTranslationState;
+  wordHighlight: WordRange | null;
+  wordLoading: WordRange | null;
+  playbackVisible: boolean;
+  showRealtimeTranslation: boolean;
+  statusMessage: string | null;
+  statusError: boolean;
+  handlers: TranscriptOverlayHandlers;
+};
+
+export const initialTranscriptOverlayState = (): TranscriptOverlayStoreState => ({
+  visible: false,
+  view: { kind: "hidden" },
+  editMode: false,
+  editDraft: null,
+  translation: { visible: false },
+  wordHighlight: null,
+  wordLoading: null,
+  playbackVisible: false,
+  showRealtimeTranslation: false,
+  statusMessage: null,
+  statusError: false,
+  handlers: {},
+});
+
+export type TranscriptOverlayState = Exclude<
+  TranscriptOverlayViewState,
+  { kind: "hidden" }
+>;

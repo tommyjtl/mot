@@ -303,6 +303,32 @@ async function handleSpeakSelection(
   }
 }
 
+let lastSpeakSelectionTabId = -1;
+let lastSpeakSelectionAt = 0;
+
+async function beginSpeakSelection(tabId: number): Promise<void> {
+  const now = Date.now();
+  if (tabId === lastSpeakSelectionTabId && now - lastSpeakSelectionAt < 400) {
+    return;
+  }
+
+  lastSpeakSelectionTabId = tabId;
+  lastSpeakSelectionAt = now;
+
+  await preemptTabSession(tabId);
+
+  const { requestId, signal } = beginTabRequest(tabId);
+  setTabSession(tabId, "busy");
+
+  try {
+    await handleSpeakSelection(tabId, requestId, signal);
+  } catch {
+    if (isCurrentTabRequest(tabId, requestId)) {
+      clearTabSession(tabId);
+    }
+  }
+}
+
 async function preemptTabSession(tabId: number): Promise<void> {
   if (transcriptionTabId === tabId) {
     await stopTranscription();
@@ -613,23 +639,12 @@ export default defineBackground(() => {
 
     void browser.tabs
       .query({ active: true, currentWindow: true })
-      .then(async ([tab]) => {
+      .then(([tab]) => {
         if (!tab?.id) {
           return;
         }
 
-        await preemptTabSession(tab.id);
-
-        const { requestId, signal } = beginTabRequest(tab.id);
-        setTabSession(tab.id, "busy");
-
-        try {
-          await handleSpeakSelection(tab.id, requestId, signal);
-        } catch {
-          if (isCurrentTabRequest(tab.id, requestId)) {
-            clearTabSession(tab.id);
-          }
-        }
+        void beginSpeakSelection(tab.id);
       });
   });
 
@@ -708,6 +723,17 @@ export default defineBackground(() => {
           offscreenDocument: await browser.offscreen.hasDocument(),
         });
       })();
+      return true;
+    }
+
+    if (message?.type === "speak-selection-gesture") {
+      const tabId = sender.tab?.id;
+      if (!tabId) {
+        sendResponse({ ok: false, error: "Speak selection must start from a web page tab." });
+        return false;
+      }
+
+      void beginSpeakSelection(tabId).then(() => sendResponse({ ok: true }));
       return true;
     }
 

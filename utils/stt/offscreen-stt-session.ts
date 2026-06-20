@@ -64,6 +64,16 @@ function abortCaptureImmediately(): void {
   }
 }
 
+/** Sync teardown — must not wait on the session queue (e.g. during model init). */
+function releaseTranscriptionSession(): number | null {
+  sessionGeneration += 1;
+  const tabId = activeTabId;
+  activeTabId = null;
+  pendingInitTabId = null;
+  abortCaptureImmediately();
+  return tabId;
+}
+
 function resetWorkerSession(): void {
   if (client?.isReady()) {
     client.reset();
@@ -418,34 +428,21 @@ export async function startTabTranscription(
 }
 
 export async function stopTabTranscription(): Promise<void> {
-  return enqueueSession(async () => {
-    sessionGeneration += 1;
-    const tabId = activeTabId;
-    activeTabId = null;
+  const tabId = releaseTranscriptionSession();
+  resetWorkerSession();
 
-    // Release Chrome tab capture immediately so audio can be recaptured on resume.
-    // Live text is already in the overlay — skip flush.
-    abortCaptureImmediately();
-    resetWorkerSession();
-
-    if (tabId !== null) {
-      relayStatus(tabId, "Stopped", false);
-    }
-  });
+  if (tabId !== null) {
+    relayStatus(tabId, "Stopped", false);
+  }
 }
 
 export async function cancelTabTranscription(): Promise<void> {
-  return enqueueSession(async () => {
-    sessionGeneration += 1;
-    const tabId = activeTabId;
-    activeTabId = null;
-    abortCaptureImmediately();
-    resetWorkerSession();
+  const tabId = releaseTranscriptionSession();
+  resetWorkerSession();
 
-    if (tabId !== null) {
-      relayStatus(tabId, "Stopped", false);
-    }
-  });
+  if (tabId !== null) {
+    relayStatus(tabId, "Stopped", false);
+  }
 }
 
 export async function destroySttClient(): Promise<void> {

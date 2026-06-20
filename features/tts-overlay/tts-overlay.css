@@ -1,0 +1,136 @@
+.alignmentDebugToggle {
+  align-self: flex-start;
+  appearance: none;
+  border: 0;
+  background: transparent;
+  color: #64748b;
+  font: inherit;
+  font-size: 11px;
+  padding: 0;
+  cursor: pointer;
+  text-decoration: underline;
+  text-underline-offset: 2px;
+}
+
+.alignmentDebugToggle:hover {
+  color: #0f172a;
+}
+
+.alignmentDebug {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  margin-top: 2px;
+  padding-top: 8px;
+  border-top: 1px dashed rgba(15, 23, 42, 0.12);
+}
+
+.alignmentDebugClock {
+  margin: 0;
+  color: #64748b;
+  font-family: ui-monospace, SFMono-Regular, Menlo, monospace;
+  font-size: 11px;
+  line-height: 1.45;
+}
+
+.alignmentDebugList {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+  max-height: 180px;
+  overflow-y: auto;
+}
+
+.alignmentDebugCaption {
+  margin: 0 0 4px;
+  color: #94a3b8;
+  font-size: 10px;
+  line-height: 1.35;
+}
+
+.alignmentDebugControls {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+}
+
+.alignmentDebugControl {
+  display: grid;
+  grid-template-columns: 92px 1fr auto;
+  align-items: center;
+  gap: 6px;
+  margin: 0;
+  color: #64748b;
+  font-size: 10px;
+}
+
+.alignmentDebugControl input[type="range"] {
+  width: 100%;
+  margin: 0;
+}
+
+.alignmentDebugControlValue {
+  min-width: 42px;
+  text-align: right;
+  font-family: ui-monospace, SFMono-Regular, Menlo, monospace;
+}
+
+.alignmentDebugEmpty {
+  margin: 0;
+  color: #64748b;
+  font-size: 12px;
+}
+
+.alignmentDebugRow {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 8px;
+  padding: 4px 6px;
+  border-radius: 6px;
+  background: rgba(15, 23, 42, 0.03);
+}
+
+.alignmentDebugRow.isActive {
+  background: rgba(250, 204, 21, 0.35);
+}
+
+.alignmentDebugMeta {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: baseline;
+  gap: 6px;
+  min-width: 0;
+  font-size: 11px;
+}
+
+.alignmentDebugIndex {
+  color: #94a3b8;
+  font-family: ui-monospace, SFMono-Regular, Menlo, monospace;
+}
+
+.alignmentDebugWord {
+  color: #0f172a;
+  font-weight: 600;
+}
+
+.alignmentDebugTime {
+  color: #64748b;
+  font-family: ui-monospace, SFMono-Regular, Menlo, monospace;
+}
+
+.ttsCard {
+  width: min(360px, calc(100vw - 24px));
+}
+
+.ttsHost {
+  position: fixed;
+  top: 0;
+  left: 0;
+  z-index: 2147483647;
+  pointer-events: none;
+}
+
+.ttsHost .card {
+  pointer-events: auto;
+}

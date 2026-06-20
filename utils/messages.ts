@@ -169,6 +169,7 @@ export type Message =
     phase: "error";
     detail: string;
   }
+  | { type: "speak-selection-gesture" }
   | { type: "toggle-transcription" }
   | { type: "get-transcription-state" }
   | {

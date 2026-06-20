@@ -8,12 +8,13 @@ import { defineConfig } from "wxt";
  * - https://www.instagram.com/p/DWrTxvjgv_g/
  */
 const DEV_START_URL =
-  "https://www.youtube.com/watch?v=axzZ3zvdA9M";
+  "https://youtu.be/tA3YBYYmIrg?t=18";
 
 /** Reuse one Chrome profile during dev instead of tmp-web-ext copies (~400 MB/model each). */
 const DEV_CHROME_PROFILE = resolve(".wxt/chrome-data");
 
 export default defineConfig({
+  modules: ["@wxt-dev/module-react"],
   webExt: {
     chromiumArgs: [`--user-data-dir=${DEV_CHROME_PROFILE}`],
     startUrls: [DEV_START_URL],
@@ -24,6 +25,9 @@ export default defineConfig({
     },
   }),
   manifest: {
+    content_security_policy: {
+      extension_pages: "script-src 'self' 'wasm-unsafe-eval'; object-src 'self';",
+    },
     name: "Mot",
     description:
       "Hear natural French pronunciation while reading the web, powered by on-device Supertonic TTS.",

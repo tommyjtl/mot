@@ -3,10 +3,8 @@ export {}
 declare global {
   const ContentScriptContext: typeof import('wxt/utils/content-script-context').ContentScriptContext
   const DEFAULT_SETTINGS: typeof import('/Users/tommyjtl/Documents/Projects/mot/utils/settings').DEFAULT_SETTINGS
-  const InteractiveWordText: typeof import('/Users/tommyjtl/Documents/Projects/mot/utils/interactive-word-text').InteractiveWordText
   const InvalidMatchPattern: typeof import('wxt/utils/match-patterns').InvalidMatchPattern
   const MAX_SELECTION_LENGTH: typeof import('/Users/tommyjtl/Documents/Projects/mot/utils/selection').MAX_SELECTION_LENGTH
-  const MAX_VISIBLE_TRANSCRIPT_LINES: typeof import('/Users/tommyjtl/Documents/Projects/mot/utils/live-transcript-overlay').MAX_VISIBLE_TRANSCRIPT_LINES
   const MatchPattern: typeof import('wxt/utils/match-patterns').MatchPattern
   const OFFSCREEN_OCR: typeof import('/Users/tommyjtl/Documents/Projects/mot/utils/offscreen-ocr').OFFSCREEN_OCR
   const OFFSCREEN_OCR_WARMUP: typeof import('/Users/tommyjtl/Documents/Projects/mot/utils/offscreen-ocr').OFFSCREEN_OCR_WARMUP
@@ -27,8 +25,6 @@ declare global {
   const base64ToArrayBuffer: typeof import('/Users/tommyjtl/Documents/Projects/mot/utils/audio-encoding').base64ToArrayBuffer
   const beginCaptureWait: typeof import('/Users/tommyjtl/Documents/Projects/mot/utils/capture-session').beginCaptureWait
   const beginTabRequest: typeof import('/Users/tommyjtl/Documents/Projects/mot/utils/tab-requests').beginTabRequest
-  const bindOverlayDismissals: typeof import('/Users/tommyjtl/Documents/Projects/mot/utils/overlay').bindOverlayDismissals
-  const bindTranscriptDismissals: typeof import('/Users/tommyjtl/Documents/Projects/mot/utils/live-transcript-overlay').bindTranscriptDismissals
   const broadcastModelLoadError: typeof import('/Users/tommyjtl/Documents/Projects/mot/utils/model-load-broadcast').broadcastModelLoadError
   const broadcastModelLoadProgress: typeof import('/Users/tommyjtl/Documents/Projects/mot/utils/model-load-broadcast').broadcastModelLoadProgress
   const browser: typeof import('wxt/browser').browser
@@ -61,47 +57,34 @@ declare global {
   const getOffscreenModelStatus: typeof import('/Users/tommyjtl/Documents/Projects/mot/utils/offscreen-tts').getOffscreenModelStatus
   const getOffscreenSttStatus: typeof import('/Users/tommyjtl/Documents/Projects/mot/utils/offscreen-stt').getOffscreenSttStatus
   const getOffscreenTranscriptionSession: typeof import('/Users/tommyjtl/Documents/Projects/mot/utils/offscreen-stt').getOffscreenTranscriptionSession
-  const getOverlayAlignmentDebugElements: typeof import('/Users/tommyjtl/Documents/Projects/mot/utils/overlay').getOverlayAlignmentDebugElements
   const getSelectionPayload: typeof import('/Users/tommyjtl/Documents/Projects/mot/utils/selection').getSelectionPayload
   const getSettings: typeof import('/Users/tommyjtl/Documents/Projects/mot/utils/settings').getSettings
   const getTabRequestGeneration: typeof import('/Users/tommyjtl/Documents/Projects/mot/utils/tab-requests').getTabRequestGeneration
   const getTabSession: typeof import('/Users/tommyjtl/Documents/Projects/mot/utils/session').getTabSession
   const hideCaptureOverlay: typeof import('/Users/tommyjtl/Documents/Projects/mot/utils/capture-region').hideCaptureOverlay
-  const hideOverlay: typeof import('/Users/tommyjtl/Documents/Projects/mot/utils/overlay').hideOverlay
   const hideSelectionToast: typeof import('/Users/tommyjtl/Documents/Projects/mot/utils/toast').hideSelectionToast
-  const hideTranscriptOverlay: typeof import('/Users/tommyjtl/Documents/Projects/mot/utils/live-transcript-overlay').hideTranscriptOverlay
-  const highlightOverlayWord: typeof import('/Users/tommyjtl/Documents/Projects/mot/utils/overlay').highlightOverlayWord
   const highlightPlaybackTimeS: typeof import('/Users/tommyjtl/Documents/Projects/mot/utils/overlay-playback-clock').highlightPlaybackTimeS
-  const highlightTranscriptWord: typeof import('/Users/tommyjtl/Documents/Projects/mot/utils/live-transcript-overlay').highlightTranscriptWord
   const injectScript: typeof import('wxt/utils/inject-script').injectScript
   const invalidateTabRequest: typeof import('/Users/tommyjtl/Documents/Projects/mot/utils/tab-requests').invalidateTabRequest
   const isCaptureOverlayVisible: typeof import('/Users/tommyjtl/Documents/Projects/mot/utils/capture-region').isCaptureOverlayVisible
   const isCurrentTabRequest: typeof import('/Users/tommyjtl/Documents/Projects/mot/utils/tab-requests').isCurrentTabRequest
+  const isSpeakSelectionShortcut: typeof import('/Users/tommyjtl/Documents/Projects/mot/utils/speak-shortcut').isSpeakSelectionShortcut
   const isTabCapturePermissionError: typeof import('/Users/tommyjtl/Documents/Projects/mot/utils/tab-capture').isTabCapturePermissionError
-  const isTranscriptOverlayVisible: typeof import('/Users/tommyjtl/Documents/Projects/mot/utils/live-transcript-overlay').isTranscriptOverlayVisible
   const overlayWordIndexAtTime: typeof import('/Users/tommyjtl/Documents/Projects/mot/utils/overlay-word-sync').overlayWordIndexAtTime
   const phraseFromWordRange: typeof import('/Users/tommyjtl/Documents/Projects/mot/utils/overlay-phrase').phraseFromWordRange
+  const placeCardDefault: typeof import('/Users/tommyjtl/Documents/Projects/mot/hooks/useOverlayDrag').placeCardDefault
   const playAudioInOffscreen: typeof import('/Users/tommyjtl/Documents/Projects/mot/utils/offscreen-tts').playAudioInOffscreen
+  const positionCardNearSelection: typeof import('/Users/tommyjtl/Documents/Projects/mot/hooks/useOverlayDrag').positionCardNearSelection
   const recognizeInOffscreen: typeof import('/Users/tommyjtl/Documents/Projects/mot/utils/offscreen-ocr').recognizeInOffscreen
-  const refreshPausedTranscriptOverlay: typeof import('/Users/tommyjtl/Documents/Projects/mot/utils/live-transcript-overlay').refreshPausedTranscriptOverlay
   const requestTabCaptureStreamId: typeof import('/Users/tommyjtl/Documents/Projects/mot/utils/tab-capture').requestTabCaptureStreamId
   const resetAlignmentDebugBindings: typeof import('/Users/tommyjtl/Documents/Projects/mot/utils/overlay-alignment-debug').resetAlignmentDebugBindings
   const resetPlaybackClock: typeof import('/Users/tommyjtl/Documents/Projects/mot/utils/overlay-playback-clock').resetPlaybackClock
   const resolveCaptureWait: typeof import('/Users/tommyjtl/Documents/Projects/mot/utils/capture-session').resolveCaptureWait
   const saveSettings: typeof import('/Users/tommyjtl/Documents/Projects/mot/utils/settings').saveSettings
-  const setOverlayStatusMessage: typeof import('/Users/tommyjtl/Documents/Projects/mot/utils/overlay').setOverlayStatusMessage
-  const setOverlayTranslation: typeof import('/Users/tommyjtl/Documents/Projects/mot/utils/overlay').setOverlayTranslation
   const setTabSession: typeof import('/Users/tommyjtl/Documents/Projects/mot/utils/session').setTabSession
-  const setTranscriptPlaybackVisible: typeof import('/Users/tommyjtl/Documents/Projects/mot/utils/live-transcript-overlay').setTranscriptPlaybackVisible
-  const setTranscriptReadStatus: typeof import('/Users/tommyjtl/Documents/Projects/mot/utils/live-transcript-overlay').setTranscriptReadStatus
-  const setTranscriptWordLoading: typeof import('/Users/tommyjtl/Documents/Projects/mot/utils/live-transcript-overlay').setTranscriptWordLoading
-  const setTranscriptWordTranslation: typeof import('/Users/tommyjtl/Documents/Projects/mot/utils/live-transcript-overlay').setTranscriptWordTranslation
-  const setWordLoadingIndex: typeof import('/Users/tommyjtl/Documents/Projects/mot/utils/overlay').setWordLoadingIndex
   const setupOffscreenDocument: typeof import('/Users/tommyjtl/Documents/Projects/mot/utils/offscreen-document').setupOffscreenDocument
   const showCaptureOverlay: typeof import('/Users/tommyjtl/Documents/Projects/mot/utils/capture-region').showCaptureOverlay
-  const showOverlay: typeof import('/Users/tommyjtl/Documents/Projects/mot/utils/overlay').showOverlay
   const showSelectionLimitToast: typeof import('/Users/tommyjtl/Documents/Projects/mot/utils/toast').showSelectionLimitToast
-  const showTranscriptOverlay: typeof import('/Users/tommyjtl/Documents/Projects/mot/utils/live-transcript-overlay').showTranscriptOverlay
   const startTabTranscriptionInOffscreen: typeof import('/Users/tommyjtl/Documents/Projects/mot/utils/offscreen-stt').startTabTranscriptionInOffscreen
   const stopAudioInOffscreen: typeof import('/Users/tommyjtl/Documents/Projects/mot/utils/offscreen-tts').stopAudioInOffscreen
   const stopPlaybackClock: typeof import('/Users/tommyjtl/Documents/Projects/mot/utils/overlay-playback-clock').stopPlaybackClock
@@ -113,11 +96,17 @@ declare global {
   const synthesizeInOffscreen: typeof import('/Users/tommyjtl/Documents/Projects/mot/utils/offscreen-tts').synthesizeInOffscreen
   const tokenizeWords: typeof import('/Users/tommyjtl/Documents/Projects/mot/utils/overlay-phrase').tokenizeWords
   const updateAlignmentDebugDuringPlayback: typeof import('/Users/tommyjtl/Documents/Projects/mot/utils/overlay-alignment-debug').updateAlignmentDebugDuringPlayback
-  const updateOverlayProgress: typeof import('/Users/tommyjtl/Documents/Projects/mot/utils/overlay').updateOverlayProgress
-  const updatePlaybackState: typeof import('/Users/tommyjtl/Documents/Projects/mot/utils/overlay').updatePlaybackState
-  const updateTranscriptLoadingProgress: typeof import('/Users/tommyjtl/Documents/Projects/mot/utils/live-transcript-overlay').updateTranscriptLoadingProgress
-  const updateTranscriptOverlay: typeof import('/Users/tommyjtl/Documents/Projects/mot/utils/live-transcript-overlay').updateTranscriptOverlay
   const useAppConfig: typeof import('wxt/utils/app-config').useAppConfig
+  const useCallback: typeof import('react').useCallback
+  const useContext: typeof import('react').useContext
+  const useEffect: typeof import('react').useEffect
+  const useMemo: typeof import('react').useMemo
+  const useOverlayDrag: typeof import('/Users/tommyjtl/Documents/Projects/mot/hooks/useOverlayDrag').useOverlayDrag
+  const useOverlayPanelDrag: typeof import('/Users/tommyjtl/Documents/Projects/mot/hooks/useOverlayDrag').useOverlayPanelDrag
+  const useReducer: typeof import('react').useReducer
+  const useRef: typeof import('react').useRef
+  const useState: typeof import('react').useState
+  const useTranscriptHostDrag: typeof import('/Users/tommyjtl/Documents/Projects/mot/hooks/useOverlayDrag').useTranscriptHostDrag
   const viewportRectToSelectionRect: typeof import('/Users/tommyjtl/Documents/Projects/mot/utils/capture-region').viewportRectToSelectionRect
   const warmUpOffscreenOcr: typeof import('/Users/tommyjtl/Documents/Projects/mot/utils/offscreen-ocr').warmUpOffscreenOcr
   const warmUpOffscreenStt: typeof import('/Users/tommyjtl/Documents/Projects/mot/utils/offscreen-stt').warmUpOffscreenStt
@@ -156,12 +145,6 @@ declare global {
   export type { ViewportCaptureRect, ViewportCaptureSelection } from '/Users/tommyjtl/Documents/Projects/mot/utils/capture-region'
   import('/Users/tommyjtl/Documents/Projects/mot/utils/capture-region')
   // @ts-ignore
-  export type { InteractiveWordText, WordSelectHandler } from '/Users/tommyjtl/Documents/Projects/mot/utils/interactive-word-text'
-  import('/Users/tommyjtl/Documents/Projects/mot/utils/interactive-word-text')
-  // @ts-ignore
-  export type { TranscriptWordTranslationState, TranscriptOverlayState } from '/Users/tommyjtl/Documents/Projects/mot/utils/live-transcript-overlay'
-  import('/Users/tommyjtl/Documents/Projects/mot/utils/live-transcript-overlay')
-  // @ts-ignore
   export type { SelectionRect, SelectionPayload, ModelLoadBroadcastMessage, Message } from '/Users/tommyjtl/Documents/Projects/mot/utils/messages'
   import('/Users/tommyjtl/Documents/Projects/mot/utils/messages')
   // @ts-ignore
@@ -182,9 +165,6 @@ declare global {
   // @ts-ignore
   export type { WordToken } from '/Users/tommyjtl/Documents/Projects/mot/utils/overlay-phrase'
   import('/Users/tommyjtl/Documents/Projects/mot/utils/overlay-phrase')
-  // @ts-ignore
-  export type { PlaybackState, OverlayState, TranslationViewState } from '/Users/tommyjtl/Documents/Projects/mot/utils/overlay'
-  import('/Users/tommyjtl/Documents/Projects/mot/utils/overlay')
   // @ts-ignore
   export type { SelectionResult } from '/Users/tommyjtl/Documents/Projects/mot/utils/selection'
   import('/Users/tommyjtl/Documents/Projects/mot/utils/selection')

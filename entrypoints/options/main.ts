@@ -363,7 +363,7 @@ browser.runtime.onMessage.addListener(
         showTtsModel(
           "ready",
           message.detail ||
-            "Ready. Option+S will speak selected text instantly.",
+          "Ready. Option+S will speak selected text instantly.",
         );
         return;
       }
@@ -384,7 +384,7 @@ browser.runtime.onMessage.addListener(
         showSttModel(
           "ready",
           message.detail ||
-            "Ready. Option+T transcribes audio from the active web page.",
+          "Ready. Option+T transcribes audio from the active web page.",
         );
         return;
       }

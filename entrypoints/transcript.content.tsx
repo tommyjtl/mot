@@ -18,12 +18,14 @@ import {
   refreshPausedTranscriptOverlay,
   setTranscriptPlaybackVisible,
   setTranscriptReadStatus,
+  setTranscriptShowRealtimeTranslation,
   setTranscriptWordLoading,
   setTranscriptWordTranslation,
   showTranscriptOverlay,
   updateTranscriptLoadingProgress,
   updateTranscriptOverlay,
-} from "../utils/live-transcript-overlay";
+} from "../features/transcript-overlay/transcript-overlay-controller";
+import { mountTranscriptOverlay } from "../features/transcript-overlay/mount";
 import {
   isLearningTranslationSupported,
   translateForLearning,
@@ -31,14 +33,23 @@ import {
 
 let transcribing = false;
 let overlayDismissed = false;
+let stopExpectedFromFooter = false;
 let captureInitiatedLocally = false;
 let preserveLinesOnNextStart = false;
 let finalizedLines: string[] = [];
 let partialLine = "";
 
 let cachedVisibleSpeechText: string | null = null;
+let cachedFullTranslation: string | null = null;
+let cachedFullTranslationText: string | null = null;
 let wordSynthRequestId = 0;
 let wordTranslationRequestId = 0;
+let fullTranslationRequestId = 0;
+let translationDisplayMode: "full" | "word" = "full";
+let showRealtimeTranslation = false;
+let fullTranslationDebounceId: ReturnType<typeof setTimeout> | null = null;
+
+const FULL_TRANSLATION_DEBOUNCE_MS = 600;
 let currentPlaybackBase64: string | null = null;
 let playbackAlignment: TtsAlignment | null = null;
 let playbackDuration = 0;
@@ -79,7 +90,16 @@ function resetTranscriptState(): void {
   captureInitiatedLocally = false;
   preserveLinesOnNextStart = false;
   wordTranslationRequestId += 1;
+  fullTranslationRequestId += 1;
   cachedVisibleSpeechText = null;
+  cachedFullTranslation = null;
+  cachedFullTranslationText = null;
+  translationDisplayMode = "full";
+  showRealtimeTranslation = false;
+  if (fullTranslationDebounceId !== null) {
+    clearTimeout(fullTranslationDebounceId);
+    fullTranslationDebounceId = null;
+  }
 }
 
 function finalizePartialLine(): void {
@@ -126,11 +146,239 @@ function stopTranscriptAudio(): void {
   requestStopAudio();
 }
 
-function clearReadModeUi(): void {
+function clearTranslationUi(): void {
   wordTranslationRequestId += 1;
+  fullTranslationRequestId += 1;
+  if (fullTranslationDebounceId !== null) {
+    clearTimeout(fullTranslationDebounceId);
+    fullTranslationDebounceId = null;
+  }
+
   if (isTranscriptOverlayVisible()) {
     setTranscriptWordTranslation({ visible: false });
   }
+}
+
+function clearReadModeUi(): void {
+  wordTranslationRequestId += 1;
+  translationDisplayMode = "full";
+
+  if (showRealtimeTranslation) {
+    showFullTranslation();
+    return;
+  }
+
+  if (isTranscriptOverlayVisible()) {
+    setTranscriptWordTranslation({ visible: false });
+  }
+}
+
+function setShowRealtimeTranslationEnabled(enabled: boolean): void {
+  showRealtimeTranslation = enabled;
+  setTranscriptShowRealtimeTranslation(enabled);
+
+  if (enabled) {
+    translationDisplayMode = "full";
+    showFullTranslation();
+    return;
+  }
+
+  fullTranslationRequestId += 1;
+  if (fullTranslationDebounceId !== null) {
+    clearTimeout(fullTranslationDebounceId);
+    fullTranslationDebounceId = null;
+  }
+
+  if (translationDisplayMode === "full" && isTranscriptOverlayVisible()) {
+    setTranscriptWordTranslation({ visible: false });
+  }
+}
+
+function showFullTranslation(): void {
+  wordTranslationRequestId += 1;
+  translationDisplayMode = "full";
+
+  if (!showRealtimeTranslation) {
+    if (isTranscriptOverlayVisible()) {
+      setTranscriptWordTranslation({ visible: false });
+    }
+    return;
+  }
+
+  const text = getVisibleTranscriptText();
+  if (!text.trim()) {
+    setTranscriptWordTranslation({ visible: false });
+    return;
+  }
+
+  if (
+    cachedFullTranslation &&
+    cachedFullTranslationText === text
+  ) {
+    setTranscriptWordTranslation(
+      {
+        visible: true,
+        originalText: text,
+        translationText: cachedFullTranslation,
+        mode: "full",
+      },
+      showFullTranslation,
+    );
+    return;
+  }
+
+  void refreshFullTranslation(text);
+}
+
+async function refreshFullTranslation(text: string): Promise<void> {
+  if (!showRealtimeTranslation || !isLearningTranslationSupported()) {
+    if (isTranscriptOverlayVisible()) {
+      setTranscriptWordTranslation({ visible: false });
+    }
+    return;
+  }
+
+  const requestId = (fullTranslationRequestId += 1);
+  if (translationDisplayMode === "full") {
+    setTranscriptWordTranslation(
+      {
+        visible: true,
+        originalText: text,
+        translationText: "",
+        mode: "full",
+        loading: true,
+      },
+      showFullTranslation,
+    );
+  }
+
+  const result = await translateForLearning(text);
+  if (requestId !== fullTranslationRequestId) {
+    return;
+  }
+
+  if (!result.ok) {
+    if (result.unavailable) {
+      if (translationDisplayMode === "full") {
+        setTranscriptWordTranslation({ visible: false });
+      }
+      return;
+    }
+
+    if (translationDisplayMode === "full") {
+      setTranscriptWordTranslation(
+        {
+          visible: true,
+          originalText: text,
+          translationText: result.error,
+          mode: "full",
+        },
+        showFullTranslation,
+      );
+    }
+    return;
+  }
+
+  cachedFullTranslation = result.text;
+  cachedFullTranslationText = text;
+  if (translationDisplayMode === "full") {
+    setTranscriptWordTranslation(
+      {
+        visible: true,
+        originalText: text,
+        translationText: result.text,
+        mode: "full",
+      },
+      showFullTranslation,
+    );
+  }
+}
+
+function scheduleFullTranslationRefresh(immediate = false): void {
+  if (!showRealtimeTranslation) {
+    return;
+  }
+
+  const text = getVisibleTranscriptText();
+  if (!text.trim()) {
+    fullTranslationRequestId += 1;
+    setTranscriptWordTranslation({ visible: false });
+    return;
+  }
+
+  if (translationDisplayMode !== "full") {
+    return;
+  }
+
+  if (cachedFullTranslationText !== text) {
+    setTranscriptWordTranslation(
+      {
+        visible: true,
+        originalText: text,
+        translationText: "",
+        mode: "full",
+        loading: true,
+      },
+      showFullTranslation,
+    );
+  }
+
+  if (fullTranslationDebounceId !== null) {
+    clearTimeout(fullTranslationDebounceId);
+    fullTranslationDebounceId = null;
+  }
+
+  if (immediate) {
+    if (
+      cachedFullTranslation &&
+      cachedFullTranslationText === text
+    ) {
+      setTranscriptWordTranslation(
+        {
+          visible: true,
+          originalText: text,
+          translationText: cachedFullTranslation,
+          mode: "full",
+        },
+        showFullTranslation,
+      );
+      return;
+    }
+
+    void refreshFullTranslation(text);
+    return;
+  }
+
+  fullTranslationDebounceId = setTimeout(() => {
+    fullTranslationDebounceId = null;
+    const currentText = getVisibleTranscriptText();
+    if (!currentText.trim()) {
+      setTranscriptWordTranslation({ visible: false });
+      return;
+    }
+
+    if (translationDisplayMode !== "full") {
+      return;
+    }
+
+    if (
+      cachedFullTranslation &&
+      cachedFullTranslationText === currentText
+    ) {
+      setTranscriptWordTranslation(
+        {
+          visible: true,
+          originalText: currentText,
+          translationText: cachedFullTranslation,
+          mode: "full",
+        },
+        showFullTranslation,
+      );
+      return;
+    }
+
+    void refreshFullTranslation(currentText);
+  }, FULL_TRANSLATION_DEBOUNCE_MS);
 }
 
 function startHighlightLoop(): void {
@@ -190,13 +438,18 @@ async function refreshWordTranslation(word: string): Promise<void> {
     return;
   }
 
+  translationDisplayMode = "word";
   const requestId = (wordTranslationRequestId += 1);
-  setTranscriptWordTranslation({
-    visible: true,
-    originalText: word,
-    translationText: "",
-    loading: true,
-  });
+  setTranscriptWordTranslation(
+    {
+      visible: true,
+      originalText: word,
+      translationText: "",
+      mode: "word",
+      loading: true,
+    },
+    showFullTranslation,
+  );
 
   const result = await translateForLearning(word);
   if (requestId !== wordTranslationRequestId) {
@@ -205,25 +458,31 @@ async function refreshWordTranslation(word: string): Promise<void> {
 
   if (!result.ok) {
     if (result.unavailable) {
-      setTranscriptWordTranslation({ visible: false });
+      showFullTranslation();
       return;
     }
 
-    setTranscriptWordTranslation({
-      visible: true,
-      originalText: word,
-      translationText: result.error,
-      loading: false,
-    });
+    setTranscriptWordTranslation(
+      {
+        visible: true,
+        originalText: word,
+        translationText: result.error,
+        mode: "word",
+      },
+      showFullTranslation,
+    );
     return;
   }
 
-  setTranscriptWordTranslation({
-    visible: true,
-    originalText: word,
-    translationText: result.text,
-    loading: false,
-  });
+  setTranscriptWordTranslation(
+    {
+      visible: true,
+      originalText: word,
+      translationText: result.text,
+      mode: "word",
+    },
+    showFullTranslation,
+  );
 }
 
 function speakWordRange(startIndex: number, endIndex: number): void {
@@ -323,17 +582,14 @@ async function closeOverlay(): Promise<void> {
   overlayDismissed = true;
   stopTranscriptAudio();
   clearReadModeUi();
-
-  if (transcribing) {
-    try {
-      await requestStopTranscription();
-    } catch {
-      // Background may be unavailable during reload.
-    }
-  }
-
   hideTranscriptOverlay();
   resetTranscriptState();
+
+  try {
+    await requestStopTranscription();
+  } catch {
+    // Background may be unavailable during reload.
+  }
 }
 
 function showStartCaptureError(message: string): void {
@@ -387,6 +643,7 @@ function startCaptureAndTranscribe(options: {
       overlayHandlers(),
     );
     updateTranscriptLoadingProgress(options.detail);
+    scheduleFullTranslationRefresh();
   } else {
     finalizedLines = [];
     partialLine = "";
@@ -429,10 +686,13 @@ function resumeTranscriptionFromGesture(
 
 function resetTranscriptContent(): void {
   stopTranscriptAudio();
-  clearReadModeUi();
+  translationDisplayMode = "full";
+  clearTranslationUi();
   finalizedLines = [];
   partialLine = "";
   cachedVisibleSpeechText = null;
+  cachedFullTranslation = null;
+  cachedFullTranslationText = null;
   if (transcribing) {
     updateTranscriptOverlay([], "");
   } else {
@@ -477,16 +737,17 @@ function applyEditedTranscript(text: string): void {
   } else {
     refreshPausedTranscriptOverlay(finalizedLines, partialLine);
   }
+
+  scheduleFullTranslationRefresh(!transcribing);
 }
 
 function overlayHandlers() {
   return {
     onStop: () => {
+      stopExpectedFromFooter = true;
       stopTranscriptAudio();
       clearReadModeUi();
-      if (transcribing) {
-        void requestStopTranscription();
-      }
+      void requestStopTranscription();
     },
     onResume: () => {
       stopTranscriptAudio();
@@ -501,6 +762,7 @@ function overlayHandlers() {
     onStopPlayback: () => {
       stopTranscriptAudio();
     },
+    onToggleRealtimeTranslation: setShowRealtimeTranslationEnabled,
   };
 }
 
@@ -521,6 +783,7 @@ function appendTranscript(text: string, isFinal: boolean): void {
 
   cachedVisibleSpeechText = getVisibleTranscriptText();
   updateTranscriptOverlay(finalizedLines, partialLine);
+  scheduleFullTranslationRefresh();
 }
 
 export default defineContentScript({
@@ -528,6 +791,7 @@ export default defineContentScript({
   runAt: "document_idle",
 
   main() {
+    mountTranscriptOverlay();
     bindTranscriptDismissals(closeOverlay);
 
     void browser.runtime
@@ -542,7 +806,6 @@ export default defineContentScript({
     browser.runtime.onMessage.addListener((message: Message) => {
       if (overlayDismissed) {
         if (
-          message.type === "transcript-stopped" ||
           message.type === "transcript-error" ||
           message.type === "transcript-status" ||
           message.type === "transcript-chunk"
@@ -585,6 +848,7 @@ export default defineContentScript({
             overlayHandlers(),
           );
           updateTranscriptLoadingProgress("Connecting to tab audio…");
+          scheduleFullTranslationRefresh();
           return;
         }
 
@@ -642,6 +906,7 @@ export default defineContentScript({
             },
             overlayHandlers(),
           );
+          scheduleFullTranslationRefresh();
           return;
         }
 
@@ -679,9 +944,15 @@ export default defineContentScript({
 
       if (message.type === "transcript-stopped") {
         if (overlayDismissed) {
+          overlayDismissed = false;
           return;
         }
 
+        if (!stopExpectedFromFooter && transcribing) {
+          return;
+        }
+
+        stopExpectedFromFooter = false;
         finalizePartialLine();
         transcribing = false;
         captureInitiatedLocally = false;
@@ -701,6 +972,7 @@ export default defineContentScript({
           { kind: "paused", lines: finalizedLines },
           overlayHandlers(),
         );
+        scheduleFullTranslationRefresh(true);
         return;
       }
 

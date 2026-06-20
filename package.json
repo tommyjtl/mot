@@ -27,11 +27,16 @@
   },
   "homepage": "https://github.com/tommyjtl/mot#readme",
   "devDependencies": {
+    "@types/react": "^19.2.17",
+    "@types/react-dom": "^19.2.3",
+    "@wxt-dev/module-react": "^1.2.2",
     "typescript": "^6.0.3",
     "wxt": "^0.20.26"
   },
   "dependencies": {
     "onnxruntime-web": "^1.21.0",
+    "react": "^19.2.7",
+    "react-dom": "^19.2.7",
     "tesseract.js": "^7.0.0"
   }
 }

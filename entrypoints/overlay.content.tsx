@@ -10,7 +10,8 @@ import {
   updateOverlayProgress,
   updatePlaybackState,
   type PlaybackState,
-} from "../utils/overlay";
+} from "../features/tts-overlay/tts-overlay-controller";
+import { mountTtsOverlay } from "../features/tts-overlay/mount";
 import { overlayWordIndexAtTime } from "../utils/overlay-word-sync";
 import { phraseFromWordRange } from "../utils/overlay-phrase";
 import {
@@ -42,6 +43,7 @@ import {
 } from "../utils/translation";
 
 import { evaluateSelection } from "../utils/selection";
+import { isSpeakSelectionShortcut } from "../utils/speak-shortcut";
 
 type PlaybackScope = "full" | "word";
 
@@ -552,7 +554,25 @@ export default defineContentScript({
   runAt: "document_idle",
 
   main() {
+    mountTtsOverlay();
     bindOverlayDismissals(closeOverlay);
+
+    window.addEventListener(
+      "keydown",
+      (event) => {
+        if (!isSpeakSelectionShortcut(event)) {
+          return;
+        }
+
+        event.preventDefault();
+        event.stopPropagation();
+
+        void browser.runtime.sendMessage({
+          type: "speak-selection-gesture",
+        } satisfies Message);
+      },
+      true,
+    );
 
     browser.runtime.onMessage.addListener((message: Message) => {
       if (message.type === "speak-selection") {
