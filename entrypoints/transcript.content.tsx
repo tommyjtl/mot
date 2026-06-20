@@ -15,6 +15,7 @@ import {
   isTranscriptOverlayVisible,
   MAX_VISIBLE_TRANSCRIPT_LINES,
   refreshPausedTranscriptOverlay,
+  setTranscriptPhraseRange,
   setTranscriptPlaybackVisible,
   setTranscriptReadStatus,
   setTranscriptShowRealtimeTranslation,
@@ -444,26 +445,28 @@ function syncTranscriptHighlight(currentTime: number, duration: number): void {
   const end = session.pinnedWordEnd ?? session.pinnedWordStart;
   const isPhrase = end > session.pinnedWordStart;
 
-  if (
-    isPhrase &&
-    session.playbackAlignment?.words.length &&
-    session.pinnedPhraseText
-  ) {
-    const localIndex = overlayWordIndexAtTime(
-      session.pinnedPhraseText,
-      currentTime,
-      duration,
-      session.playbackAlignment,
-    );
+  if (isPhrase) {
+    setTranscriptPhraseRange(session.pinnedWordStart, end);
 
-    if (localIndex !== null) {
-      highlightTranscriptWord(session.pinnedWordStart + localIndex);
-    } else {
-      highlightTranscriptWord(session.pinnedWordStart, end);
+    let activeIndex = session.pinnedWordStart;
+    if (session.playbackAlignment?.words.length && session.pinnedPhraseText) {
+      const localIndex = overlayWordIndexAtTime(
+        session.pinnedPhraseText,
+        currentTime,
+        duration,
+        session.playbackAlignment,
+      );
+
+      if (localIndex !== null) {
+        activeIndex = session.pinnedWordStart + localIndex;
+      }
     }
+
+    highlightTranscriptWord(activeIndex);
     return;
   }
 
+  setTranscriptPhraseRange(null);
   highlightTranscriptWord(session.pinnedWordStart, end);
 }
 
@@ -585,6 +588,14 @@ function handleWordTtsResult(
     playbackAlignment,
     playbackDuration: alignmentDuration(playbackAlignment),
   });
+
+  const start = message.wordIndex;
+  const end = message.endWordIndex ?? message.wordIndex;
+  if (end > start) {
+    setTranscriptPhraseRange(start, end);
+  } else {
+    setTranscriptPhraseRange(null);
+  }
 
   resetPlaybackClock();
   setTranscriptReadStatus(`Playing “${message.payload.word}”.`);
@@ -1081,14 +1092,12 @@ export default defineContentScript({
         clearReadModeUi();
 
         const next = getTranscriptSession();
-        if (next.finalizedLines.length === 0 && next.partialLine.trim().length === 0) {
-          hideTranscriptOverlay();
-          resetTranscriptState();
-          return;
-        }
-
         showTranscriptOverlay(
-          { kind: "paused", lines: next.finalizedLines },
+          {
+            kind: "paused",
+            lines: next.finalizedLines,
+            partial: next.partialLine,
+          },
           overlayHandlers(),
         );
         scheduleFullTranslationRefresh(true);

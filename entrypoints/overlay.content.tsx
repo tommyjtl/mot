@@ -2,6 +2,7 @@ import type { Message, SelectionRect } from "../utils/messages";
 import {
   highlightOverlayWord,
   hideOverlay,
+  setOverlayPhraseRange,
   setOverlayStatusMessage,
   setOverlayTranslation,
   setWordLoadingIndex,
@@ -342,30 +343,33 @@ function syncOverlayHighlight(currentTime: number, duration: number): void {
       const end = session.pinnedWordEnd ?? session.pinnedWordStart;
       const isPhrase = end > session.pinnedWordStart;
 
-      if (
-        isPhrase &&
-        session.playbackAlignment?.words.length &&
-        session.pinnedPhraseText
-      ) {
-        const localIndex = overlayWordIndexAtTime(
-          session.pinnedPhraseText,
-          currentTime,
-          duration,
-          session.playbackAlignment,
-        );
+      if (isPhrase) {
+        setOverlayPhraseRange(session.pinnedWordStart, end);
 
-        if (localIndex !== null) {
-          highlightOverlayWord(session.pinnedWordStart + localIndex);
-        } else {
-          highlightOverlayWord(session.pinnedWordStart, end);
+        let activeIndex = session.pinnedWordStart;
+        if (session.playbackAlignment?.words.length && session.pinnedPhraseText) {
+          const localIndex = overlayWordIndexAtTime(
+            session.pinnedPhraseText,
+            currentTime,
+            duration,
+            session.playbackAlignment,
+          );
+
+          if (localIndex !== null) {
+            activeIndex = session.pinnedWordStart + localIndex;
+          }
         }
+
+        highlightOverlayWord(activeIndex);
       } else {
+        setOverlayPhraseRange(null);
         highlightOverlayWord(session.pinnedWordStart, end);
       }
     }
     return;
   }
 
+  setOverlayPhraseRange(null);
   highlightOverlayWord(
     overlayWordIndexAtTime(
       session.cachedSpeechText,
@@ -519,6 +523,14 @@ function handleWordTtsResult(
       aligned ?? message.payload.alignment ?? null,
     ),
   });
+
+  const start = message.wordIndex;
+  const end = message.endWordIndex ?? message.wordIndex;
+  if (end > start) {
+    setOverlayPhraseRange(start, end);
+  } else {
+    setOverlayPhraseRange(null);
+  }
 
   resetPlaybackClock();
   setOverlayStatusMessage(`Playing “${message.payload.word}”.`);

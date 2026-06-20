@@ -10,13 +10,13 @@ export type OverlayViewState =
   | { kind: "loading-model"; text: string; detail?: string; percent?: number }
   | { kind: "generating"; text: string; detail?: string; percent?: number }
   | {
-      kind: "ready";
-      text: string;
-      hint?: string;
-      playback: PlaybackState;
-      onTogglePlayback: () => void;
-      onWordSelect?: (startIndex: number, endIndex: number) => void;
-    }
+    kind: "ready";
+    text: string;
+    hint?: string;
+    playback: PlaybackState;
+    onTogglePlayback: () => void;
+    onWordSelect?: (startIndex: number, endIndex: number) => void;
+  }
   | { kind: "error"; message: string; text?: string };
 
 export type PanelPosition = {
@@ -50,6 +50,8 @@ export type TtsOverlayStoreState = {
   translation: TranslationState;
   wordHighlight: WordRange | null;
   wordLoading: WordRange | null;
+  /** Multi-word phrase bounds during phrase playback (gray background). */
+  phraseRange: WordRange | null;
   alignmentDebugHost: AlignmentDebugHost | null;
   alignmentDebugTick: number;
   handlersRef: HandlersRef<TtsOverlayHandlers>;
@@ -63,6 +65,7 @@ export const initialTtsOverlayState = (): TtsOverlayStoreState => ({
   translation: { visible: false },
   wordHighlight: null,
   wordLoading: null,
+  phraseRange: null,
   alignmentDebugHost: null,
   alignmentDebugTick: 0,
   handlersRef: ttsHandlersRef,

@@ -39,6 +39,8 @@ export type TranscriptOverlayStoreState = {
   translation: TranslationState;
   wordHighlight: WordRange | null;
   wordLoading: WordRange | null;
+  /** Multi-word phrase bounds during phrase playback (gray background). */
+  phraseRange: WordRange | null;
   playbackVisible: boolean;
   showRealtimeTranslation: boolean;
   statusMessage: string | null;
@@ -54,6 +56,7 @@ export const initialTranscriptOverlayState = (): TranscriptOverlayStoreState => 
   translation: { visible: false },
   wordHighlight: null,
   wordLoading: null,
+  phraseRange: null,
   playbackVisible: false,
   showRealtimeTranslation: false,
   statusMessage: null,

@@ -38,6 +38,7 @@ function applyViewState(
     ...(clearsTranslation ? { translation: { visible: false } } : {}),
     wordHighlight: null,
     wordLoading: null,
+    phraseRange: null,
     playbackVisible: false,
     statusMessage: null,
     statusError: false,
@@ -86,11 +87,37 @@ export const transcriptOverlay = {
       return;
     }
 
+    if (index === null) {
+      transcriptOverlayStore.setState({
+        wordHighlight: null,
+        phraseRange: null,
+      });
+      return;
+    }
+
     transcriptOverlayStore.setState({
-      wordHighlight:
-        index === null
-          ? null
-          : { start: index, end: endIndex ?? index },
+      wordHighlight: { start: index, end: endIndex ?? index },
+    });
+  },
+
+  setPhraseRange(start: number | null, endIndex?: number | null): void {
+    if (!isTranscriptOverlayMounted()) {
+      return;
+    }
+
+    if (start === null) {
+      transcriptOverlayStore.setState({ phraseRange: null });
+      return;
+    }
+
+    const end = endIndex ?? start;
+    if (end <= start) {
+      transcriptOverlayStore.setState({ phraseRange: null });
+      return;
+    }
+
+    transcriptOverlayStore.setState({
+      phraseRange: { start, end },
     });
   },
 
@@ -196,6 +223,10 @@ export const highlightTranscriptWord = (
   index: number | null,
   endIndex?: number | null,
 ) => transcriptOverlay.highlightWord(index, endIndex);
+export const setTranscriptPhraseRange = (
+  start: number | null,
+  endIndex?: number | null,
+) => transcriptOverlay.setPhraseRange(start, endIndex);
 export const setTranscriptWordLoading = (
   index: number | null,
   endIndex?: number | null,

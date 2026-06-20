@@ -125,8 +125,16 @@
   cursor: text;
 }
 
-.transcript.is-read-mode .word.isInRange:not(.isActive):not(.isLoading) {
+.transcript.is-read-mode .word.isInRange:not(.isActive):not(.isLoading):not(.isInPhrase) {
   background: rgba(79, 70, 229, 0.18);
+}
+
+.transcript.is-read-mode .word.isInPhrase:not(.isActive):not(.isLoading) {
+  background-color: #e2e8f0;
+  box-decoration-break: clone;
+  -webkit-box-decoration-break: clone;
+  border-radius: 3px;
+  padding: 0 1px;
 }
 
 .transcript.is-read-mode .word.isActive {

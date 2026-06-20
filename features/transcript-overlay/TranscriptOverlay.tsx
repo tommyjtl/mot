@@ -101,6 +101,7 @@ export function TranscriptOverlay() {
   const wordHighlight = useTranscriptOverlaySelector(
     (state) => state.wordHighlight,
   );
+  const phraseRange = useTranscriptOverlaySelector((state) => state.phraseRange);
   const wordLoading = useTranscriptOverlaySelector((state) => state.wordLoading);
   const playbackVisible = useTranscriptOverlaySelector(
     (state) => state.playbackVisible,
@@ -188,6 +189,7 @@ export function TranscriptOverlay() {
             visibleText === WAITING_PLACEHOLDER ? "" : visibleText,
           translation: { visible: false },
           wordHighlight: null,
+          phraseRange: null,
           wordLoading: null,
           playbackVisible: false,
         });
@@ -238,15 +240,13 @@ export function TranscriptOverlay() {
         headerLeft={
           <div className="headerLeft">
             <span
-              className={`headerSpinner${
-                headerActivity === "transcribing" ? " isVisible" : ""
-              }`}
+              className={`headerSpinner${headerActivity === "transcribing" ? " isVisible" : ""
+                }`}
               aria-hidden="true"
             />
             <span
-              className={`headerPause${
-                headerActivity === "paused" ? " isVisible" : ""
-              }`}
+              className={`headerPause${headerActivity === "paused" ? " isVisible" : ""
+                }`}
               aria-hidden="true"
             >
               <PauseIcon />
@@ -271,12 +271,12 @@ export function TranscriptOverlay() {
           ) : isReadMode && visibleText ? (
             <InteractiveWordText
               text={visibleText}
-              className={`transcript is-read-mode${
-                isPlaceholder ? " isPlaceholder" : ""
-              }`}
+              className={`transcript is-read-mode${isPlaceholder ? " isPlaceholder" : ""
+                }`}
               dataRows={transcriptRowAttr}
               innerRef={transcriptRef}
               highlight={wordHighlight}
+              phraseRange={phraseRange}
               loading={wordLoading}
               onWordSelect={handlersRef.current.onWordSelect}
             />
@@ -339,9 +339,8 @@ export function TranscriptOverlay() {
                   <button
                     type="button"
                     role="switch"
-                    className={`realtimeTranslationSwitch${
-                      showRealtimeTranslation ? " isOn" : ""
-                    }`}
+                    className={`realtimeTranslationSwitch${showRealtimeTranslation ? " isOn" : ""
+                      }`}
                     aria-checked={showRealtimeTranslation}
                     aria-label="Show real-time translation"
                     onClick={(event) => {

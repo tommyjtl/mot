@@ -22,6 +22,8 @@ type InteractiveWordTextProps = {
   dataRows?: string;
   highlight?: WordRange | null;
   loading?: WordRange | null;
+  /** Selected multi-word phrase during playback; non-active words get gray fill. */
+  phraseRange?: WordRange | null;
   className?: string;
   onWordSelect?: (startIndex: number, endIndex: number) => void;
 };
@@ -100,6 +102,7 @@ export function InteractiveWordText({
   dataRows,
   highlight,
   loading,
+  phraseRange,
   className,
   onWordSelect,
 }: InteractiveWordTextProps) {
@@ -333,6 +336,12 @@ export function InteractiveWordText({
   const loadingEnd = loading?.end ?? loading?.start ?? null;
   const previewStart = dragPreview?.start ?? null;
   const previewEnd = dragPreview?.end ?? dragPreview?.start ?? null;
+  const phraseStart = phraseRange?.start ?? null;
+  const phraseEnd = phraseRange?.end ?? phraseRange?.start ?? null;
+  const hasPhraseRange =
+    phraseStart !== null &&
+    phraseEnd !== null &&
+    phraseEnd > phraseStart;
 
   const setContainerRef = useCallback(
     (node: HTMLParagraphElement | null) => {
@@ -363,15 +372,28 @@ export function InteractiveWordText({
         wordIndex += 1;
 
         const classes = ["word"];
-        if (wordIndexInRange(currentWordIndex, highlightStart, highlightEnd)) {
+        const isActive = wordIndexInRange(
+          currentWordIndex,
+          highlightStart,
+          highlightEnd,
+        );
+        if (isActive) {
           classes.push("isActive");
         }
         if (wordIndexInRange(currentWordIndex, loadingStart, loadingEnd)) {
           classes.push("isLoading");
         }
         if (
+          hasPhraseRange &&
+          wordIndexInRange(currentWordIndex, phraseStart, phraseEnd) &&
+          !isActive
+        ) {
+          classes.push("isInPhrase");
+        }
+        if (
           wordIndexInRange(currentWordIndex, previewStart, previewEnd) &&
-          !wordIndexInRange(currentWordIndex, highlightStart, highlightEnd)
+          !isActive &&
+          !wordIndexInRange(currentWordIndex, phraseStart, phraseEnd)
         ) {
           classes.push("isInRange");
         }

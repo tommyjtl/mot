@@ -51,6 +51,7 @@ export const ttsOverlay = {
       translation: { visible: false },
       wordHighlight: null,
       wordLoading: null,
+      phraseRange: null,
       statusMessage: undefined,
       loadingPhase: undefined,
       loadingDetail: undefined,
@@ -95,11 +96,37 @@ export const ttsOverlay = {
       return;
     }
 
+    if (index === null) {
+      ttsOverlayStore.setState({
+        wordHighlight: null,
+        phraseRange: null,
+      });
+      return;
+    }
+
     ttsOverlayStore.setState({
-      wordHighlight:
-        index === null
-          ? null
-          : { start: index, end: endIndex ?? index },
+      wordHighlight: { start: index, end: endIndex ?? index },
+    });
+  },
+
+  setPhraseRange(start: number | null, endIndex?: number | null): void {
+    if (!isTtsOverlayVisible()) {
+      return;
+    }
+
+    if (start === null) {
+      ttsOverlayStore.setState({ phraseRange: null });
+      return;
+    }
+
+    const end = endIndex ?? start;
+    if (end <= start) {
+      ttsOverlayStore.setState({ phraseRange: null });
+      return;
+    }
+
+    ttsOverlayStore.setState({
+      phraseRange: { start, end },
     });
   },
 
@@ -187,6 +214,10 @@ export const highlightOverlayWord = (
   index: number | null,
   endIndex?: number | null,
 ) => ttsOverlay.highlightWord(index, endIndex);
+export const setOverlayPhraseRange = (
+  start: number | null,
+  endIndex?: number | null,
+) => ttsOverlay.setPhraseRange(start, endIndex);
 export const setWordLoadingIndex = (
   index: number | null,
   endIndex?: number | null,

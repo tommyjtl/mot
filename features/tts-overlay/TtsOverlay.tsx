@@ -48,6 +48,7 @@ export function TtsOverlay() {
   const position = useTtsOverlaySelector((state) => state.position);
   const translation = useTtsOverlaySelector((state) => state.translation);
   const wordHighlight = useTtsOverlaySelector((state) => state.wordHighlight);
+  const phraseRange = useTtsOverlaySelector((state) => state.phraseRange);
   const wordLoading = useTtsOverlaySelector((state) => state.wordLoading);
   const statusMessage = useTtsOverlaySelector((state) => state.statusMessage);
   const loadingPhase = useTtsOverlaySelector((state) => state.loadingPhase);
@@ -144,6 +145,7 @@ export function TtsOverlay() {
             <InteractiveWordText
               text={view.text}
               highlight={wordHighlight}
+              phraseRange={phraseRange}
               loading={wordLoading}
               onWordSelect={handlersRef.current.onWordSelect}
             />
@@ -164,9 +166,8 @@ export function TtsOverlay() {
               <div className="actions">
                 <button
                   type="button"
-                  className={`actionButton${
-                    view.playback === "playing" ? " isPlaying" : ""
-                  }`}
+                  className={`actionButton${view.playback === "playing" ? " isPlaying" : ""
+                    }`}
                   onClick={() => handlersRef.current.onTogglePlayback?.()}
                 >
                   {view.playback === "playing"
@@ -177,8 +178,8 @@ export function TtsOverlay() {
             ) : null}
 
             {view.kind === "loading-model" ||
-            view.kind === "generating" ||
-            loadingPhase ? (
+              view.kind === "generating" ||
+              loadingPhase ? (
               <StatusFooter
                 loadingPhase={
                   loadingPhase ??
