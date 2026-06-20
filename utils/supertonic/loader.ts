@@ -1,5 +1,7 @@
 import * as ort from "onnxruntime-web";
 
+ort.env.logLevel = "error";
+
 import { assetByteSize } from "./asset-sizes";
 import {
   ModelLoadTracker,
@@ -28,6 +30,7 @@ function configureOrtWasm(): void {
   const baseUrl = browser.runtime.getURL("/ort/");
   ort.env.wasm.wasmPaths = baseUrl;
   ort.env.wasm.numThreads = 1;
+  ort.env.logLevel = "error";
 }
 
 function emitProgress(

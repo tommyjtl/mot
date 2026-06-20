@@ -22,10 +22,13 @@ declare module '#imports' {
   export { viewportRectToSelectionRect, showCaptureOverlay, hideCaptureOverlay, isCaptureOverlayVisible, ViewportCaptureRect, ViewportCaptureSelection } from '../utils/capture-region';
   export { cropScreenshotToBase64, captureVisibleRegionBase64 } from '../utils/capture-screenshot';
   export { beginCaptureWait, resolveCaptureWait, cancelCaptureWait, cancelAllCaptureWaits } from '../utils/capture-session';
+  export { InteractiveWordText, WordSelectHandler } from '../utils/interactive-word-text';
+  export { MAX_VISIBLE_TRANSCRIPT_LINES, setTranscriptWordTranslation, highlightTranscriptWord, setTranscriptWordLoading, setTranscriptPlaybackVisible, setTranscriptReadStatus, showTranscriptOverlay, refreshPausedTranscriptOverlay, updateTranscriptLoadingProgress, updateTranscriptOverlay, isTranscriptOverlayVisible, hideTranscriptOverlay, bindTranscriptDismissals, TranscriptWordTranslationState, TranscriptOverlayState } from '../utils/live-transcript-overlay';
   export { SelectionRect, SelectionPayload, ModelLoadBroadcastMessage, Message } from '../utils/messages';
   export { broadcastModelLoadProgress, broadcastModelLoadError, ModelLoadBroadcast } from '../utils/model-load-broadcast';
   export { PLAY_AUDIO, STOP_AUDIO, setupOffscreenDocument } from '../utils/offscreen-document';
   export { OFFSCREEN_OCR, OFFSCREEN_OCR_WARMUP, recognizeInOffscreen, warmUpOffscreenOcr, OffscreenOcrResult } from '../utils/offscreen-ocr';
+  export { OFFSCREEN_STT_START, OFFSCREEN_STT_STOP, OFFSCREEN_STT_CANCEL, OFFSCREEN_STT_WARMUP, OFFSCREEN_STT_STATUS, OFFSCREEN_STT_SESSION, startTabTranscriptionInOffscreen, stopTabTranscriptionInOffscreen, cancelTabTranscriptionInOffscreen, warmUpOffscreenStt, getOffscreenSttStatus, getOffscreenTranscriptionSession, OffscreenSttStartResult } from '../utils/offscreen-stt';
   export { OFFSCREEN_SYNTHESIZE, OFFSCREEN_WARMUP, OFFSCREEN_STATUS, ensureOffscreenDocument, warmUpOffscreenTts, synthesizeInOffscreen, playAudioInOffscreen, stopAudioInOffscreen, abortOffscreenSynthesis, getOffscreenModelStatus, TtsEngineError, OffscreenSynthResult } from '../utils/offscreen-tts';
   export { resetAlignmentDebugBindings, syncAlignmentDebug, updateAlignmentDebugDuringPlayback, estimateAlignmentWithDebugTuning, AlignmentDebugHost } from '../utils/overlay-alignment-debug';
   export { tokenizeWords, phraseFromWordRange, WordToken } from '../utils/overlay-phrase';
@@ -36,6 +39,8 @@ declare module '#imports' {
   export { MAX_SELECTION_LENGTH, expandIndicesToWordBoundaries, evaluateSelection, getSelectionPayload, SelectionResult } from '../utils/selection';
   export { getTabSession, setTabSession, clearTabSession, TabSessionState } from '../utils/session';
   export { DEFAULT_SETTINGS, getSettings, saveSettings, Voice, Lang, MotSettings } from '../utils/settings';
+  export { suppressNoisyOffscreenLogs } from '../utils/suppress-noisy-logs';
+  export { formatTabCaptureError, requestTabCaptureStreamId, isTabCapturePermissionError } from '../utils/tab-capture';
   export { beginTabRequest, getTabRequestGeneration, isCurrentTabRequest, invalidateTabRequest, clearTabRequest } from '../utils/tab-requests';
   export { hideSelectionToast, showSelectionLimitToast } from '../utils/toast';
   export { WordTiming, TtsAlignment, SynthesizeResult } from '../utils/tts-types';

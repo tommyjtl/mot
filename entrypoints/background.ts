@@ -31,6 +31,16 @@ import {
   recognizeInOffscreen,
   warmUpOffscreenOcr,
 } from "../utils/offscreen-ocr";
+import {
+  startTabTranscriptionInOffscreen,
+  stopTabTranscriptionInOffscreen,
+  cancelTabTranscriptionInOffscreen,
+  getOffscreenTranscriptionSession,
+} from "../utils/offscreen-stt";
+import {
+  isTabCapturePermissionError,
+  requestTabCaptureStreamId,
+} from "../utils/tab-capture";
 import type { Message, SelectionPayload } from "../utils/messages";
 import type { SelectionResult } from "../utils/selection";
 
@@ -294,12 +304,269 @@ async function handleSpeakSelection(
 }
 
 async function preemptTabSession(tabId: number): Promise<void> {
+  if (transcriptionTabId === tabId) {
+    await stopTranscription();
+  }
+
   const previousRequestId = getTabRequestGeneration(tabId);
 
   void stopAudioInOffscreen();
 
   if (previousRequestId > 0) {
     void abortOffscreenSynthesis(previousRequestId);
+  }
+}
+
+let transcriptionTabId: number | null = null;
+
+async function getTranscriptionTabMeta(tabId: number | null): Promise<{
+  tabTitle?: string;
+  tabUrl?: string;
+}> {
+  if (tabId === null) {
+    return {};
+  }
+
+  try {
+    const tab = await browser.tabs.get(tabId);
+    return { tabTitle: tab.title, tabUrl: tab.url };
+  } catch {
+    return {};
+  }
+}
+
+function broadcastTranscriptionState(error?: string): void {
+  void (async () => {
+    const meta = await getTranscriptionTabMeta(transcriptionTabId);
+
+    void browser.runtime
+      .sendMessage({
+        type: "transcription-state-changed",
+        active: transcriptionTabId !== null,
+        tabId: transcriptionTabId,
+        tabTitle: meta.tabTitle,
+        tabUrl: meta.tabUrl,
+        error,
+      } satisfies Message)
+      .catch(() => {
+        // Options page may be closed.
+      });
+  })();
+}
+
+async function findTranscriptionTargetTab() {
+  if (transcriptionTabId !== null) {
+    try {
+      return await browser.tabs.get(transcriptionTabId);
+    } catch {
+      transcriptionTabId = null;
+    }
+  }
+
+  const tabs = await browser.tabs.query({ currentWindow: true });
+  const webTabs = tabs.filter(
+    (tab) => tab.id && tab.url && /^https?:\/\//.test(tab.url),
+  );
+
+  const activeWeb = webTabs.find((tab) => tab.active);
+  return activeWeb ?? webTabs[0] ?? null;
+}
+
+async function toggleTranscription(
+  tab?: Awaited<ReturnType<typeof findTranscriptionTargetTab>>,
+  streamId?: string,
+): Promise<{
+  ok: boolean;
+  active: boolean;
+  error?: string;
+  tabId?: number;
+  pendingCapture?: boolean;
+}> {
+  const target = tab ?? (await findTranscriptionTargetTab());
+
+  if (!target?.id) {
+    return {
+      ok: false,
+      active: false,
+      error:
+        "No web page tab found. Open a page with audio (e.g. YouTube) in this window.",
+    };
+  }
+
+  if (transcriptionTabId === target.id) {
+    await stopTranscription();
+    return { ok: true, active: false, tabId: target.id };
+  }
+
+  if (streamId) {
+    return startTranscriptionWithCapture(target.id, streamId);
+  }
+
+  try {
+    await promptTranscriptionCapture(
+      target.id,
+      "Click Allow tab audio on the page to start transcription.",
+    );
+    return { ok: true, active: false, tabId: target.id, pendingCapture: true };
+  } catch (error: unknown) {
+    const message =
+      error instanceof Error ? error.message : "Could not start transcription.";
+    return { ok: false, active: false, error: message, tabId: target.id };
+  }
+}
+
+function beginTranscriptionFromCommand(): void {
+  void requestTabCaptureStreamId()
+    .then((streamId) =>
+      browser.tabs
+        .query({ active: true, currentWindow: true })
+        .then(([tab]) => {
+          if (!tab?.id) {
+            throw new Error("No active tab.");
+          }
+
+          if (transcriptionTabId === tab.id) {
+            return stopTranscription().then(() => undefined);
+          }
+
+          return startTranscriptionWithCapture(tab.id, streamId);
+        }),
+    )
+    .catch(async (error: unknown) => {
+      const message =
+        error instanceof Error ? error.message : "Tab audio capture was denied.";
+      const [tab] = await browser.tabs.query({
+        active: true,
+        currentWindow: true,
+      });
+
+      if (!tab?.id) {
+        return;
+      }
+
+      if (isTabCapturePermissionError(message)) {
+        await promptTranscriptionCapture(tab.id, message);
+        return;
+      }
+
+      await notifyTranscriptError(tab.id, message);
+      broadcastTranscriptionState(message);
+    });
+}
+
+async function notifyTranscriptStopped(tabId: number | null): Promise<void> {
+  if (tabId === null) {
+    return;
+  }
+
+  try {
+    await browser.tabs.sendMessage(tabId, {
+      type: "transcript-stopped",
+    } satisfies Message);
+  } catch {
+    // Tab may have navigated away.
+  }
+}
+
+async function stopTranscription(): Promise<void> {
+  const tabId = transcriptionTabId;
+  transcriptionTabId = null;
+  await stopTabTranscriptionInOffscreen();
+  await notifyTranscriptStopped(tabId);
+  broadcastTranscriptionState();
+}
+
+async function dismissTranscription(): Promise<void> {
+  transcriptionTabId = null;
+  await cancelTabTranscriptionInOffscreen();
+  broadcastTranscriptionState();
+}
+
+async function notifyTranscriptError(
+  tabId: number,
+  message: string,
+): Promise<void> {
+  try {
+    await browser.tabs.sendMessage(tabId, {
+      type: "transcript-error",
+      message,
+    } satisfies Message);
+  } catch {
+    // Tab may not allow content scripts.
+  }
+}
+
+async function promptTranscriptionCapture(
+  tabId: number,
+  message?: string,
+): Promise<void> {
+  try {
+    await browser.tabs.sendMessage(tabId, {
+      type: "transcript-request-capture",
+      message,
+    } satisfies Message);
+  } catch {
+    throw new Error("Could not reach this page. Refresh the tab and try again.");
+  }
+}
+
+async function startTranscription(
+  tabId: number,
+  streamId: string,
+): Promise<void> {
+  transcriptionTabId = tabId;
+
+  try {
+    await browser.tabs.sendMessage(tabId, {
+      type: "transcript-started",
+    } satisfies Message);
+  } catch {
+    // Overlay is optional for capture; offscreen may still succeed.
+  }
+
+  const result = await startTabTranscriptionInOffscreen({
+    streamId,
+    tabId,
+  });
+
+  if (!result.ok) {
+    transcriptionTabId = null;
+    throw new Error(result.error);
+  }
+}
+
+async function startTranscriptionWithCapture(
+  tabId: number,
+  streamId: string,
+): Promise<{
+  ok: boolean;
+  active: boolean;
+  error?: string;
+  tabId?: number;
+}> {
+  if (transcriptionTabId !== null && transcriptionTabId !== tabId) {
+    await stopTranscription();
+  }
+
+  // Ensure any lingering offscreen capture is fully released before reusing the tab.
+  await stopTabTranscriptionInOffscreen();
+
+  void stopAudioInOffscreen();
+
+  try {
+    await startTranscription(tabId, streamId);
+    broadcastTranscriptionState();
+    return { ok: true, active: true, tabId };
+  } catch (error: unknown) {
+    const message =
+      error instanceof Error ? error.message : "Could not start transcription.";
+
+    transcriptionTabId = null;
+    await stopTabTranscriptionInOffscreen();
+    broadcastTranscriptionState(message);
+    await notifyTranscriptError(tabId, message);
+
+    return { ok: false, active: false, error: message, tabId };
   }
 }
 
@@ -320,32 +587,136 @@ export default defineBackground(() => {
     });
   });
 
-  browser.commands.onCommand.addListener(async (command) => {
+  browser.commands.onCommand.addListener((command) => {
+    if (command === "transcribe-tab") {
+      if (transcriptionTabId !== null) {
+        void browser.tabs
+          .query({ active: true, currentWindow: true })
+          .then(([tab]) => {
+            if (tab?.id === transcriptionTabId) {
+              void stopTranscription();
+              return;
+            }
+
+            beginTranscriptionFromCommand();
+          });
+        return;
+      }
+
+      beginTranscriptionFromCommand();
+      return;
+    }
+
     if (command !== "speak-selection") {
       return;
     }
 
-    const [tab] = await browser.tabs.query({
-      active: true,
-      currentWindow: true,
-    });
+    void browser.tabs
+      .query({ active: true, currentWindow: true })
+      .then(async ([tab]) => {
+        if (!tab?.id) {
+          return;
+        }
 
-    if (!tab?.id) {
-      return;
-    }
+        await preemptTabSession(tab.id);
 
-    await preemptTabSession(tab.id);
+        const { requestId, signal } = beginTabRequest(tab.id);
+        setTabSession(tab.id, "busy");
 
-    const { requestId, signal } = beginTabRequest(tab.id);
-    setTabSession(tab.id, "busy");
+        try {
+          await handleSpeakSelection(tab.id, requestId, signal);
+        } catch {
+          if (isCurrentTabRequest(tab.id, requestId)) {
+            clearTabSession(tab.id);
+          }
+        }
+      });
+  });
 
-    try {
-      await handleSpeakSelection(tab.id, requestId, signal);
-    } catch {
-      if (isCurrentTabRequest(tab.id, requestId)) {
-        clearTabSession(tab.id);
+  browser.runtime.onMessage.addListener((message, sender, sendResponse) => {
+    if (message?.type === "start-transcription-gesture") {
+      const tabId = sender.tab?.id;
+      if (!tabId) {
+        sendResponse({
+          ok: false,
+          error: "Transcription must be started from a web page tab.",
+        });
+        return false;
       }
+
+      // getMediaStreamId must be invoked before the first await in this handler.
+      const streamIdPromise = requestTabCaptureStreamId(tabId);
+
+      void streamIdPromise
+        .then((streamId) => startTranscriptionWithCapture(tabId, streamId))
+        .then((result) => sendResponse(result))
+        .catch((error: unknown) => {
+          const detail =
+            error instanceof Error
+              ? error.message
+              : "Tab audio capture was denied.";
+          sendResponse({ ok: false, active: false, error: detail });
+        });
+      return true;
     }
+
+    if (message?.type === "start-transcription-with-stream") {
+      const tabId = sender.tab?.id;
+      const streamId =
+        typeof message.streamId === "string" ? message.streamId : "";
+
+      if (!tabId || !streamId) {
+        sendResponse({
+          ok: false,
+          error: "Tab audio capture was denied.",
+        });
+        return false;
+      }
+
+      void startTranscriptionWithCapture(tabId, streamId)
+        .then((result) => sendResponse(result))
+        .catch((error: unknown) => {
+          const detail =
+            error instanceof Error
+              ? error.message
+              : "Could not start transcription.";
+          sendResponse({ ok: false, active: false, error: detail });
+        });
+      return true;
+    }
+
+    if (message?.type === "get-transcription-state") {
+      void (async () => {
+        const offscreenSession = await getOffscreenTranscriptionSession();
+        const tabId = transcriptionTabId ?? offscreenSession.tabId;
+        const active =
+          transcriptionTabId !== null ||
+          (offscreenSession.active && offscreenSession.tabId !== null);
+        const requestingTabId = sender.tab?.id;
+
+        const meta = await getTranscriptionTabMeta(tabId);
+        sendResponse({
+          active,
+          tabId,
+          activeForThisTab:
+            active &&
+            requestingTabId !== undefined &&
+            tabId !== null &&
+            tabId === requestingTabId,
+          tabTitle: meta.tabTitle,
+          tabUrl: meta.tabUrl,
+          offscreenDocument: await browser.offscreen.hasDocument(),
+        });
+      })();
+      return true;
+    }
+
+    if (message?.type === "toggle-transcription") {
+      void toggleTranscription().then(sendResponse);
+      return true;
+    }
+
+    return false;
   });
 
   browser.runtime.onMessage.addListener(async (message: Message, sender) => {
@@ -451,6 +822,71 @@ export default defineBackground(() => {
       return;
     }
 
+    if (message.type === "stop-transcription") {
+      await stopTranscription();
+      return;
+    }
+
+    if (message.type === "dismiss-transcription") {
+      await dismissTranscription();
+      return;
+    }
+
+    if (message.type === "stt-transcript-status-relay") {
+      if (transcriptionTabId !== message.tabId) {
+        return;
+      }
+
+      void browser.tabs
+        .sendMessage(message.tabId, {
+          type: "transcript-status",
+          text: message.text,
+          ready: message.ready,
+          progress: message.progress,
+          percent: message.percent,
+        } satisfies Message)
+        .catch(() => {
+          // Tab may have navigated away.
+        });
+      return;
+    }
+
+    if (message.type === "stt-transcript-relay") {
+      if (transcriptionTabId !== message.tabId) {
+        return;
+      }
+
+      void browser.tabs
+        .sendMessage(message.tabId, {
+          type: "transcript-chunk",
+          text: message.text,
+          isFinal: message.isFinal,
+        } satisfies Message)
+        .catch(() => {
+          // Tab may have navigated away.
+        });
+      return;
+    }
+
+    if (message.type === "stt-transcript-error-relay") {
+      if (transcriptionTabId !== message.tabId) {
+        return;
+      }
+
+      transcriptionTabId = null;
+      void browser.tabs
+        .sendMessage(message.tabId, {
+          type: "transcript-error",
+          message: message.message,
+        } satisfies Message)
+        .catch(() => {
+          // Tab may have navigated away.
+        });
+      void stopTabTranscriptionInOffscreen();
+      broadcastTranscriptionState(message.message);
+      return;
+    }
+
     if (message.type === "capture-region-selected") {
       resolveCaptureWait(message.requestId, message.selection);
       return;
@@ -488,7 +924,23 @@ export default defineBackground(() => {
   });
 
   browser.tabs.onRemoved.addListener((tabId) => {
+    if (transcriptionTabId === tabId) {
+      transcriptionTabId = null;
+      void cancelTabTranscriptionInOffscreen();
+      broadcastTranscriptionState();
+    }
+
     invalidateTabRequest(tabId);
     clearTabSession(tabId);
+  });
+
+  browser.tabs.onUpdated.addListener((tabId, changeInfo) => {
+    if (changeInfo.status !== "loading" || transcriptionTabId !== tabId) {
+      return;
+    }
+
+    transcriptionTabId = null;
+    void cancelTabTranscriptionInOffscreen();
+    broadcastTranscriptionState();
   });
 });
