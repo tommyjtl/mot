@@ -8,12 +8,14 @@ const INITIAL_LATENCY_S = 0.025;
 let anchorTimeS = 0;
 let anchorAtMs = 0;
 let latencyCompensationS = INITIAL_LATENCY_S;
+let monotonicTimeS = 0;
 let running = false;
 
 export function resetPlaybackClock(): void {
   anchorTimeS = 0;
   anchorAtMs = 0;
   latencyCompensationS = INITIAL_LATENCY_S;
+  monotonicTimeS = 0;
   running = false;
 }
 
@@ -39,6 +41,7 @@ export function syncPlaybackClock(reportedTimeS: number): void {
 
   anchorTimeS = reportedTimeS;
   anchorAtMs = nowMs;
+  monotonicTimeS = Math.max(monotonicTimeS, reportedTimeS);
   running = true;
 }
 
@@ -52,6 +55,17 @@ export function estimatedPlaybackTimeS(): number {
     (performance.now() - anchorAtMs) / 1000 +
     latencyCompensationS
   );
+}
+
+/** Monotonic playback time for word highlights — never jumps backward on resync. */
+export function highlightPlaybackTimeS(): number {
+  if (!running) {
+    return anchorTimeS;
+  }
+
+  const estimated = estimatedPlaybackTimeS();
+  monotonicTimeS = Math.max(monotonicTimeS, estimated);
+  return monotonicTimeS;
 }
 
 export function currentLatencyCompensationS(): number {

@@ -38,3 +38,25 @@ export function writeWavFile(audioData: number[], sampleRate: number): ArrayBuff
 export function audioDurationSeconds(sampleCount: number, sampleRate: number): number {
   return sampleCount / sampleRate;
 }
+
+export function readWavSamples(buffer: ArrayBuffer): {
+  samples: Float32Array;
+  sampleRate: number;
+} {
+  const view = new DataView(buffer);
+  const sampleRate = view.getUint32(24, true);
+  const bitsPerSample = view.getUint16(34, true);
+  const dataOffset = 44;
+
+  if (bitsPerSample !== 16) {
+    throw new Error(`Unsupported WAV bit depth: ${bitsPerSample}`);
+  }
+
+  const int16 = new Int16Array(buffer, dataOffset);
+  const samples = new Float32Array(int16.length);
+  for (let index = 0; index < int16.length; index += 1) {
+    samples[index] = (int16[index] ?? 0) / 32768;
+  }
+
+  return { samples, sampleRate };
+}

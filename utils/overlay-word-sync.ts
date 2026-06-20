@@ -24,19 +24,40 @@ function alignedWordIndex(
   alignment: TtsAlignment,
   currentTime: number,
 ): number | null {
-  for (let index = 0; index < alignment.words.length; index += 1) {
-    const word = alignment.words[index]!;
+  const words = alignment.words;
+  if (words.length === 0) {
+    return null;
+  }
+
+  const firstWord = words[0]!;
+  const lastWord = words.at(-1)!;
+
+  if (currentTime < firstWord.start) {
+    return 0;
+  }
+
+  if (currentTime >= lastWord.end) {
+    return words.length - 1;
+  }
+
+  for (let index = 0; index < words.length; index += 1) {
+    const word = words[index]!;
+    const nextWord = words[index + 1];
+
     if (currentTime >= word.start && currentTime < word.end) {
+      return index;
+    }
+
+    if (
+      nextWord &&
+      currentTime >= word.end &&
+      currentTime < nextWord.start
+    ) {
       return index;
     }
   }
 
-  const lastWord = alignment.words.at(-1);
-  if (lastWord && currentTime >= lastWord.end) {
-    return null;
-  }
-
-  return null;
+  return words.length - 1;
 }
 
 export function overlayWordIndexAtTime(
@@ -46,10 +67,7 @@ export function overlayWordIndexAtTime(
   alignment?: TtsAlignment | null,
 ): number | null {
   if (alignment?.words.length) {
-    const aligned = alignedWordIndex(alignment, currentTime);
-    if (aligned !== null) {
-      return aligned;
-    }
+    return alignedWordIndex(alignment, currentTime);
   }
 
   return proportionalWordIndex(text, currentTime, duration);

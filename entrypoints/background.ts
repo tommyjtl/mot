@@ -20,7 +20,18 @@ import {
   TtsEngineError,
   warmUpOffscreenTts,
 } from "../utils/offscreen-tts";
-import type { Message } from "../utils/messages";
+import { captureVisibleRegionBase64 } from "../utils/capture-screenshot";
+import {
+  beginCaptureWait,
+  cancelCaptureWait,
+  resolveCaptureWait,
+} from "../utils/capture-session";
+import { viewportRectToSelectionRect } from "../utils/capture-region";
+import {
+  recognizeInOffscreen,
+  warmUpOffscreenOcr,
+} from "../utils/offscreen-ocr";
+import type { Message, SelectionPayload } from "../utils/messages";
 import type { SelectionResult } from "../utils/selection";
 
 async function requestSelection(
@@ -66,12 +77,114 @@ async function sendTtsResult(
   }
 }
 
+async function runOcrCaptureFlow(
+  tabId: number,
+  requestId: number,
+  signal: AbortSignal,
+): Promise<SelectionPayload | null> {
+  const [tab] = await browser.tabs.query({
+    active: true,
+    currentWindow: true,
+  });
+
+  const captureWait = beginCaptureWait(requestId);
+
+  try {
+    await browser.tabs.sendMessage(tabId, {
+      type: "start-capture-mode",
+      requestId,
+    } satisfies Message);
+  } catch {
+    cancelCaptureWait(requestId);
+    return null;
+  }
+
+  if (signal.aborted) {
+    cancelCaptureWait(requestId);
+    return null;
+  }
+
+  const region = await captureWait;
+  if (!isCurrentTabRequest(tabId, requestId) || signal.aborted) {
+    return null;
+  }
+
+  if (!region) {
+    return null;
+  }
+
+  const rect = viewportRectToSelectionRect(region.rect);
+
+  try {
+    await browser.tabs.sendMessage(tabId, {
+      type: "ocr-started",
+      requestId,
+      rect,
+      detail: "Recognizing text…",
+    } satisfies Message);
+  } catch {
+    return null;
+  }
+
+  try {
+    const imageBase64 = await captureVisibleRegionBase64(
+      tab?.windowId,
+      region.rect,
+      region.devicePixelRatio,
+    );
+
+    if (!isCurrentTabRequest(tabId, requestId) || signal.aborted) {
+      return null;
+    }
+
+    const ocr = await recognizeInOffscreen(imageBase64);
+    if (!isCurrentTabRequest(tabId, requestId) || signal.aborted) {
+      return null;
+    }
+
+    if (!ocr.ok) {
+      await sendTtsResult(tabId, requestId, {
+        ok: false,
+        error: ocr.error,
+        rect,
+      });
+      return null;
+    }
+
+    const text = ocr.text.trim();
+    if (!text) {
+      await sendTtsResult(tabId, requestId, {
+        ok: false,
+        error: "No text found in the selected area.",
+        rect,
+      });
+      return null;
+    }
+
+    return { text, rect };
+  } catch (error) {
+    if (!isCurrentTabRequest(tabId, requestId)) {
+      return null;
+    }
+
+    await sendTtsResult(tabId, requestId, {
+      ok: false,
+      error:
+        error instanceof Error
+          ? error.message
+          : "Could not capture text from the selected area.",
+      rect,
+    });
+    return null;
+  }
+}
+
 async function handleSpeakSelection(
   tabId: number,
   requestId: number,
   signal: AbortSignal,
 ): Promise<void> {
-  const selection = await requestSelection(tabId, requestId);
+  let selection = await requestSelection(tabId, requestId);
 
   if (!isCurrentTabRequest(tabId, requestId)) {
     return;
@@ -82,12 +195,31 @@ async function handleSpeakSelection(
     return;
   }
 
+  if (selection.status === "ocr") {
+    const ocrPayload = await runOcrCaptureFlow(tabId, requestId, signal);
+    if (!isCurrentTabRequest(tabId, requestId)) {
+      return;
+    }
+
+    if (!ocrPayload) {
+      clearTabSession(tabId);
+      return;
+    }
+
+    selection = { status: "ok", payload: ocrPayload };
+  }
+
   if (selection.status === "empty") {
     await sendTtsResult(tabId, requestId, {
       ok: false,
       error: "Select some text first, then press Option+S.",
     });
     setTabSession(tabId, "active");
+    return;
+  }
+
+  if (selection.status !== "ok") {
+    clearTabSession(tabId);
     return;
   }
 
@@ -175,10 +307,16 @@ export default defineBackground(() => {
   void warmUpOffscreenTts().catch((error: unknown) => {
     console.warn("[mot] Background TTS warm-up failed:", error);
   });
+  void warmUpOffscreenOcr().catch((error: unknown) => {
+    console.warn("[mot] Background OCR warm-up failed:", error);
+  });
 
   browser.runtime.onInstalled.addListener(() => {
     void warmUpOffscreenTts().catch((error: unknown) => {
       console.warn("[mot] Install TTS warm-up failed:", error);
+    });
+    void warmUpOffscreenOcr().catch((error: unknown) => {
+      console.warn("[mot] Install OCR warm-up failed:", error);
     });
   });
 
@@ -313,6 +451,11 @@ export default defineBackground(() => {
       return;
     }
 
+    if (message.type === "capture-region-selected") {
+      resolveCaptureWait(message.requestId, message.selection);
+      return;
+    }
+
     if (message.type === "session-idle") {
       let tabId = sender.tab?.id;
 
@@ -330,6 +473,7 @@ export default defineBackground(() => {
         void stopAudioInOffscreen();
 
         if (cancelledRequestId !== null) {
+          cancelCaptureWait(cancelledRequestId);
           try {
             await browser.tabs.sendMessage(tabId, {
               type: "request-cancelled",

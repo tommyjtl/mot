@@ -14,12 +14,27 @@ import {
 import { overlayWordIndexAtTime } from "../utils/overlay-word-sync";
 import { phraseFromWordRange } from "../utils/overlay-phrase";
 import {
+  currentLatencyCompensationS,
   estimatedPlaybackTimeS,
+  highlightPlaybackTimeS,
   resetPlaybackClock,
   stopPlaybackClock,
   syncPlaybackClock,
 } from "../utils/overlay-playback-clock";
+import { ALIGNMENT_DEBUG_UI_ENABLED } from "../utils/supertonic/constants";
+import {
+  estimateAlignmentWithDebugTuning,
+  resetAlignmentDebugBindings,
+  syncAlignmentDebug,
+  updateAlignmentDebugDuringPlayback,
+  type AlignmentDebugHost,
+} from "../utils/overlay-alignment-debug";
+import { estimateAlignmentFromAudio } from "../utils/alignment-from-audio";
 import { hideSelectionToast, showSelectionLimitToast } from "../utils/toast";
+import {
+  hideCaptureOverlay,
+  showCaptureOverlay,
+} from "../utils/capture-region";
 import type { TtsAlignment } from "../utils/tts-types";
 import {
   isLearningTranslationSupported,
@@ -49,6 +64,40 @@ let highlightLoopActive = false;
 let isPlaying = false;
 let activeRequestId = 0;
 let wordSynthRequestId = 0;
+let lastReportedPlaybackTimeS = 0;
+
+function estimateSessionAlignment(
+  audioBase64: string,
+  displayText: string,
+): TtsAlignment | null {
+  if (ALIGNMENT_DEBUG_UI_ENABLED) {
+    return estimateAlignmentWithDebugTuning(audioBase64, displayText);
+  }
+  return estimateAlignmentFromAudio(audioBase64, displayText);
+}
+
+function alignmentDebugHost(): AlignmentDebugHost {
+  return {
+    getAlignment: () => playbackAlignment ?? fullAlignment,
+    getActiveWordIndex: () => {
+      if (!cachedSpeechText) {
+        return null;
+      }
+      return overlayWordIndexAtTime(
+        cachedSpeechText,
+        estimatedPlaybackTimeS(),
+        playbackDuration,
+        playbackAlignment,
+      );
+    },
+    getReportedTimeS: () => lastReportedPlaybackTimeS,
+    getEstimatedTimeS: () => estimatedPlaybackTimeS(),
+    getLatencyCompensationS: () => currentLatencyCompensationS(),
+    getDurationS: () => playbackDuration,
+    hasClip: () => Boolean(currentPlaybackBase64 ?? fullAudioBase64),
+    onRealign: () => applyEstimatedAlignmentToSession(),
+  };
+}
 
 function alignmentDuration(alignment: TtsAlignment | null): number {
   const lastEnd = alignment?.words.at(-1)?.end;
@@ -73,6 +122,8 @@ function invalidateActiveRequest(): void {
   pinnedWordEnd = null;
   pinnedPhraseText = null;
   wordSynthRequestId = 0;
+  resetAlignmentDebugBindings();
+  lastReportedPlaybackTimeS = 0;
   resetPlaybackClock();
   stopHighlightLoop();
 }
@@ -237,7 +288,8 @@ function startHighlightLoop(): void {
       return;
     }
 
-    syncOverlayHighlight(estimatedPlaybackTimeS(), playbackDuration);
+    syncOverlayHighlight(highlightPlaybackTimeS(), playbackDuration);
+    updateAlignmentDebugDuringPlayback(alignmentDebugHost());
     highlightLoopId = requestAnimationFrame(frame);
   };
 
@@ -276,6 +328,7 @@ function closeOverlay(): void {
   invalidateActiveRequest();
   stopAudio();
   hideSelectionToast();
+  hideCaptureOverlay();
   hideOverlay();
   void unlockSession();
 }
@@ -320,6 +373,23 @@ function syncOverlayHighlight(currentTime: number, duration: number): void {
   );
 }
 
+function applyEstimatedAlignmentToSession(): void {
+  if (!cachedSpeechText || !fullAudioBase64) {
+    return;
+  }
+
+  const estimated = estimateSessionAlignment(fullAudioBase64, cachedSpeechText);
+  if (!estimated) {
+    return;
+  }
+
+  fullAlignment = estimated;
+  if (playbackScope === "full") {
+    playbackAlignment = estimated;
+  }
+  playbackDuration = alignmentDuration(fullAlignment);
+}
+
 function requestPlayback(audioBase64: string): void {
   currentPlaybackBase64 = audioBase64;
 
@@ -334,6 +404,7 @@ function playFullSelection(): void {
     return;
   }
 
+  resetPlaybackClock();
   playbackScope = "full";
   playbackAlignment = fullAlignment;
   pinnedWordStart = null;
@@ -405,6 +476,7 @@ function showReadyOverlay(
   );
 
   void refreshFullTranslation(text);
+  syncAlignmentDebug(alignmentDebugHost());
 }
 
 function handleWordTtsResult(
@@ -426,9 +498,15 @@ function handleWordTtsResult(
   pinnedWordEnd = message.endWordIndex ?? message.wordIndex;
   pinnedPhraseText = message.payload.ok ? message.payload.word : null;
   currentPlaybackBase64 = message.payload.audioBase64;
-  playbackAlignment = message.payload.alignment ?? null;
+  const aligned = estimateSessionAlignment(
+    message.payload.audioBase64,
+    message.payload.word,
+  );
+  playbackAlignment = aligned ?? message.payload.alignment ?? null;
   playbackDuration = alignmentDuration(playbackAlignment);
+  resetPlaybackClock();
   setOverlayStatusMessage(`Playing “${message.payload.word}”.`);
+  syncAlignmentDebug(alignmentDebugHost());
 }
 
 function handlePlaybackMessage(
@@ -441,6 +519,8 @@ function handlePlaybackMessage(
   if (message.duration > 0) {
     playbackDuration = message.duration;
   }
+
+  lastReportedPlaybackTimeS = message.currentTime;
 
   const duration =
     playbackDuration ||
@@ -463,7 +543,8 @@ function handlePlaybackMessage(
   syncPlaybackClock(message.currentTime);
   setPlayingState(true);
   startHighlightLoop();
-  syncOverlayHighlight(estimatedPlaybackTimeS(), duration);
+  syncOverlayHighlight(highlightPlaybackTimeS(), duration);
+  updateAlignmentDebugDuringPlayback(alignmentDebugHost());
 }
 
 export default defineContentScript({
@@ -477,6 +558,7 @@ export default defineContentScript({
       if (message.type === "speak-selection") {
         stopAudio();
         hideSelectionToast();
+        hideCaptureOverlay();
         hideOverlay();
         activeRequestId = message.requestId;
         fullAudioBase64 = null;
@@ -491,7 +573,11 @@ export default defineContentScript({
         wordSynthRequestId = 0;
         resetPlaybackClock();
 
-        const result = evaluateSelection();
+        const evaluated = evaluateSelection();
+        const result =
+          evaluated.status === "empty"
+            ? ({ status: "ocr" } as const)
+            : evaluated;
 
         if (result.status === "ok") {
           showOverlay(
@@ -516,6 +602,40 @@ export default defineContentScript({
           requestId: message.requestId,
           result,
         } satisfies Message);
+      }
+
+      if (message.type === "start-capture-mode") {
+        if (!isActiveRequest(message.requestId)) {
+          return;
+        }
+
+        hideOverlay();
+        hideSelectionToast();
+        void showCaptureOverlay(message.requestId).then((selection) => {
+          void browser.runtime.sendMessage({
+            type: "capture-region-selected",
+            requestId: message.requestId,
+            selection,
+          } satisfies Message);
+        });
+        return;
+      }
+
+      if (message.type === "ocr-started") {
+        if (!isActiveRequest(message.requestId)) {
+          return;
+        }
+
+        showOverlay(
+          {
+            kind: "loading-model",
+            text: "Recognizing text…",
+            detail: message.detail ?? "Recognizing text…",
+          },
+          message.rect,
+          closeOverlay,
+        );
+        return;
       }
 
       if (message.type === "tts-progress") {
@@ -550,14 +670,19 @@ export default defineContentScript({
         }
 
         fullAudioBase64 = payload.audioBase64;
-        fullAlignment = payload.alignment ?? null;
         currentPlaybackBase64 = payload.audioBase64;
+        cachedSpeechText = payload.text;
+        playbackScope = "full";
+        applyEstimatedAlignmentToSession();
+        if (!fullAlignment) {
+          fullAlignment = payload.alignment ?? null;
+        }
         playbackAlignment = fullAlignment;
         playbackDuration = alignmentDuration(fullAlignment);
-        playbackScope = "full";
         pinnedWordStart = null;
         pinnedWordEnd = null;
         pinnedPhraseText = null;
+        resetPlaybackClock();
 
         showReadyOverlay(payload.text, payload.rect, "playing");
       }
@@ -577,6 +702,7 @@ export default defineContentScript({
           invalidateActiveRequest();
           stopAudio();
           hideSelectionToast();
+          hideCaptureOverlay();
           hideOverlay();
         }
       }

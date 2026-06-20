@@ -30,8 +30,11 @@ export const ONNX_MODEL_FILES = [
 ] as const;
 
 export const DEFAULT_TOTAL_STEPS = 8;
-export const DEFAULT_SPEED = 1.05;
+export const DEFAULT_SPEED = 0.95;
 export const DEFAULT_SILENCE_DURATION = 0.3;
+
+/** Show sync-debug toggle, segment list, and tuning sliders in the overlay footer. */
+export const ALIGNMENT_DEBUG_UI_ENABLED = false;
 
 export const AVAILABLE_LANGS = [
   "en",

@@ -1,21 +1,13 @@
-import { MODEL_CACHE_NAME, modelAssetUrl } from "./constants";
+import { MODEL_CACHE_NAME, MODEL_SOURCE, modelAssetUrl } from "./constants";
 import { assetByteSize } from "./asset-sizes";
 
 export type DownloadProgressCallback = (loaded: number, total: number) => void;
 
-export async function fetchCachedAsset(
+async function fetchWithProgress(
   path: string,
   onDownloadProgress?: DownloadProgressCallback,
 ): Promise<Response> {
-  const cache = await caches.open(MODEL_CACHE_NAME);
   const url = modelAssetUrl(path);
-  const cached = await cache.match(url);
-  if (cached) {
-    const buffer = await cached.arrayBuffer();
-    onDownloadProgress?.(buffer.byteLength, buffer.byteLength);
-    return cached;
-  }
-
   const response = await fetch(url);
   if (!response.ok) {
     throw new Error(`Failed to download ${path} (${response.status})`);
@@ -27,8 +19,7 @@ export async function fetchCachedAsset(
   if (!response.body) {
     const buffer = await response.arrayBuffer();
     onDownloadProgress?.(buffer.byteLength, expectedTotal || buffer.byteLength);
-    await cache.put(url, new Response(buffer.slice(0)));
-    return cache.match(url) ?? new Response(buffer);
+    return new Response(buffer);
   }
 
   const reader = response.body.getReader();
@@ -52,10 +43,33 @@ export async function fetchCachedAsset(
     offset += chunk.byteLength;
   }
 
-  const cachedResponse = new Response(buffer.slice());
-  await cache.put(url, cachedResponse.clone());
   onDownloadProgress?.(loaded, expectedTotal || loaded);
-  return cachedResponse;
+  return new Response(buffer.slice());
+}
+
+export async function fetchCachedAsset(
+  path: string,
+  onDownloadProgress?: DownloadProgressCallback,
+): Promise<Response> {
+  // Local dev server already reads from models/ on disk; skip Cache API (~400 MB
+  // per browser profile) when using npm run models:serve.
+  if (MODEL_SOURCE === "local") {
+    return fetchWithProgress(path, onDownloadProgress);
+  }
+
+  const cache = await caches.open(MODEL_CACHE_NAME);
+  const url = modelAssetUrl(path);
+  const cached = await cache.match(url);
+  if (cached) {
+    const buffer = await cached.arrayBuffer();
+    onDownloadProgress?.(buffer.byteLength, buffer.byteLength);
+    return cached;
+  }
+
+  const response = await fetchWithProgress(path, onDownloadProgress);
+  const buffer = await response.clone().arrayBuffer();
+  await cache.put(url, new Response(buffer.slice(0)));
+  return cache.match(url) ?? new Response(buffer);
 }
 
 export async function fetchCachedJson<T>(
@@ -75,6 +89,10 @@ export async function fetchCachedArrayBuffer(
 }
 
 export async function isModelCached(): Promise<boolean> {
+  if (MODEL_SOURCE === "local") {
+    return false;
+  }
+
   const cache = await caches.open(MODEL_CACHE_NAME);
   const match = await cache.match(modelAssetUrl("onnx/tts.json"));
   return Boolean(match);

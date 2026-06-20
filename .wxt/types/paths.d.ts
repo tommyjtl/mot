@@ -13,6 +13,14 @@ declare module "wxt/browser" {
     | "/ort/ort-wasm-simd-threaded.jsep.wasm"
     | "/ort/ort-wasm-simd-threaded.mjs"
     | "/ort/ort-wasm-simd-threaded.wasm"
+    | "/tesseract/tessdata/fra.traineddata.gz"
+    | "/tesseract/tesseract-core-lstm.wasm.js"
+    | "/tesseract/tesseract-core-relaxedsimd-lstm.wasm.js"
+    | "/tesseract/tesseract-core-relaxedsimd.wasm.js"
+    | "/tesseract/tesseract-core-simd-lstm.wasm.js"
+    | "/tesseract/tesseract-core-simd.wasm.js"
+    | "/tesseract/tesseract-core.wasm.js"
+    | "/tesseract/worker.min.js"
   type HtmlPublicPath = Extract<PublicPath, `${string}.html`>
   export interface WxtRuntime {
     getURL(path: PublicPath): string;

@@ -4,6 +4,8 @@ A Chrome extension for hearing natural French pronunciation while reading the we
 
 Select text on any page and press **Option+S** to hear it aloud. Speech is synthesized **entirely on-device** using [Supertonic](https://github.com/supertone-inc/supertonic) via ONNX Runtime Web (WebGPU with WebAssembly fallback). No Python server required.
 
+With no text selected, **Option+S** enters **screen capture mode**: drag a rectangle over text in the page (including images), and Mot runs on-device OCR ([Tesseract.js](https://github.com/naptha/tesseract.js) v7, French) before speaking the result.
+
 ## First run
 
 On first use, Mot downloads the Supertonic model assets (~400 MB) from Hugging Face and caches them in the browser. This happens once; later sessions reuse the cache.
@@ -36,8 +38,17 @@ Load the unpacked extension from `.output/chrome-mv3/` in `chrome://extensions`.
 
 ## Usage
 
-1. Select French text on any webpage (partial words at the start or end of the selection are expanded to whole words automatically)
+**With a text selection**
+
+1. Select French text on any webpage (partial words at the edges are expanded to whole words automatically)
 2. Press **Option+S** (remappable in Chrome extension shortcuts)
+
+**Without a text selection (OCR)**
+
+1. Press **Option+S** — the page dims and you can drag a rectangle over text (including in images)
+2. Mot captures that region, recognizes French text with Tesseract.js, then speaks it in the main overlay
+
+**In the overlay**
 3. Use **Listen** / **Stop pronunciation** in the overlay
 4. Word highlighting follows along in the overlay during playback
 

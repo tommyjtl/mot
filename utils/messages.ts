@@ -1,5 +1,6 @@
 import type { SelectionResult } from "./selection";
 import type { TtsAlignment } from "./tts-types";
+import type { ViewportCaptureSelection } from "./capture-region";
 
 export type SelectionRect = {
   top: number;
@@ -58,7 +59,7 @@ export type Message =
   | {
       type: "tts-progress";
       requestId: number;
-      phase: "loading-model" | "generating";
+      phase: "loading-model" | "generating" | "recognizing";
       detail?: string;
       percent?: number;
     }
@@ -100,4 +101,16 @@ export type Message =
             alignment?: TtsAlignment;
           }
         | { ok: false; error: string };
+    }
+  | { type: "start-capture-mode"; requestId: number }
+  | {
+      type: "capture-region-selected";
+      requestId: number;
+      selection: ViewportCaptureSelection | null;
+    }
+  | {
+      type: "ocr-started";
+      requestId: number;
+      rect: SelectionRect;
+      detail?: string;
     };

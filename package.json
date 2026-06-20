@@ -6,9 +6,10 @@
   "scripts": {
     "test": "echo \"Error: no test specified\" && exit 1",
     "dev": "wxt",
+    "dev:clean-tmp": "node scripts/clean-web-ext-tmp.mjs",
     "build": "wxt build",
     "zip": "wxt zip",
-    "postinstall": "wxt prepare && node scripts/copy-ort-wasm.mjs",
+    "postinstall": "wxt prepare && node scripts/copy-ort-wasm.mjs && node scripts/copy-tesseract-assets.mjs",
     "models:download": "python3 scripts/models.py download",
     "models:serve": "python3 scripts/models.py serve --port 8091"
   },
@@ -29,6 +30,7 @@
     "wxt": "^0.20.26"
   },
   "dependencies": {
-    "onnxruntime-web": "^1.21.0"
+    "onnxruntime-web": "^1.21.0",
+    "tesseract.js": "^7.0.0"
   }
 }

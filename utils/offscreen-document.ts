@@ -10,14 +10,22 @@ import {
   OFFSCREEN_WARMUP,
 } from "./offscreen-tts";
 import {
+  OFFSCREEN_OCR,
+  OFFSCREEN_OCR_WARMUP,
+} from "./offscreen-ocr";
+import {
+  recognizeFrenchFromBase64,
+  warmUpOcrEngine,
+} from "./ocr/tesseract-engine";
+import {
   synthesizeLocally,
   warmUpTtsEngine,
   getEngineStatus,
   type TtsProgress,
 } from "./supertonic/engine";
 
-const PLAY_AUDIO = "mot-play-audio";
-const STOP_AUDIO = "mot-stop-audio";
+export const PLAY_AUDIO = "mot-play-audio";
+export const STOP_AUDIO = "mot-stop-audio";
 /** How often to relay playback position while audio is playing (~20 Hz). */
 const PLAYBACK_TICK_MS = 50;
 
@@ -147,6 +155,38 @@ export function setupOffscreenDocument(): void {
     };
   }
 
+  function loadAudioFromBase64(
+    audioBase64: string,
+    tabId: number | undefined,
+  ): void {
+    stopAudio();
+
+    const buffer = base64ToArrayBuffer(audioBase64);
+    const blob = new Blob([buffer], { type: "audio/wav" });
+    currentAudioUrl = URL.createObjectURL(blob);
+    currentAudio = new Audio(currentAudioUrl);
+    bindPlaybackEvents(tabId);
+
+    const playFromStart = (): void => {
+      if (!currentAudio) {
+        return;
+      }
+
+      void currentAudio.play().catch((error: unknown) => {
+        console.error("[mot] Offscreen audio playback failed:", error);
+      });
+    };
+
+    if (currentAudio.readyState >= HTMLMediaElement.HAVE_METADATA) {
+      playFromStart();
+      return;
+    }
+
+    currentAudio.addEventListener("loadedmetadata", () => playFromStart(), {
+      once: true,
+    });
+  }
+
   browser.runtime.onMessage.addListener((message, _sender, sendResponse) => {
     if (message?.type === OFFSCREEN_WARMUP) {
       void warmUpTtsEngine((progress) => {
@@ -190,17 +230,33 @@ export function setupOffscreenDocument(): void {
     }
 
     if (message?.type === PLAY_AUDIO && message.audioBase64) {
-      stopAudio();
-      const tabId = message.tabId as number | undefined;
-      const buffer = base64ToArrayBuffer(message.audioBase64);
-      const blob = new Blob([buffer], { type: "audio/wav" });
-      currentAudioUrl = URL.createObjectURL(blob);
-      currentAudio = new Audio(currentAudioUrl);
-      bindPlaybackEvents(tabId);
-      void currentAudio.play().catch((error: unknown) => {
-        console.error("[mot] Offscreen audio playback failed:", error);
-      });
+      loadAudioFromBase64(message.audioBase64, message.tabId as number | undefined);
       return false;
+    }
+
+    if (message?.type === OFFSCREEN_OCR_WARMUP) {
+      void warmUpOcrEngine()
+        .then(() => sendResponse({ ok: true }))
+        .catch((error: unknown) => {
+          sendResponse({
+            ok: false,
+            error: error instanceof Error ? error.message : "OCR warm-up failed",
+          });
+        });
+      return true;
+    }
+
+    if (message?.type === OFFSCREEN_OCR) {
+      const { imageBase64 } = message as { imageBase64: string };
+      void recognizeFrenchFromBase64(imageBase64)
+        .then((text) => sendResponse({ ok: true, text }))
+        .catch((error: unknown) => {
+          sendResponse({
+            ok: false,
+            error: error instanceof Error ? error.message : "OCR failed",
+          });
+        });
+      return true;
     }
 
     if (message?.type !== OFFSCREEN_SYNTHESIZE) {

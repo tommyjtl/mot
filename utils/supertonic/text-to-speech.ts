@@ -4,8 +4,8 @@ import {
   buildAlignment,
   extractSpeakableText,
   joinDisplayText,
-  scaleWordTimings,
-  wordAlignmentFromPreprocessed,
+  wordAlignmentFromAudio,
+  DEFAULT_SIGNAL_ALIGNMENT_OPTIONS,
 } from "./alignment";
 import {
   DEFAULT_SILENCE_DURATION,
@@ -31,7 +31,6 @@ type TtsConfig = {
 
 type InferChunkResult = {
   wav: number[];
-  charDurations: number[];
   preprocessedText: string;
   speechDuration: number;
 };
@@ -74,7 +73,6 @@ export class TextToSpeech {
       const chunk = chunks[chunkIndex]!;
       const {
         wav,
-        charDurations,
         preprocessedText,
         speechDuration,
       } = await this.inferChunk([chunk], [lang], style, totalStep, speed);
@@ -82,26 +80,23 @@ export class TextToSpeech {
       const { inner } = extractSpeakableText(preprocessedText);
       displayParts.push(inner);
 
-      const { words, timelineEnd } = wordAlignmentFromPreprocessed(
-        preprocessedText,
-        charDurations,
-        0,
+      const { words } = wordAlignmentFromAudio(
+        wav,
+        this.sampleRate,
+        inner,
+        speechDuration,
         allWords.length,
+        DEFAULT_SIGNAL_ALIGNMENT_OPTIONS,
       );
 
       const chunkStart = timeOffset;
-      const scaledWords = scaleWordTimings(
-        words,
-        0,
-        timelineEnd,
-        speechDuration,
-      ).map((word) => ({
-        ...word,
-        start: chunkStart + word.start,
-        end: chunkStart + word.end,
-      }));
-
-      allWords.push(...scaledWords);
+      allWords.push(
+        ...words.map((word) => ({
+          ...word,
+          start: chunkStart + word.start,
+          end: chunkStart + word.end,
+        })),
+      );
 
       if (wavCat.length === 0) {
         wavCat = wav;
@@ -244,11 +239,9 @@ export class TextToSpeech {
 
     const wav = Array.from(vocoderOutputs.wav_tts!.data as Float32Array);
     const preprocessedText = preprocessedTexts[0] ?? textList[0] ?? "";
-    const validCharCount = preprocessedText.length;
 
     return {
       wav,
-      charDurations: duration.slice(0, validCharCount),
       preprocessedText,
       speechDuration: audioDurationSeconds(wav.length, this.sampleRate),
     };

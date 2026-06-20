@@ -1,7 +1,9 @@
 import type { SelectionRect } from "./messages";
+import { isCaptureOverlayVisible } from "./capture-region";
+import { ALIGNMENT_DEBUG_UI_ENABLED } from "./supertonic/constants";
 
 const OVERLAY_ID = "mot-tts-overlay-host";
-const OVERLAY_TEMPLATE_VERSION = "14";
+const OVERLAY_TEMPLATE_VERSION = "19";
 
 export type PlaybackState = "idle" | "playing";
 
@@ -28,6 +30,14 @@ export type TranslationViewState =
     loading?: boolean;
   };
 
+type OverlayAlignmentDebugElements = {
+  toggle: HTMLButtonElement;
+  panel: HTMLElement;
+  controls: HTMLElement;
+  clock: HTMLElement;
+  list: HTMLElement;
+};
+
 type OverlayElements = {
   host: HTMLElement;
   shadow: ShadowRoot;
@@ -41,6 +51,7 @@ type OverlayElements = {
   statusEl: HTMLElement;
   actionButton: HTMLButtonElement;
   closeButton: HTMLButtonElement;
+  alignmentDebug: OverlayAlignmentDebugElements | null;
 };
 
 let dragCleanup: (() => void) | null = null;
@@ -136,6 +147,187 @@ function bindOverlayDrag(
   };
 }
 
+function alignmentDebugPanelStyles(): string {
+  if (!ALIGNMENT_DEBUG_UI_ENABLED) {
+    return "";
+  }
+
+  return `
+        .alignment-debug-toggle {
+          align-self: flex-start;
+          appearance: none;
+          border: 0;
+          background: transparent;
+          color: #64748b;
+          font: inherit;
+          font-size: 11px;
+          padding: 0;
+          cursor: pointer;
+          text-decoration: underline;
+          text-underline-offset: 2px;
+        }
+
+        .alignment-debug-toggle:hover {
+          color: #0f172a;
+        }
+
+        .alignment-debug {
+          display: flex;
+          flex-direction: column;
+          gap: 8px;
+          margin-top: 2px;
+          padding-top: 8px;
+          border-top: 1px dashed rgba(15, 23, 42, 0.12);
+        }
+
+        .alignment-debug[hidden] {
+          display: none;
+        }
+
+        .alignment-debug-clock {
+          margin: 0;
+          color: #64748b;
+          font-family: ui-monospace, SFMono-Regular, Menlo, monospace;
+          font-size: 11px;
+          line-height: 1.45;
+        }
+
+        .alignment-debug-list {
+          display: flex;
+          flex-direction: column;
+          gap: 4px;
+          max-height: 180px;
+          overflow-y: auto;
+        }
+
+        .alignment-debug-caption {
+          margin: 0 0 4px;
+          color: #94a3b8;
+          font-size: 10px;
+          line-height: 1.35;
+        }
+
+        .alignment-debug-controls {
+          display: flex;
+          flex-direction: column;
+          gap: 6px;
+        }
+
+        .alignment-debug-control {
+          display: grid;
+          grid-template-columns: 92px 1fr auto;
+          align-items: center;
+          gap: 6px;
+          margin: 0;
+          color: #64748b;
+          font-size: 10px;
+        }
+
+        .alignment-debug-control input[type="range"] {
+          width: 100%;
+          margin: 0;
+        }
+
+        .alignment-debug-control-value {
+          min-width: 42px;
+          text-align: right;
+          font-family: ui-monospace, SFMono-Regular, Menlo, monospace;
+        }
+
+        .alignment-debug-empty {
+          margin: 0;
+          color: #64748b;
+          font-size: 12px;
+        }
+
+        .alignment-debug-row {
+          display: flex;
+          align-items: center;
+          justify-content: space-between;
+          gap: 8px;
+          padding: 4px 6px;
+          border-radius: 6px;
+          background: rgba(15, 23, 42, 0.03);
+        }
+
+        .alignment-debug-row.is-active {
+          background: rgba(250, 204, 21, 0.35);
+        }
+
+        .alignment-debug-meta {
+          display: flex;
+          flex-wrap: wrap;
+          align-items: baseline;
+          gap: 6px;
+          min-width: 0;
+          font-size: 11px;
+        }
+
+        .alignment-debug-index {
+          color: #94a3b8;
+          font-family: ui-monospace, SFMono-Regular, Menlo, monospace;
+        }
+
+        .alignment-debug-word {
+          color: #0f172a;
+          font-weight: 600;
+        }
+
+        .alignment-debug-time {
+          color: #64748b;
+          font-family: ui-monospace, SFMono-Regular, Menlo, monospace;
+        }`;
+}
+
+function alignmentDebugPanelMarkup(): string {
+  if (!ALIGNMENT_DEBUG_UI_ENABLED) {
+    return "";
+  }
+
+  return `
+            <button
+              type="button"
+              class="alignment-debug-toggle"
+              hidden
+              aria-expanded="false"
+            >
+              Sync debug
+            </button>
+            <section class="alignment-debug" hidden aria-label="Alignment sync debug">
+              <div class="alignment-debug-controls"></div>
+              <p class="alignment-debug-clock"></p>
+              <div class="alignment-debug-list"></div>
+            </section>`;
+}
+
+function queryAlignmentDebugElements(
+  shadow: ShadowRoot,
+): OverlayAlignmentDebugElements | null {
+  if (!ALIGNMENT_DEBUG_UI_ENABLED) {
+    return null;
+  }
+
+  const toggle = shadow.querySelector(".alignment-debug-toggle") as
+    | HTMLButtonElement
+    | null;
+  const panel = shadow.querySelector(".alignment-debug") as HTMLElement | null;
+  const controls = shadow.querySelector(
+    ".alignment-debug-controls",
+  ) as HTMLElement | null;
+  const clock = shadow.querySelector(".alignment-debug-clock") as
+    | HTMLElement
+    | null;
+  const list = shadow.querySelector(".alignment-debug-list") as
+    | HTMLElement
+    | null;
+
+  if (!toggle || !panel || !controls || !clock || !list) {
+    return null;
+  }
+
+  return { toggle, panel, controls, clock, list };
+}
+
 function ensureOverlay(): OverlayElements {
   let host = document.getElementById(OVERLAY_ID);
   if (!host) {
@@ -157,6 +349,10 @@ function ensureOverlay(): OverlayElements {
     } else {
       shadow = host.attachShadow({ mode: "open" });
     }
+
+    wordDragBound = false;
+    dragAnchorIndex = null;
+    dragPointerId = null;
 
     shadow.innerHTML = `
       <style>
@@ -305,15 +501,18 @@ function ensureOverlay(): OverlayElements {
           line-height: 1.3;
           letter-spacing: 0.04em;
           text-transform: uppercase;
+          margin-bottom: 2px;
         }
 
         .translation-original-value {
+          font-size: 1.75rem;
           font-weight: 700;
           white-space: pre-wrap;
           word-break: break-word;
         }
 
         .translation-gloss-value {
+          font-size: 1.75rem;
           font-weight: 700;
           white-space: pre-wrap;
           word-break: break-word;
@@ -399,6 +598,13 @@ function ensureOverlay(): OverlayElements {
           margin: 0;
           color: #475569;
           font-size: 13px;
+          line-height: 1.4;
+        }
+
+        .footer {
+          display: flex;
+          flex-direction: column;
+          gap: 8px;
         }
 
         .progress-track {
@@ -421,7 +627,6 @@ function ensureOverlay(): OverlayElements {
           display: flex;
           align-items: center;
           gap: 8px;
-          flex-wrap: wrap;
         }
 
         .action {
@@ -473,6 +678,7 @@ function ensureOverlay(): OverlayElements {
             transform: rotate(360deg);
           }
         }
+${alignmentDebugPanelStyles()}
       </style>
       <div class="card" part="card" data-template-version="${OVERLAY_TEMPLATE_VERSION}">
         <header class="header" aria-label="Drag pronunciation panel">
@@ -501,9 +707,11 @@ function ensureOverlay(): OverlayElements {
             <hr class="translation-divider" />
           </section>
           <p class="text"></p>
-          <div class="actions">
-            <button class="action" type="button" hidden>Listen</button>
-            <p class="status"></p>
+          <div class="footer">
+            <div class="actions">
+              <button class="action" type="button" hidden>Listen</button>
+            </div>
+            <p class="status" role="status" aria-live="polite"></p>${alignmentDebugPanelMarkup()}
           </div>
         </div>
       </div>
@@ -528,6 +736,7 @@ function ensureOverlay(): OverlayElements {
   const statusEl = shadow.querySelector(".status") as HTMLElement;
   const actionButton = shadow.querySelector(".action") as HTMLButtonElement;
   const closeButton = shadow.querySelector(".close") as HTMLButtonElement;
+  const alignmentDebug = queryAlignmentDebugElements(shadow);
 
   bindOverlayDrag(host, card, header);
 
@@ -544,6 +753,7 @@ function ensureOverlay(): OverlayElements {
     statusEl,
     actionButton,
     closeButton,
+    alignmentDebug,
   };
 }
 
@@ -608,9 +818,9 @@ let overlayPresentationPhase: "idle" | "loading" | "ready" | "error" = "idle";
 
 function getTranslationSectionElements():
   | {
-      translationSection: HTMLElement;
-      translationRestoreBtn: HTMLButtonElement;
-    }
+    translationSection: HTMLElement;
+    translationRestoreBtn: HTMLButtonElement;
+  }
   | null {
   const host = document.getElementById(OVERLAY_ID);
   const translationSection = host?.shadowRoot?.querySelector(
@@ -916,13 +1126,18 @@ function setPlainText(textEl: HTMLElement, text: string): void {
 
 function renderLoadingStatus(
   statusEl: HTMLElement,
-  phase: "loading-model" | "generating",
+  phase: "loading-model" | "generating" | "recognizing",
   detail?: string,
   percent?: number,
 ): void {
-  const label =
-    detail ??
-    (phase === "loading-model" ? "Loading model…" : "Generating pronunciation…");
+  let defaultLabel = "Recognizing text…";
+  if (phase === "loading-model") {
+    defaultLabel = "Loading model…";
+  } else if (phase === "generating") {
+    defaultLabel = "Generating pronunciation…";
+  }
+
+  const label = detail ?? defaultLabel;
   const suffix =
     typeof percent === "number" && phase === "loading-model" ? ` ${percent}%` : "";
 
@@ -943,7 +1158,7 @@ function escapeHtml(value: string): string {
 }
 
 export function updateOverlayProgress(
-  phase: "loading-model" | "generating",
+  phase: "loading-model" | "generating" | "recognizing",
   detail?: string,
   percent?: number,
 ): void {
@@ -970,6 +1185,20 @@ export function updateOverlayProgress(
   renderLoadingStatus(statusEl, phase, detail, percent);
 }
 
+export function getOverlayAlignmentDebugElements(): OverlayAlignmentDebugElements | null {
+  if (!ALIGNMENT_DEBUG_UI_ENABLED) {
+    return null;
+  }
+
+  const host = document.getElementById(OVERLAY_ID);
+  const shadow = host?.shadowRoot;
+  if (!shadow) {
+    return null;
+  }
+
+  return queryAlignmentDebugElements(shadow);
+}
+
 export function hideOverlay(): void {
   clearWordSpans();
   dragCleanup?.();
@@ -977,6 +1206,9 @@ export function hideOverlay(): void {
   userMovedOverlay = false;
   overlayPresentationPhase = "idle";
   translationRestoreHandler = null;
+  wordDragBound = false;
+  dragAnchorIndex = null;
+  dragPointerId = null;
   document.getElementById(OVERLAY_ID)?.remove();
   toggleHandler = null;
   closeHandler = null;
@@ -1098,7 +1330,7 @@ export function bindOverlayDismissals(onDismiss?: () => void): () => void {
   };
 
   const onPointerDown = (event: PointerEvent) => {
-    if (event.button !== 0 || !isOverlayVisible()) {
+    if (event.button !== 0 || !isOverlayVisible() || isCaptureOverlayVisible()) {
       return;
     }
 

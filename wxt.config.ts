@@ -1,10 +1,15 @@
+import { resolve } from "node:path";
 import { defineConfig } from "wxt";
 
 const DEV_START_URL =
-  "https://www.lemonde.fr/planete/live/2026/06/19/en-direct-canicule-la-vague-de-chaleur-pourrait-etre-d-une-duree-et-d-une-severite-identiques-a-celle-d-aout-2003-dit-meteo-france_6704498_3244.html";
+  "https://www.rfi.fr/fr/france/";
+
+/** Reuse one Chrome profile during dev instead of tmp-web-ext copies (~400 MB/model each). */
+const DEV_CHROME_PROFILE = resolve(".wxt/chrome-data");
 
 export default defineConfig({
   webExt: {
+    chromiumArgs: [`--user-data-dir=${DEV_CHROME_PROFILE}`],
     startUrls: [DEV_START_URL],
   },
   vite: () => ({
@@ -23,7 +28,7 @@ export default defineConfig({
     ],
     web_accessible_resources: [
       {
-        resources: ["ort/*"],
+        resources: ["ort/*", "tesseract/*", "tesseract/tessdata/*"],
         matches: ["<all_urls>"],
       },
     ],

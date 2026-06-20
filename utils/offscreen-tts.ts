@@ -25,8 +25,8 @@ export async function ensureOffscreenDocument(): Promise<void> {
 
   await browser.offscreen.createDocument({
     url: browser.runtime.getURL("/offscreen.html"),
-    reasons: ["AUDIO_PLAYBACK", "BLOBS"],
-    justification: "Run on-device Supertonic TTS and play pronunciation audio",
+    reasons: ["AUDIO_PLAYBACK", "BLOBS", "WORKERS"],
+    justification: "Run on-device Supertonic TTS, OCR, and play pronunciation audio",
   });
 }
 
