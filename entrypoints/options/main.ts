@@ -18,18 +18,9 @@ import type { Message, ModelLoadBroadcastMessage } from "../../utils/messages";
 import type { SttModelLoadBroadcast } from "../../utils/stt/model-load-broadcast";
 
 const form = document.getElementById("settings-form") as HTMLFormElement;
-const transcriptionForm = document.getElementById(
-  "transcription-form",
-) as HTMLFormElement;
 const voiceSelect = document.getElementById("voice") as HTMLSelectElement;
 const langSelect = document.getElementById("lang") as HTMLSelectElement;
-const youtubeTranscriptSyncInput = document.getElementById(
-  "youtube-transcript-sync",
-) as HTMLInputElement;
 const statusEl = document.getElementById("status") as HTMLParagraphElement;
-const transcriptionStatusEl = document.getElementById(
-  "transcription-status",
-) as HTMLParagraphElement;
 
 const ttsModelIcon = document.getElementById(
   "tts-model-icon",
@@ -344,7 +335,6 @@ async function loadSettings(): Promise<void> {
   const settings = await getSettings();
   voiceSelect.value = settings.voice;
   langSelect.value = settings.lang;
-  youtubeTranscriptSyncInput.checked = settings.youtubeTranscriptSync;
 }
 
 function showSavedStatus(target: HTMLParagraphElement): void {
@@ -368,19 +358,6 @@ form.addEventListener("submit", async (event) => {
   });
 
   showSavedStatus(statusEl);
-});
-
-transcriptionForm.addEventListener("submit", async (event) => {
-  event.preventDefault();
-
-  const current = await getSettings();
-
-  await saveSettings({
-    ...current,
-    youtubeTranscriptSync: youtubeTranscriptSyncInput.checked,
-  });
-
-  showSavedStatus(transcriptionStatusEl);
 });
 
 browser.runtime.onMessage.addListener(

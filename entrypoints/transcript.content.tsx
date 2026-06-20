@@ -31,16 +31,6 @@ import {
   translateForLearning,
 } from "../utils/translation";
 import {
-  MEDIA_PLAYBACK_EVENT,
-  type MediaPlaybackEventDetail,
-} from "../utils/media-playback-sync";
-import { createTranscriptMediaSyncController } from "../utils/transcript-media-sync";
-import {
-  DEFAULT_SETTINGS,
-  getSettings,
-  type MotSettings,
-} from "../utils/settings";
-import {
   FULL_TRANSLATION_DEBOUNCE_MS,
   getTranscriptSession,
   nextTranscriptRequestId,
@@ -73,35 +63,12 @@ function alignmentDuration(alignment: TtsAlignment | null): number {
   return lastEnd && lastEnd > 0 ? lastEnd : 0;
 }
 
-function pauseTranscriptionFromMedia(): void {
-  patchTranscriptSession({ stopExpectedFromUi: true });
-  stopTranscriptAudio();
-  clearReadModeUi();
-  void requestStopTranscription();
-}
-
-const mediaSync = createTranscriptMediaSyncController({
-  isTranscribing: () => getTranscriptSession().transcribing,
-  pauseFromMedia: pauseTranscriptionFromMedia,
-  resumeFromMedia: () => {
-    stopTranscriptAudio();
-    clearReadModeUi();
-    resumeTranscriptionFromGesture();
-  },
-});
-
-async function loadMediaSyncSettings(): Promise<void> {
-  const settings = await getSettings();
-  mediaSync.setEnabled(settings.youtubeTranscriptSync);
-}
-
 function resetTranscriptState(): void {
   const session = getTranscriptSession();
   if (session.fullTranslationDebounceId !== null) {
     clearTimeout(session.fullTranslationDebounceId);
   }
   resetTranscriptSession();
-  mediaSync.reset();
 }
 
 function finalizePartialLine(): void {
@@ -117,6 +84,12 @@ function finalizePartialLine(): void {
 function requestStopTranscription(): Promise<void> {
   return browser.runtime.sendMessage({
     type: "stop-transcription",
+  } satisfies Message) as Promise<void>;
+}
+
+function requestDismissTranscription(): Promise<void> {
+  return browser.runtime.sendMessage({
+    type: "dismiss-transcription",
   } satisfies Message) as Promise<void>;
 }
 
@@ -641,13 +614,14 @@ async function closeOverlay(): Promise<void> {
   stopTranscriptAudio();
   clearReadModeUi();
   hideTranscriptOverlay();
-  resetTranscriptState();
 
   try {
-    await requestStopTranscription();
+    await requestDismissTranscription();
   } catch {
     // Background may be unavailable during reload.
   }
+
+  resetTranscriptState();
 }
 
 function showStartCaptureError(message: string): void {
@@ -694,7 +668,6 @@ function startCaptureAndTranscribe(options: {
     preserveLinesOnNextStart: options.preserveLines,
     transcribing: true,
   });
-  mediaSync.resumeFromUser();
   stopTranscriptAudio();
   clearReadModeUi();
 
@@ -823,14 +796,12 @@ function applyEditedTranscript(text: string): void {
 function overlayHandlers() {
   return {
     onStop: () => {
-      mediaSync.pauseFromUser();
       patchTranscriptSession({ stopExpectedFromUi: true });
       stopTranscriptAudio();
       clearReadModeUi();
       void requestStopTranscription();
     },
     onResume: () => {
-      mediaSync.resumeFromUser();
       stopTranscriptAudio();
       clearReadModeUi();
       resumeTranscriptionFromGesture();
@@ -892,24 +863,6 @@ export default defineContentScript({
 
   main() {
     mountTranscriptOverlay();
-    void loadMediaSyncSettings();
-
-    browser.storage.onChanged.addListener((changes, areaName) => {
-      if (areaName !== "sync" && areaName !== "local") {
-        return;
-      }
-
-      const update = changes.motSettings?.newValue as Partial<MotSettings> | undefined;
-      if (update?.youtubeTranscriptSync !== undefined) {
-        mediaSync.setEnabled(update.youtubeTranscriptSync);
-      }
-    });
-
-    document.addEventListener(MEDIA_PLAYBACK_EVENT, (event) => {
-      mediaSync.handleMediaPlayback(
-        (event as CustomEvent<MediaPlaybackEventDetail>).detail,
-      );
-    });
 
     void browser.runtime
       .sendMessage({ type: "get-transcription-state" })
@@ -1068,7 +1021,6 @@ export default defineContentScript({
 
       if (message.type === "transcript-stopped") {
         if (getTranscriptSession().overlayDismissed) {
-          patchTranscriptSession({ overlayDismissed: false });
           return;
         }
 
@@ -1101,7 +1053,6 @@ export default defineContentScript({
           overlayHandlers(),
         );
         scheduleFullTranslationRefresh(true);
-        mediaSync.onTranscriptStopped();
         return;
       }
 
