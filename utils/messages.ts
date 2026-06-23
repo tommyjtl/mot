@@ -1,6 +1,11 @@
 import type { SelectionResult } from "./selection";
 import type { TtsAlignment } from "./tts-types";
 import type { ViewportCaptureSelection } from "./capture-region";
+import type {
+  VocabContextInput,
+  VocabCreateInput,
+  VocabExport,
+} from "./vocab/types";
 
 export type SelectionRect = {
   top: number;
@@ -179,4 +184,15 @@ export type Message =
     tabTitle?: string;
     tabUrl?: string;
     error?: string;
-  };
+  }
+  | { type: "vocab-lookup"; original: string }
+  | { type: "vocab-create"; payload: VocabCreateInput }
+  | {
+    type: "vocab-add-context";
+    normalized: string;
+    context: VocabContextInput;
+  }
+  | { type: "vocab-update-note"; normalized: string; note: string }
+  | { type: "vocab-delete-context"; normalized: string; contextId: string }
+  | { type: "vocab-export" }
+  | { type: "vocab-import"; data: VocabExport };

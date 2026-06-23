@@ -1,3 +1,6 @@
+import { isSingleWordText } from "../../utils/overlay-phrase";
+import { VocabAction } from "./VocabAction";
+
 export type TranslationState =
   | { visible: false }
   | {
@@ -6,6 +9,10 @@ export type TranslationState =
       translationText: string;
       mode: "full" | "word";
       loading?: boolean;
+      vocabReady?: boolean;
+      contextText?: string;
+      pageUrl?: string;
+      pageTitle?: string;
     };
 
 /** @deprecated Use TranslationState */
@@ -17,29 +24,71 @@ export type TranscriptWordTranslationState = TranslationState;
 type TranslationPanelProps = {
   state: TranslationState;
   showRestore?: boolean;
+  showVocabAction?: boolean;
+  /** TTS only: show vocab on Translation row for single-word full-mode selections. */
+  singleWordVocabInFullMode?: boolean;
   onRestore?: () => void;
+  /** Full passage shown below the translation block (used as vocab context). */
+  passageText?: string;
 };
 
 export function TranslationPanel({
   state,
   showRestore = true,
+  showVocabAction = true,
+  singleWordVocabInFullMode = false,
   onRestore,
+  passageText,
 }: TranslationPanelProps) {
   if (!state.visible) {
     return null;
   }
 
+  const passage = passageText?.trim() ?? "";
+  const hasVocabInputs =
+    !state.loading &&
+    Boolean(state.translationText.trim()) &&
+    Boolean(passage);
+
+  const canShowVocabOnOriginal =
+    showVocabAction &&
+    state.mode === "word" &&
+    hasVocabInputs;
+
+  const canShowVocabOnTranslation =
+    showVocabAction &&
+    singleWordVocabInFullMode &&
+    state.mode === "full" &&
+    hasVocabInputs &&
+    isSingleWordText(passage);
+
   return (
     <section className="translationSection">
       {state.mode === "word" ? (
-        <p className="translationLine">
-          <span className="translationLabel">Original</span>
+        <div className="translationLine">
+          <span className="translationLineHeader">
+            <span className="translationLabel">Original</span>
+            {canShowVocabOnOriginal ? (
+              <VocabAction
+                originalText={state.originalText}
+                translationText={state.translationText}
+                contextText={passage}
+              />
+            ) : null}
+          </span>
           <span className="translationOriginalValue">{state.originalText}</span>
-        </p>
+        </div>
       ) : null}
-      <p className="translationLine">
+      <div className="translationLine">
         <span className="translationLineHeader">
           <span className="translationLabel">Translation</span>
+          {canShowVocabOnTranslation ? (
+            <VocabAction
+              originalText={state.originalText}
+              translationText={state.translationText}
+              contextText={passage}
+            />
+          ) : null}
           {showRestore && state.mode === "word" && !state.loading ? (
             <button
               type="button"
@@ -55,7 +104,7 @@ export function TranslationPanel({
         >
           {state.loading ? "Translating…" : state.translationText}
         </span>
-      </p>
+      </div>
       <hr className="translationDivider" />
     </section>
   );
@@ -63,34 +112,16 @@ export function TranslationPanel({
 
 export function TranscriptTranslationPanel({
   state,
+  passageText,
 }: {
   state: TranslationState;
+  passageText?: string;
 }) {
-  if (!state.visible) {
-    return null;
-  }
-
   return (
-    <section className="translationSection">
-      {state.mode === "word" ? (
-        <p className="translationLine">
-          <span className="translationLabel">Original</span>
-          <span className="translationOriginalValue">{state.originalText}</span>
-        </p>
-      ) : null}
-      <p className="translationLine">
-        {state.mode === "word" ? (
-          <span className="translationLineHeader">
-            <span className="translationLabel">Translation</span>
-          </span>
-        ) : null}
-        <span
-          className={`translationGlossValue${state.loading ? " isLoading" : ""}`}
-        >
-          {state.loading ? "Translating…" : state.translationText}
-        </span>
-      </p>
-      <hr className="translationDivider" />
-    </section>
+    <TranslationPanel
+      state={state}
+      showRestore={false}
+      passageText={passageText}
+    />
   );
 }

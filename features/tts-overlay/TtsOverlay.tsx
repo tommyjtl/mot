@@ -137,6 +137,8 @@ export function TtsOverlay() {
           {showTranslation ? (
             <TranslationPanel
               state={translation}
+              passageText={view.kind === "ready" ? view.text : undefined}
+              singleWordVocabInFullMode
               onRestore={() => handlersRef.current.onRestoreFullTranslation?.()}
             />
           ) : null}

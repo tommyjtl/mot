@@ -43,6 +43,15 @@ import {
 } from "../utils/tab-capture";
 import type { Message, SelectionPayload } from "../utils/messages";
 import type { SelectionResult } from "../utils/selection";
+import {
+  addVocabContext,
+  createVocabEntry,
+  deleteVocabContext,
+  exportVocab,
+  importVocab,
+  lookupVocabEntry,
+  updateVocabNote,
+} from "../utils/vocab/vocab-store";
 
 async function requestSelection(
   tabId: number,
@@ -596,6 +605,120 @@ async function startTranscriptionWithCapture(
   }
 }
 
+async function handleSpeakWordMessage(
+  message: Extract<Message, { type: "speak-word" }>,
+  tabId: number,
+): Promise<void> {
+  await stopAudioInOffscreen();
+  await abortOffscreenSynthesis(0);
+
+  const settings = await getSettings();
+
+  try {
+    const result = await synthesizeInOffscreen({
+      text: message.word,
+      voice: settings.voice,
+      lang: settings.lang,
+      tabId,
+      requestId: message.requestId,
+    });
+
+    if (!result.ok) {
+      await browser.tabs.sendMessage(tabId, {
+        type: "word-tts-result",
+        requestId: message.requestId,
+        wordIndex: message.wordIndex,
+        endWordIndex: message.endWordIndex,
+        payload: { ok: false, error: result.error },
+      } satisfies Message);
+      return;
+    }
+
+    await browser.tabs.sendMessage(tabId, {
+      type: "word-tts-result",
+      requestId: message.requestId,
+      wordIndex: message.wordIndex,
+      endWordIndex: message.endWordIndex,
+      payload: {
+        ok: true,
+        word: result.text,
+        audioBase64: result.audioBase64,
+        alignment: result.alignment,
+      },
+    } satisfies Message);
+
+    void playAudioInOffscreen(
+      base64ToArrayBuffer(result.audioBase64),
+      tabId,
+    ).catch((error: unknown) => {
+      console.warn("[mot] Word playback failed:", error);
+    });
+  } catch (error) {
+    const errorMessage =
+      error instanceof TtsEngineError
+        ? error.message
+        : "Could not generate word pronunciation.";
+
+    try {
+      await browser.tabs.sendMessage(tabId, {
+        type: "word-tts-result",
+        requestId: message.requestId,
+        wordIndex: message.wordIndex,
+        endWordIndex: message.endWordIndex,
+        payload: { ok: false, error: errorMessage },
+      } satisfies Message);
+    } catch {
+      // Tab may have navigated away.
+    }
+  }
+}
+
+async function handleSessionIdle(
+  senderTabId: number | undefined,
+): Promise<void> {
+  let tabId = senderTabId;
+
+  if (!tabId) {
+    const [tab] = await browser.tabs.query({
+      active: true,
+      currentWindow: true,
+    });
+    tabId = tab?.id;
+  }
+
+  if (!tabId) {
+    return;
+  }
+
+  const cancelledRequestId = invalidateTabRequest(tabId);
+  clearTabSession(tabId);
+  void stopAudioInOffscreen();
+
+  if (cancelledRequestId !== null) {
+    cancelCaptureWait(cancelledRequestId);
+    try {
+      await browser.tabs.sendMessage(tabId, {
+        type: "request-cancelled",
+        requestId: cancelledRequestId,
+      } satisfies Message);
+    } catch {
+      // Tab may have navigated away.
+    }
+  }
+}
+
+function isVocabMessageType(type: string | undefined): boolean {
+  return (
+    type === "vocab-lookup" ||
+    type === "vocab-create" ||
+    type === "vocab-add-context" ||
+    type === "vocab-update-note" ||
+    type === "vocab-delete-context" ||
+    type === "vocab-export" ||
+    type === "vocab-import"
+  );
+}
+
 export default defineBackground(() => {
   void warmUpOffscreenTts().catch((error: unknown) => {
     console.warn("[mot] Background TTS warm-up failed:", error);
@@ -742,10 +865,88 @@ export default defineBackground(() => {
       return true;
     }
 
+    if (message?.type === "vocab-lookup") {
+      return lookupVocabEntry(message.original)
+        .then((entry) => ({ ok: true as const, entry }))
+        .catch((error: unknown) => ({
+          ok: false as const,
+          error:
+            error instanceof Error ? error.message : "Vocabulary lookup failed.",
+        }));
+    }
+
+    if (message?.type === "vocab-create") {
+      return createVocabEntry(message.payload)
+        .then((entry) => ({ ok: true as const, entry }))
+        .catch((error: unknown) => ({
+          ok: false as const,
+          error:
+            error instanceof Error ? error.message : "Could not save vocabulary.",
+        }));
+    }
+
+    if (message?.type === "vocab-add-context") {
+      return addVocabContext(message.normalized, message.context)
+        .then((entry) => ({ ok: true as const, entry }))
+        .catch((error: unknown) => ({
+          ok: false as const,
+          error:
+            error instanceof Error ? error.message : "Could not add context.",
+        }));
+    }
+
+    if (message?.type === "vocab-update-note") {
+      return updateVocabNote(message.normalized, message.note)
+        .then((entry) => ({ ok: true as const, entry }))
+        .catch((error: unknown) => ({
+          ok: false as const,
+          error:
+            error instanceof Error ? error.message : "Could not update note.",
+        }));
+    }
+
+    if (message?.type === "vocab-delete-context") {
+      return deleteVocabContext(message.normalized, message.contextId)
+        .then((entry) => ({ ok: true as const, entry }))
+        .catch((error: unknown) => ({
+          ok: false as const,
+          error:
+            error instanceof Error ? error.message : "Could not delete context.",
+        }));
+    }
+
+    if (message?.type === "vocab-export") {
+      return exportVocab()
+        .then((data) => ({ ok: true as const, data }))
+        .catch((error: unknown) => ({
+          ok: false as const,
+          error:
+            error instanceof Error ? error.message : "Vocabulary export failed.",
+        }));
+    }
+
+    if (message?.type === "vocab-import") {
+      return importVocab(message.data)
+        .then(({ imported, merged }) => ({
+          ok: true as const,
+          imported,
+          merged,
+        }))
+        .catch((error: unknown) => ({
+          ok: false as const,
+          error:
+            error instanceof Error ? error.message : "Vocabulary import failed.",
+        }));
+    }
+
     return false;
   });
 
-  browser.runtime.onMessage.addListener(async (message: Message, sender) => {
+  browser.runtime.onMessage.addListener((message: Message, sender) => {
+    if (isVocabMessageType(message.type)) {
+      return;
+    }
+
     if (message.type === "stop-audio") {
       void stopAudioInOffscreen();
       return;
@@ -782,79 +983,17 @@ export default defineBackground(() => {
         return;
       }
 
-      await stopAudioInOffscreen();
-      await abortOffscreenSynthesis(0);
-
-      const settings = await getSettings();
-
-      try {
-        const result = await synthesizeInOffscreen({
-          text: message.word,
-          voice: settings.voice,
-          lang: settings.lang,
-          tabId,
-          requestId: message.requestId,
-        });
-
-        if (!result.ok) {
-          await browser.tabs.sendMessage(tabId, {
-            type: "word-tts-result",
-            requestId: message.requestId,
-            wordIndex: message.wordIndex,
-            endWordIndex: message.endWordIndex,
-            payload: { ok: false, error: result.error },
-          } satisfies Message);
-          return;
-        }
-
-        await browser.tabs.sendMessage(tabId, {
-          type: "word-tts-result",
-          requestId: message.requestId,
-          wordIndex: message.wordIndex,
-          endWordIndex: message.endWordIndex,
-          payload: {
-            ok: true,
-            word: result.text,
-            audioBase64: result.audioBase64,
-            alignment: result.alignment,
-          },
-        } satisfies Message);
-
-        void playAudioInOffscreen(
-          base64ToArrayBuffer(result.audioBase64),
-          tabId,
-        ).catch((error: unknown) => {
-          console.warn("[mot] Word playback failed:", error);
-        });
-      } catch (error) {
-        const errorMessage =
-          error instanceof TtsEngineError
-            ? error.message
-            : "Could not generate word pronunciation.";
-
-        try {
-          await browser.tabs.sendMessage(tabId, {
-            type: "word-tts-result",
-            requestId: message.requestId,
-            wordIndex: message.wordIndex,
-            endWordIndex: message.endWordIndex,
-            payload: { ok: false, error: errorMessage },
-          } satisfies Message);
-        } catch {
-          // Tab may have navigated away.
-        }
-      }
-
+      void handleSpeakWordMessage(message, tabId);
       return;
     }
 
     if (message.type === "stop-transcription") {
-      await stopTranscription();
+      void stopTranscription();
       return;
     }
 
     if (message.type === "dismiss-transcription") {
-      await dismissTranscription();
+      void dismissTranscription();
       return;
     }
 
@@ -919,33 +1058,7 @@ export default defineBackground(() => {
     }
 
     if (message.type === "session-idle") {
-      let tabId = sender.tab?.id;
-
-      if (!tabId) {
-        const [tab] = await browser.tabs.query({
-          active: true,
-          currentWindow: true,
-        });
-        tabId = tab?.id;
-      }
-
-      if (tabId) {
-        const cancelledRequestId = invalidateTabRequest(tabId);
-        clearTabSession(tabId);
-        void stopAudioInOffscreen();
-
-        if (cancelledRequestId !== null) {
-          cancelCaptureWait(cancelledRequestId);
-          try {
-            await browser.tabs.sendMessage(tabId, {
-              type: "request-cancelled",
-              requestId: cancelledRequestId,
-            } satisfies Message);
-          } catch {
-            // Tab may have navigated away.
-          }
-        }
-      }
+      void handleSessionIdle(sender.tab?.id);
     }
   });
 

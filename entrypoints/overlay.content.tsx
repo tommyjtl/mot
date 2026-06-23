@@ -20,6 +20,7 @@ import {
 import { mountTtsOverlay } from "../features/tts-overlay/mount";
 import { overlayWordIndexAtTime } from "../utils/overlay-word-sync";
 import { phraseFromWordRange } from "../utils/overlay-phrase";
+import { buildWordTranslationState } from "../utils/vocab/translation-vocab";
 import {
   currentLatencyCompensationS,
   estimatedPlaybackTimeS,
@@ -209,16 +210,22 @@ async function refreshWordTranslation(word: string): Promise<void> {
     return;
   }
 
+  const contextText = getTtsSession().cachedSpeechText ?? "";
+  const vocabContext = {
+    contextText,
+    pageUrl: location.href,
+    pageTitle: document.title,
+  };
+
   patchTtsSession({ translationDisplayMode: "word" });
   const requestId = nextTtsRequestId("wordTranslationRequestId");
   setOverlayTranslation(
-    {
-      visible: true,
+    buildWordTranslationState({
       originalText: word,
       translationText: "",
-      mode: "word",
       loading: true,
-    },
+      ...vocabContext,
+    }),
     showFullTranslation,
   );
 
@@ -229,24 +236,23 @@ async function refreshWordTranslation(word: string): Promise<void> {
 
   if (!result.ok) {
     setOverlayTranslation(
-      {
-        visible: true,
+      buildWordTranslationState({
         originalText: word,
         translationText: result.error,
-        mode: "word",
-      },
+        ...vocabContext,
+      }),
       showFullTranslation,
     );
     return;
   }
 
   setOverlayTranslation(
-    {
-      visible: true,
+    buildWordTranslationState({
       originalText: word,
       translationText: result.text,
-      mode: "word",
-    },
+      vocabReady: true,
+      ...vocabContext,
+    }),
     showFullTranslation,
   );
 }

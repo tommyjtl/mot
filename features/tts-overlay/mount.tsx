@@ -1,5 +1,6 @@
 import overlayBaseCss from "../../components/overlay/overlay-base.css?inline";
 import { ensureShadowReactMount } from "../../components/overlay/mount-shadow-react";
+import { mountWordOverlay } from "../word-overlay/mount";
 import ttsOverlayCss from "./tts-overlay.css?inline";
 import { TtsOverlay } from "./TtsOverlay";
 
@@ -12,4 +13,5 @@ export function mountTtsOverlay(): void {
       { key: "tts-overlay", css: ttsOverlayCss },
     ],
   });
+  mountWordOverlay();
 }

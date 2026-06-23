@@ -1,0 +1,32 @@
+.wordOverlayHost {
+  position: fixed;
+  top: 0;
+  left: 0;
+  z-index: 2147483647;
+  pointer-events: none;
+}
+
+.wordOverlayHost .card {
+  pointer-events: auto;
+}
+
+.wordOverlayCard {
+  width: 320px;
+  max-width: calc(100vw - 24px);
+}
+
+.wordOverlayCardDefault {
+  position: fixed;
+  top: 16px;
+  right: 16px;
+  left: auto;
+  bottom: auto;
+}
+
+.wordOverlayBody .translationSection {
+  margin-bottom: 10px;
+}
+
+.wordOverlayBody .vocabCardSection:first-of-type {
+  margin-top: 0;
+}

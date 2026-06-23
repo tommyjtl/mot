@@ -2,6 +2,7 @@ import type { Message } from "../utils/messages";
 import type { TtsAlignment } from "../utils/tts-types";
 import { estimateAlignmentFromAudio } from "../utils/alignment-from-audio";
 import { phraseFromWordRange } from "../utils/overlay-phrase";
+import { buildWordTranslationState } from "../utils/vocab/translation-vocab";
 import { overlayWordIndexAtTime } from "../utils/overlay-word-sync";
 import {
   highlightPlaybackTimeS,
@@ -456,16 +457,22 @@ async function refreshWordTranslation(word: string): Promise<void> {
     return;
   }
 
+  const contextText = getVisibleTranscriptText();
+  const vocabContext = {
+    contextText,
+    pageUrl: location.href,
+    pageTitle: document.title,
+  };
+
   patchTranscriptSession({ translationDisplayMode: "word" });
   const requestId = nextTranscriptRequestId("wordTranslationRequestId");
   setTranscriptWordTranslation(
-    {
-      visible: true,
+    buildWordTranslationState({
       originalText: word,
       translationText: "",
-      mode: "word",
       loading: true,
-    },
+      ...vocabContext,
+    }),
     showFullTranslation,
   );
 
@@ -481,24 +488,23 @@ async function refreshWordTranslation(word: string): Promise<void> {
     }
 
     setTranscriptWordTranslation(
-      {
-        visible: true,
+      buildWordTranslationState({
         originalText: word,
         translationText: result.error,
-        mode: "word",
-      },
+        ...vocabContext,
+      }),
       showFullTranslation,
     );
     return;
   }
 
   setTranscriptWordTranslation(
-    {
-      visible: true,
+    buildWordTranslationState({
       originalText: word,
       translationText: result.text,
-      mode: "word",
-    },
+      vocabReady: true,
+      ...vocabContext,
+    }),
     showFullTranslation,
   );
 }

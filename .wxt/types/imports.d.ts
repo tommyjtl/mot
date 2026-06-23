@@ -38,6 +38,7 @@ declare global {
   const clearTabRequest: typeof import('/Users/tommyjtl/Documents/Projects/mot/utils/tab-requests').clearTabRequest
   const clearTabSession: typeof import('/Users/tommyjtl/Documents/Projects/mot/utils/session').clearTabSession
   const computeCardPositionNearSelection: typeof import('/Users/tommyjtl/Documents/Projects/mot/utils/overlay-layout').computeCardPositionNearSelection
+  const computeTopRightPanelPosition: typeof import('/Users/tommyjtl/Documents/Projects/mot/utils/overlay-layout').computeTopRightPanelPosition
   const createIframeUi: typeof import('wxt/utils/content-script-ui/iframe').createIframeUi
   const createIntegratedUi: typeof import('wxt/utils/content-script-ui/integrated').createIntegratedUi
   const createShadowRootUi: typeof import('wxt/utils/content-script-ui/shadow-root').createShadowRootUi
@@ -74,6 +75,7 @@ declare global {
   const invalidateTabRequest: typeof import('/Users/tommyjtl/Documents/Projects/mot/utils/tab-requests').invalidateTabRequest
   const isCaptureOverlayVisible: typeof import('/Users/tommyjtl/Documents/Projects/mot/utils/capture-region').isCaptureOverlayVisible
   const isCurrentTabRequest: typeof import('/Users/tommyjtl/Documents/Projects/mot/utils/tab-requests').isCurrentTabRequest
+  const isSingleWordText: typeof import('/Users/tommyjtl/Documents/Projects/mot/utils/overlay-phrase').isSingleWordText
   const isSpeakSelectionShortcut: typeof import('/Users/tommyjtl/Documents/Projects/mot/utils/speak-shortcut').isSpeakSelectionShortcut
   const isTabCapturePermissionError: typeof import('/Users/tommyjtl/Documents/Projects/mot/utils/tab-capture').isTabCapturePermissionError
   const overlayWordIndexAtTime: typeof import('/Users/tommyjtl/Documents/Projects/mot/utils/overlay-word-sync').overlayWordIndexAtTime

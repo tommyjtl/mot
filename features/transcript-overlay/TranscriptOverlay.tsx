@@ -256,7 +256,10 @@ export function TranscriptOverlay() {
         }
       >
         <div className="transcriptBody">
-          <TranscriptTranslationPanel state={translation} />
+          <TranscriptTranslationPanel
+            state={translation}
+            passageText={visibleText || undefined}
+          />
 
           {editMode ? (
             <TranscriptEditor

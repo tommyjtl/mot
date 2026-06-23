@@ -1,5 +1,11 @@
 :host {
   all: initial;
+  --mot-overlay-font-family: system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI",
+    sans-serif;
+  font-family: var(--mot-overlay-font-family);
+  font-size: 14px;
+  line-height: 1.45;
+  color: #0f172a;
 }
 
 .card {
@@ -12,7 +18,7 @@
   box-shadow:
     0 10px 30px rgba(15, 23, 42, 0.12),
     0 2px 8px rgba(15, 23, 42, 0.08);
-  font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
+  font-family: var(--mot-overlay-font-family);
   font-size: 14px;
   line-height: 1.45;
   overflow: hidden;
@@ -163,10 +169,273 @@
   text-underline-offset: 2px;
 }
 
+.vocabActionRoot {
+  position: relative;
+  display: flex;
+  align-items: center;
+  flex-shrink: 0;
+}
+
+.vocabActionPlaceholder {
+  width: 22px;
+  height: 22px;
+}
+
+.vocabRowAction {
+  width: 22px;
+  height: 22px;
+  color: #4f46e5;
+}
+
+.vocabRowAction:hover {
+  color: #4338ca;
+  background: rgba(79, 70, 229, 0.1);
+}
+
+.vocabRowAction svg {
+  width: 14px;
+  height: 14px;
+}
+
+.vocabInlineSpinner {
+  display: inline-block;
+  width: 12px;
+  height: 12px;
+  border: 2px solid rgba(71, 85, 105, 0.25);
+  border-top-color: #475569;
+  border-radius: 50%;
+  animation: motSpin 0.8s linear infinite;
+}
+
+.vocabCard {
+  box-sizing: border-box;
+  padding: 10px 10px 8px;
+  border: 1px solid rgba(15, 23, 42, 0.12);
+  border-radius: 10px;
+  background: #ffffff;
+  font-family: var(--mot-overlay-font-family);
+  font-size: 14px;
+  line-height: 1.45;
+  color: #0f172a;
+  box-shadow:
+    0 10px 30px rgba(15, 23, 42, 0.12),
+    0 2px 8px rgba(15, 23, 42, 0.08);
+}
+
+.vocabCardFloating {
+  max-height: min(70vh, 420px);
+  overflow-y: auto;
+}
+
+.vocabActionError {
+  margin: 0;
+  padding: 6px 8px;
+  border-radius: 8px;
+  background: #fef2f2;
+  border: 1px solid rgba(185, 28, 28, 0.2);
+  color: #b91c1c;
+  font-size: 11px;
+  line-height: 1.35;
+  text-align: left;
+}
+
+.vocabActionErrorInline {
+  position: absolute;
+  top: calc(100% + 4px);
+  right: 0;
+  z-index: 3;
+  width: max-content;
+  max-width: min(240px, calc(100vw - 48px));
+}
+
+.vocabCardIntro {
+  margin-bottom: 10px;
+}
+
+.vocabCardHeader {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 8px;
+}
+
+.vocabCardOriginal {
+  margin: 0;
+  flex: 1;
+  min-width: 0;
+  font-size: 1.75rem;
+  font-weight: 700;
+  line-height: 1.3;
+  color: #0f172a;
+  word-break: break-word;
+}
+
+.vocabCardTranslation {
+  margin: 2px 0 0;
+  font-size: 1.75rem;
+  font-weight: 400;
+  line-height: 1.3;
+  color: #0f172a;
+  word-break: break-word;
+}
+
+.vocabCardSection {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+  margin-bottom: 8px;
+}
+
+.vocabCardSectionHeader {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 8px;
+}
+
+.vocabCardLabel {
+  margin: 0;
+  color: #64748b;
+  font-size: 10px;
+  font-weight: 600;
+  line-height: 1.3;
+  letter-spacing: 0.04em;
+  text-transform: uppercase;
+}
+
+.vocabCardAddContext {
+  width: 20px;
+  height: 20px;
+}
+
+.vocabCardAddContext svg {
+  width: 12px;
+  height: 12px;
+}
+
+.vocabContextList {
+  margin: 0;
+  padding: 0;
+  list-style: none;
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  max-height: min(50vh, 360px);
+  overflow-y: auto;
+}
+
+.vocabContextItem {
+  margin: 0;
+  padding: 10px 10px 8px;
+  border-radius: 8px;
+  background: #f8fafc;
+}
+
+.vocabContextSentence {
+  margin: 0;
+  font-size: 13px;
+  font-weight: 400;
+  line-height: 1.4;
+  color: #0f172a;
+  word-break: break-word;
+}
+
+.vocabContextTerm {
+  font-weight: 600;
+}
+
+.vocabContextFooter {
+  display: flex;
+  align-items: flex-end;
+  justify-content: space-between;
+  gap: 8px;
+  margin-top: 2px;
+}
+
+.vocabContextMeta {
+  margin: 0;
+  flex: 1;
+  min-width: 0;
+  font-size: 10px;
+  font-weight: 600;
+  line-height: 1.3;
+  color: #64748b;
+  word-break: break-word;
+}
+
+.vocabContextDelete {
+  width: 22px;
+  height: 22px;
+  flex-shrink: 0;
+  color: #94a3b8;
+}
+
+.vocabContextDelete:hover {
+  color: #b91c1c;
+  background: rgba(185, 28, 28, 0.08);
+}
+
+.vocabContextDelete svg {
+  width: 14px;
+  height: 14px;
+}
+
+.vocabContextLink {
+  color: inherit;
+  text-decoration: none;
+}
+
+.vocabContextLink:hover {
+  color: #4f46e5;
+  text-decoration: underline;
+  text-underline-offset: 2px;
+}
+
+.vocabCardEmpty {
+  margin: 0;
+  font-size: 12px;
+  line-height: 1.4;
+  color: #94a3b8;
+}
+
+.vocabNoteInput {
+  width: 100%;
+  box-sizing: border-box;
+  margin: 0;
+  padding: 6px 8px;
+  border: 1px solid rgba(15, 23, 42, 0.12);
+  border-radius: 6px;
+  background: #ffffff;
+  color: #0f172a;
+  font-family: inherit;
+  font-size: 13px;
+  font-weight: 400;
+  line-height: 1.4;
+  resize: vertical;
+  min-height: 56px;
+}
+
+.vocabNoteInput:focus {
+  outline: 2px solid rgba(79, 70, 229, 0.25);
+  outline-offset: 1px;
+}
+
+.vocabCardFooter {
+  margin: 0;
+  font-size: 10px;
+  line-height: 1.35;
+  color: #94a3b8;
+  word-break: break-word;
+}
+
 .translationDivider {
   border: 0;
   border-top: 1px solid rgba(15, 23, 42, 0.1);
   margin: 6px 0 0;
+}
+
+.vocabSectionDivider {
+  margin: 4px 0 8px;
 }
 
 .wordText {

@@ -57,6 +57,25 @@ export function computeCardPositionNearSelection(
   return clampPanelPosition(panelSize, left, top, viewport, margin);
 }
 
+export function computeTopRightPanelPosition(
+  panelWidth: number,
+  panelHeight: number,
+  margin = 16,
+): PanelPosition {
+  const viewport: ViewportSize = {
+    width: window.innerWidth,
+    height: window.innerHeight,
+  };
+
+  return clampPanelPosition(
+    { width: panelWidth, height: panelHeight },
+    viewport.width - panelWidth - margin,
+    margin,
+    viewport,
+    margin,
+  );
+}
+
 export function defaultCardPosition(): PanelPosition & {
   right: number;
   bottom: string;
