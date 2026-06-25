@@ -1,11 +1,11 @@
-import type { MouseEvent, ReactNode } from "react";
+import { useEffect, type MouseEvent, type ReactNode } from "react";
 import { ArrowUpRightIcon, BookAIcon } from "lucide-react";
 import { SpeakerIcon } from "@/components/overlay/IconButton";
 import { InteractiveWordText } from "@/components/overlay/InteractiveWordText";
 import { Button } from "@/components/ui/button";
 import { cn } from "@/lib/utils";
 import type { VocabEntry } from "@/utils/vocab/types";
-import { useLibraryWordPronunciation } from "../hooks/useLibraryWordPronunciation";
+import { useWordSurfacePronunciation } from "@/hooks/useWordSurfacePronunciation";
 
 const ORIGINAL_SURFACE = "original";
 
@@ -46,7 +46,11 @@ export function Flashcard({
     speakWordRange,
     getSurfaceState,
     resetPronunciation,
-  } = useLibraryWordPronunciation(pronunciationEnabled);
+  } = useWordSurfacePronunciation(pronunciationEnabled);
+
+  useEffect(() => {
+    resetPronunciation();
+  }, [entry.id, resetPronunciation]);
 
   const originalState = getSurfaceState(ORIGINAL_SURFACE);
   const isSpeaking =

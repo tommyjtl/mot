@@ -295,11 +295,3 @@ export function useWordSurfacePronunciation(enabled: boolean) {
     resetPronunciation,
   };
 }
-
-/** @deprecated Use WordSurfaceState */
-export type LibrarySurfaceState = WordSurfaceState;
-
-/** @deprecated Use useWordSurfacePronunciation */
-export function useLibraryWordPronunciation(enabled: boolean) {
-  return useWordSurfacePronunciation(enabled);
-}
