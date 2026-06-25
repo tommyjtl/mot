@@ -67,6 +67,11 @@ export function useLibraryEntries() {
     setVisibleCount(LIBRARY_PAGE_SIZE);
   }, [query, sort]);
 
+  const cardEntries = useMemo(
+    () => sortLibraryEntries(entries, "date-desc"),
+    [entries],
+  );
+
   const visibleEntries = useMemo(
     () => filteredEntries.slice(0, visibleCount),
     [filteredEntries, visibleCount],
@@ -101,6 +106,8 @@ export function useLibraryEntries() {
 
   return {
     entries: visibleEntries,
+    filteredEntries,
+    cardEntries,
     filteredCount: filteredEntries.length,
     totalCount: entries.length,
     loading,

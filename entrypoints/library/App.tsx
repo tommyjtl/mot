@@ -8,8 +8,11 @@ import {
 import { getVocabEntryByNormalized } from "@/utils/vocab/vocab-store";
 import type { VocabEntry } from "@/utils/vocab/types";
 import { useLibraryEntries } from "./hooks/useLibraryEntries";
+import { useLibraryLayout } from "./hooks/useLibraryLayout";
 import { LibraryEmptyState } from "./components/LibraryEmptyState";
+import { LibraryLayoutToggle } from "./components/LibraryLayoutToggle";
 import { LibrarySortSelect } from "./components/LibrarySortSelect";
+import { SavedCardsCarousel } from "./components/SavedCardsCarousel";
 import { SavedEntryDialog } from "./components/SavedEntryDialog";
 import { SavedMasonryGrid } from "./components/SavedMasonryGrid";
 import { useSavedPronunciation } from "./hooks/useSavedPronunciation";
@@ -17,6 +20,7 @@ import { useSavedPronunciation } from "./hooks/useSavedPronunciation";
 export function App() {
   const {
     entries,
+    cardEntries,
     filteredCount,
     totalCount,
     loading,
@@ -29,6 +33,7 @@ export function App() {
     removeEntry,
     updateEntry,
   } = useLibraryEntries();
+  const { layout, setLayout, ready: layoutReady } = useLibraryLayout();
   const [selectedEntry, setSelectedEntry] = useState<VocabEntry | null>(null);
   const [dialogOpen, setDialogOpen] = useState(false);
   const [deepLinkHandled, setDeepLinkHandled] = useState(false);
@@ -77,6 +82,8 @@ export function App() {
     [removeEntry],
   );
 
+  const showCardsLayout = layoutReady && layout === "cards";
+
   return (
     <main className="mx-auto max-w-[560px] px-5 py-12">
       <header className="mb-7">
@@ -93,23 +100,44 @@ export function App() {
       </header>
 
       <div className="mb-5 flex items-center gap-2">
-        <Input
-          type="search"
-          value={query}
-          placeholder="Search saved…"
-          aria-label="Search saved items"
-          className="min-w-0 flex-1"
-          disabled={loading}
-          onChange={(event) => setQuery(event.target.value)}
+        <LibraryLayoutToggle
+          value={layout}
+          disabled={loading || !layoutReady}
+          onValueChange={setLayout}
         />
-        <LibrarySortSelect
-          value={sort}
-          disabled={loading}
-          onValueChange={setSort}
-        />
+        {!showCardsLayout ? (
+          <>
+            <Input
+              type="search"
+              value={query}
+              placeholder="Search saved…"
+              aria-label="Search saved items"
+              className="min-w-0 flex-1"
+              disabled={loading}
+              onChange={(event) => setQuery(event.target.value)}
+            />
+            <LibrarySortSelect
+              value={sort}
+              disabled={loading}
+              onValueChange={setSort}
+            />
+          </>
+        ) : null}
       </div>
 
-      {!loading && filteredCount === 0 ? (
+      {!loading && totalCount === 0 ? (
+        <LibraryEmptyState query={query} />
+      ) : showCardsLayout && loading ? (
+        <p className="py-10 text-center text-sm text-muted-foreground">
+          Loading saved items…
+        </p>
+      ) : showCardsLayout ? (
+        <SavedCardsCarousel
+          entries={cardEntries}
+          detailsDialogOpen={dialogOpen}
+          onOpenDetails={openEntry}
+        />
+      ) : !loading && filteredCount === 0 ? (
         <LibraryEmptyState query={query} />
       ) : (
         <>

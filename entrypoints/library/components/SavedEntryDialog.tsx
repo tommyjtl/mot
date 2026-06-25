@@ -29,7 +29,7 @@ import {
 import type { VocabEntry } from "@/utils/vocab/types";
 import { findContextTermWordRanges } from "@/utils/vocab/context-highlight";
 import { contextWordSurfaceKey } from "@/utils/overlay-word-surface";
-import { useLibraryWordPronunciation } from "../hooks/useLibraryWordPronunciation";
+import { useWordSurfacePronunciation } from "@/hooks/useWordSurfacePronunciation";
 import { SavedEntryDefinition } from "./SavedEntryDefinition";
 
 const ORIGINAL_SURFACE = "original";
@@ -72,7 +72,7 @@ export function SavedEntryDialog({
     getSurfaceState,
     error: pronunciationError,
     resetPronunciation,
-  } = useLibraryWordPronunciation(open && Boolean(localEntry));
+  } = useWordSurfacePronunciation(open && Boolean(localEntry));
 
   const originalState = getSurfaceState(ORIGINAL_SURFACE);
 
