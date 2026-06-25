@@ -29,6 +29,7 @@ import {
 import type { VocabEntry } from "@/utils/vocab/types";
 import { findContextTermWordRanges } from "@/utils/vocab/context-highlight";
 import { useLibraryWordPronunciation } from "../hooks/useLibraryWordPronunciation";
+import { SavedEntryDefinition } from "./SavedEntryDefinition";
 
 const ORIGINAL_SURFACE = "original";
 
@@ -210,6 +211,8 @@ export function SavedEntryDialog({
           </div>
 
           <Separator />
+
+          <SavedEntryDefinition original={localEntry.original} />
 
           <div className="flex flex-col gap-2">
             <p className="m-0 text-[11px] font-medium uppercase tracking-[0.04em] text-muted-foreground">

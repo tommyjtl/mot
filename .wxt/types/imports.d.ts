@@ -40,6 +40,7 @@ declare global {
   const broadcastModelLoadError: typeof import('/Users/tommyjtl/Documents/Projects/mot/utils/model-load-broadcast').broadcastModelLoadError
   const broadcastModelLoadProgress: typeof import('/Users/tommyjtl/Documents/Projects/mot/utils/model-load-broadcast').broadcastModelLoadProgress
   const browser: typeof import('wxt/browser').browser
+  const buildWordReferenceUrl: typeof import('/Users/tommyjtl/Documents/Projects/mot/utils/dictionary-links').buildWordReferenceUrl
   const cancelAllCaptureWaits: typeof import('/Users/tommyjtl/Documents/Projects/mot/utils/capture-session').cancelAllCaptureWaits
   const cancelCaptureWait: typeof import('/Users/tommyjtl/Documents/Projects/mot/utils/capture-session').cancelCaptureWait
   const cancelTabTranscriptionInOffscreen: typeof import('/Users/tommyjtl/Documents/Projects/mot/utils/offscreen-stt').cancelTabTranscriptionInOffscreen
