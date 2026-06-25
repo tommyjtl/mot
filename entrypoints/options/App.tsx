@@ -8,7 +8,7 @@ export function App() {
       <header className="mb-7">
         <div className="flex items-start justify-between gap-4">
           <div>
-            <h1 className="text-[28px] font-normal leading-tight tracking-[-0.02em] text-foreground">
+            <h1 className="text-[28px] font-bold leading-tight tracking-[-0.02em] text-foreground">
               Motif
             </h1>
             <p className="mt-2 text-sm leading-relaxed text-[#475569]">

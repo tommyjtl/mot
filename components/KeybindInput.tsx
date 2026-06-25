@@ -33,10 +33,14 @@ export function KeybindInput({
   const inputId = idProp ?? generatedId;
   const [recording, setRecording] = useState(false);
   const buttonRef = useRef<HTMLButtonElement>(null);
+  const onChangeRef = useRef(onChange);
+  onChangeRef.current = onChange;
 
   const stopRecording = useCallback(() => {
     setRecording(false);
   }, []);
+  const stopRecordingRef = useRef(stopRecording);
+  stopRecordingRef.current = stopRecording;
 
   const startRecording = useCallback(() => {
     if (disabled) {
@@ -68,7 +72,7 @@ export function KeybindInput({
       event.stopPropagation();
 
       if (event.code === "Escape") {
-        stopRecording();
+        stopRecordingRef.current();
         return;
       }
 
@@ -77,15 +81,15 @@ export function KeybindInput({
         return;
       }
 
-      onChange(shortcut);
-      stopRecording();
+      onChangeRef.current(shortcut);
+      stopRecordingRef.current();
     };
 
     window.addEventListener("keydown", onKeyDown, true);
     return () => {
       window.removeEventListener("keydown", onKeyDown, true);
     };
-  }, [recording, onChange, stopRecording]);
+  }, [recording]);
 
   useEffect(() => {
     if (!recording) {
@@ -93,7 +97,7 @@ export function KeybindInput({
     }
 
     const onBlur = () => {
-      stopRecording();
+      stopRecordingRef.current();
     };
 
     const button = buttonRef.current;
@@ -101,7 +105,7 @@ export function KeybindInput({
     return () => {
       button?.removeEventListener("blur", onBlur);
     };
-  }, [recording, stopRecording]);
+  }, [recording]);
 
   return (
     <div className="flex items-start justify-between gap-3">

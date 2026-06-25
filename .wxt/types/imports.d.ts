@@ -106,6 +106,7 @@ declare global {
   const matchesKeyboardShortcut: typeof import('/Users/tommyjtl/Documents/Projects/mot/utils/keyboard-shortcut').matchesKeyboardShortcut
   const motifLog: typeof import('/Users/tommyjtl/Documents/Projects/mot/utils/motif-log').motifLog
   const motifWarn: typeof import('/Users/tommyjtl/Documents/Projects/mot/utils/motif-log').motifWarn
+  const normalizeDictionaryLookupWord: typeof import('/Users/tommyjtl/Documents/Projects/mot/utils/dictionary-links').normalizeDictionaryLookupWord
   const normalizeKeyboardShortcut: typeof import('/Users/tommyjtl/Documents/Projects/mot/utils/keyboard-shortcut').normalizeKeyboardShortcut
   const openLibraryTab: typeof import('/Users/tommyjtl/Documents/Projects/mot/utils/open-library').openLibraryTab
   const overlayWordIndexAtTime: typeof import('/Users/tommyjtl/Documents/Projects/mot/utils/overlay-word-sync').overlayWordIndexAtTime

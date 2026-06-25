@@ -54,10 +54,20 @@ export function SavedEntryDialog({
 }: SavedEntryDialogProps) {
   const noteId = useId();
   const noteSaveTimerRef = useRef<number | null>(null);
-  const [localEntry, setLocalEntry] = useState<VocabEntry | null>(entry);
+  const entryKey = entry?.normalized ?? null;
+  const [draftEntry, setDraftEntry] = useState<VocabEntry | null>(null);
+  const localEntry =
+    draftEntry?.normalized === entryKey ? draftEntry : entry;
   const [deletingContextId, setDeletingContextId] = useState<string | null>(null);
-  const [actionError, setActionError] = useState<string | null>(null);
-  const [showDeleteConfirm, setShowDeleteConfirm] = useState(false);
+  const [dialogUi, setDialogUi] = useState<{
+    forKey: string | null;
+    actionError: string | null;
+    showDeleteConfirm: boolean;
+  }>({ forKey: null, actionError: null, showDeleteConfirm: false });
+  const actionError =
+    dialogUi.forKey === entryKey ? dialogUi.actionError : null;
+  const showDeleteConfirm =
+    dialogUi.forKey === entryKey ? dialogUi.showDeleteConfirm : false;
   const [deletingEntry, setDeletingEntry] = useState(false);
 
   const {
@@ -69,14 +79,15 @@ export function SavedEntryDialog({
 
   const originalState = getSurfaceState(ORIGINAL_SURFACE);
 
-  useEffect(() => {
-    setLocalEntry(entry);
-    setActionError(null);
-    setShowDeleteConfirm(false);
-    if (!open) {
-      resetPronunciation();
-    }
-  }, [entry, open, resetPronunciation]);
+  const handleDialogOpenChange = useCallback(
+    (nextOpen: boolean) => {
+      if (!nextOpen) {
+        resetPronunciation();
+      }
+      onOpenChange(nextOpen);
+    },
+    [onOpenChange, resetPronunciation],
+  );
 
   useEffect(
     () => () => {
@@ -97,7 +108,7 @@ export function SavedEntryDialog({
         noteSaveTimerRef.current = null;
         void updateVocabNote(normalized, note)
           .then((next) => {
-            setLocalEntry(next);
+            setDraftEntry(next);
             onEntryChange(next);
           })
           .catch(() => {
@@ -115,7 +126,7 @@ export function SavedEntryDialog({
       }
 
       const next = { ...localEntry, note };
-      setLocalEntry(next);
+      setDraftEntry(next);
       persistNote(note, localEntry.normalized);
     },
     [localEntry, persistNote],
@@ -128,20 +139,24 @@ export function SavedEntryDialog({
       }
 
       setDeletingContextId(contextId);
-      setActionError(null);
+      setDialogUi((ui) => ({ ...ui, forKey: entryKey, actionError: null }));
       try {
         const next = await deleteVocabContext(localEntry.normalized, contextId);
-        setLocalEntry(next);
+        setDraftEntry(next);
         onEntryChange(next);
       } catch (error: unknown) {
         const message =
           error instanceof Error ? error.message : "Could not delete context.";
-        setActionError(message);
+        setDialogUi((ui) => ({
+          ...ui,
+          forKey: entryKey,
+          actionError: message,
+        }));
       } finally {
         setDeletingContextId(null);
       }
     },
-    [localEntry, onEntryChange],
+    [localEntry, entryKey, onEntryChange],
   );
 
   const handleDeleteEntry = useCallback(async () => {
@@ -150,27 +165,35 @@ export function SavedEntryDialog({
     }
 
     setDeletingEntry(true);
-    setActionError(null);
+    setDialogUi((ui) => ({ ...ui, forKey: entryKey, actionError: null }));
     try {
       await deleteVocabEntry(localEntry.normalized);
       onEntryDeleted(localEntry.normalized);
-      onOpenChange(false);
+      handleDialogOpenChange(false);
     } catch (error: unknown) {
       const message =
         error instanceof Error ? error.message : "Could not remove saved item.";
-      setActionError(message);
+      setDialogUi((ui) => ({
+        ...ui,
+        forKey: entryKey,
+        actionError: message,
+      }));
     } finally {
       setDeletingEntry(false);
-      setShowDeleteConfirm(false);
+      setDialogUi((ui) => ({
+        ...ui,
+        forKey: entryKey,
+        showDeleteConfirm: false,
+      }));
     }
-  }, [localEntry, onEntryDeleted, onOpenChange]);
+  }, [entryKey, handleDialogOpenChange, localEntry, onEntryDeleted]);
 
   if (!localEntry) {
     return null;
   }
 
   return (
-    <Dialog open={open} onOpenChange={onOpenChange}>
+    <Dialog open={open} onOpenChange={handleDialogOpenChange}>
       <DialogContent className="max-h-[calc(100vh-2rem)] gap-5 overflow-y-auto sm:max-w-lg">
         <DialogHeader>
           <DialogTitle className="text-balance">Saved</DialogTitle>
@@ -327,7 +350,13 @@ export function SavedEntryDialog({
                 variant="secondary"
                 size="sm"
                 className="text-destructive hover:text-destructive"
-                onClick={() => setShowDeleteConfirm(true)}
+                onClick={() =>
+                  setDialogUi((ui) => ({
+                    ...ui,
+                    forKey: entryKey,
+                    showDeleteConfirm: true,
+                  }))
+                }
               >
                 Remove
               </Button>
@@ -337,7 +366,13 @@ export function SavedEntryDialog({
                   type="button"
                   variant="ghost"
                   size="sm"
-                  onClick={() => setShowDeleteConfirm(false)}
+                  onClick={() =>
+                    setDialogUi((ui) => ({
+                      ...ui,
+                      forKey: entryKey,
+                      showDeleteConfirm: false,
+                    }))
+                  }
                   disabled={deletingEntry}
                 >
                   Cancel

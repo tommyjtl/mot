@@ -1,28 +1,12 @@
-import { useId, type ReactNode } from "react";
+import { useId } from "react";
 import type { VocabEntry } from "../../utils/vocab/types";
 import {
   formatContextHost,
   formatSavedDate,
 } from "../vocab/vocab-format";
-import {
-  getContextHighlightSegments,
-} from "../../utils/vocab/context-highlight";
+import { getContextHighlightSegments } from "../../utils/vocab/context-highlight";
 import { openLibraryTab } from "../../utils/open-library";
 import { IconButton, PlusIcon, TrashIcon } from "./IconButton";
-
-function renderContextSentence(sentence: string, original: string): ReactNode {
-  const segments = getContextHighlightSegments(sentence, original);
-
-  return segments.map((segment, index) =>
-    segment.kind === "term" ? (
-      <strong key={index} className="vocabContextTerm">
-        {segment.value}
-      </strong>
-    ) : (
-      segment.value
-    ),
-  );
-}
 
 type VocabEntryDetailsProps = {
   entry: VocabEntry;
@@ -71,7 +55,26 @@ export function VocabEntryDetails({
             {[...entry.contexts].reverse().map((context) => (
               <li key={context.id} className="vocabContextItem">
                 <p className="vocabContextSentence">
-                  {renderContextSentence(context.sentence, entry.original)}
+                  {(() => {
+                    const segments = getContextHighlightSegments(
+                      context.sentence,
+                      entry.original,
+                    );
+                    let offset = 0;
+
+                    return segments.map((segment) => {
+                      const key = `${offset}-${segment.kind}`;
+                      offset += segment.value.length;
+
+                      return segment.kind === "term" ? (
+                        <strong key={key} className="vocabContextTerm">
+                          {segment.value}
+                        </strong>
+                      ) : (
+                        <span key={key}>{segment.value}</span>
+                      );
+                    });
+                  })()}
                 </p>
                 <div className="vocabContextFooter">
                   <p className="vocabContextMeta">

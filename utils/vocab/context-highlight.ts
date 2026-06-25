@@ -119,7 +119,7 @@ function mergeRanges(ranges: TextRange[]): TextRange[] {
     return ranges;
   }
 
-  const sorted = [...ranges].sort((left, right) => left.start - right.start);
+  const sorted = ranges.toSorted((left, right) => left.start - right.start);
   const merged: TextRange[] = [sorted[0]!];
 
   for (let index = 1; index < sorted.length; index += 1) {

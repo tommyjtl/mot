@@ -32,7 +32,14 @@ export function VocabAction({
   const lookupRequestRef = useRef(0);
   const [entry, setEntry] = useState<VocabEntry | null>(null);
   const [rowBusy, setRowBusy] = useState(false);
-  const [actionError, setActionError] = useState<string | null>(null);
+  const [actionErrorState, setActionErrorState] = useState<{
+    forText: string;
+    message: string;
+  } | null>(null);
+  const actionError =
+    actionErrorState?.forText === originalText
+      ? actionErrorState.message
+      : null;
   const wordOverlayOpen = useWordOverlaySelector((state) => state.open);
   const isActive =
     wordOverlayOpen && isWordOverlayOpenFor(originalText);
@@ -44,7 +51,6 @@ export function VocabAction({
   useEffect(() => {
     const requestId = lookupRequestRef.current + 1;
     lookupRequestRef.current = requestId;
-    setActionError(null);
 
     void lookupVocabEntry(originalText)
       .then((found) => {
@@ -78,7 +84,7 @@ export function VocabAction({
 
   const handleCreate = useCallback(async () => {
     setRowBusy(true);
-    setActionError(null);
+    setActionErrorState(null);
     try {
       const saved = await createVocabEntry({
         original: originalText,
@@ -94,7 +100,7 @@ export function VocabAction({
     } catch (error: unknown) {
       const message =
         error instanceof Error ? error.message : "Could not save to vocabulary.";
-      setActionError(message);
+      setActionErrorState({ forText: originalText, message });
     } finally {
       setRowBusy(false);
     }
@@ -103,7 +109,7 @@ export function VocabAction({
   const handleRowClick = useCallback(
     (event: MouseEvent<HTMLButtonElement>) => {
       event.stopPropagation();
-      setActionError(null);
+      setActionErrorState(null);
 
       if (entry) {
         handleOpenOverlay(entry);

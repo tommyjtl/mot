@@ -33,7 +33,7 @@ declare module '#imports' {
   export { viewportRectToSelectionRect, showCaptureOverlay, hideCaptureOverlay, isCaptureOverlayVisible, ViewportCaptureRect, ViewportCaptureSelection } from '../utils/capture-region';
   export { cropScreenshotToBase64, captureVisibleRegionBase64 } from '../utils/capture-screenshot';
   export { beginCaptureWait, resolveCaptureWait, cancelCaptureWait, cancelAllCaptureWaits } from '../utils/capture-session';
-  export { buildWordReferenceUrl } from '../utils/dictionary-links';
+  export { normalizeDictionaryLookupWord, buildWordReferenceUrl } from '../utils/dictionary-links';
   export { DEFAULT_SPEAK_SHORTCUT, DEFAULT_TRANSCRIBE_SHORTCUT, normalizeKeyboardShortcut, shortcutsEqual, isValidKeyboardShortcut, keyboardEventToShortcut, matchesKeyboardShortcut, formatKeyboardShortcut, keyboardShortcutToCommandSuggestedKey, KeyboardShortcut } from '../utils/keyboard-shortcut';
   export { SPEAK_COMMAND, TRANSCRIBE_COMMAND, logRegisteredCommands, syncManifestCommands, syncTranscribeManifestCommand, bindManifestCommandSync, bindTranscribeCommandSync } from '../utils/manifest-commands';
   export { SelectionRect, SelectionPayload, ModelLoadBroadcastMessage, Message } from '../utils/messages';

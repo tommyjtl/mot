@@ -6,7 +6,9 @@ export function useAutoGrowRows(
   maxRows: number,
   disabled = false,
 ): number {
-  const [rows, setRows] = useState(1);
+  const [rowsState, setRowsState] = useState({ contentKey: "", rows: 1 });
+  const rows =
+    rowsState.contentKey === contentKey && contentKey ? rowsState.rows : 1;
 
   const measure = useCallback(() => {
     const el = elementRef.current;
@@ -16,26 +18,24 @@ export function useAutoGrowRows(
 
     const overflows = el.scrollHeight > el.clientHeight + 1;
 
-    setRows((current) => {
-      if (current < maxRows && overflows) {
-        return current + 1;
+    setRowsState((current) => {
+      const currentRows =
+        current.contentKey === contentKey ? current.rows : 1;
+
+      if (currentRows < maxRows && overflows) {
+        return { contentKey, rows: currentRows + 1 };
       }
 
-      return current;
+      return { contentKey, rows: currentRows };
     });
 
     if (overflows) {
       el.scrollTop = el.scrollHeight;
     }
-  }, [disabled, elementRef, maxRows]);
+  }, [contentKey, disabled, elementRef, maxRows]);
 
   useEffect(() => {
-    if (disabled) {
-      return;
-    }
-
-    if (!contentKey) {
-      setRows(1);
+    if (disabled || !contentKey) {
       return;
     }
 

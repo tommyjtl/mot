@@ -32,11 +32,11 @@ export function StatusFooter({
         : "";
 
     return (
-      <div className="statusBlock" role="status" aria-live="polite">
-        <p className="status">
+      <div className="statusBlock" aria-live="polite">
+        <output className="status">
           <span className="inlineSpinner" />
           {`${label}${suffix}`}
-        </p>
+        </output>
         {loadingPhase === "loading-model" ? (
           <button
             type="button"
@@ -65,12 +65,11 @@ export function StatusFooter({
   }
 
   return (
-    <p
+    <output
       className={`status${error ? " error" : ""}`}
-      role="status"
       aria-live="polite"
     >
       {message}
-    </p>
+    </output>
   );
 }

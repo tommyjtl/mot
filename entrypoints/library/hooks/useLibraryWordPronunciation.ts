@@ -56,7 +56,10 @@ export function useLibraryWordPronunciation(enabled: boolean) {
   const [error, setError] = useState<string | null>(null);
 
   const wordSynthRequestIdRef = useRef(0);
-  const sessionRef = useRef<PronunciationSession>(createEmptySession());
+  const sessionRef = useRef<PronunciationSession | null>(null);
+  if (sessionRef.current === null) {
+    sessionRef.current = createEmptySession();
+  }
   const highlightLoopRef = useRef<number | null>(null);
   const loadingRef = useRef(false);
 
@@ -80,7 +83,7 @@ export function useLibraryWordPronunciation(enabled: boolean) {
   }, [stopHighlightLoop]);
 
   const syncHighlight = useCallback(() => {
-    const session = sessionRef.current;
+    const session = sessionRef.current!;
     if (!session.isPlaying || session.pinnedWordStart === null) {
       return;
     }
@@ -126,10 +129,15 @@ export function useLibraryWordPronunciation(enabled: boolean) {
   }, [syncHighlight]);
 
   useEffect(() => {
-    if (!enabled) {
-      resetPronunciation();
+    if (enabled) {
+      return;
     }
-  }, [enabled, resetPronunciation]);
+
+    stopHighlightLoop();
+    sessionRef.current = createEmptySession();
+    wordSynthRequestIdRef.current = 0;
+    loadingRef.current = false;
+  }, [enabled, stopHighlightLoop]);
 
   useEffect(() => {
     const listener = (message: Message) => {
@@ -165,8 +173,9 @@ export function useLibraryWordPronunciation(enabled: boolean) {
         const start = message.wordIndex;
         const end = message.endWordIndex ?? message.wordIndex;
 
+        const session = sessionRef.current!;
         sessionRef.current = {
-          ...sessionRef.current,
+          ...session,
           pinnedWordStart: start,
           pinnedWordEnd: end,
           pinnedPhraseText: message.payload.word,
@@ -192,7 +201,7 @@ export function useLibraryWordPronunciation(enabled: boolean) {
         return;
       }
 
-      const session = sessionRef.current;
+      const session = sessionRef.current!;
       if (!session.isPlaying) {
         return;
       }
@@ -264,7 +273,7 @@ export function useLibraryWordPronunciation(enabled: boolean) {
 
   const getSurfaceState = useCallback(
     (surfaceKey: string): LibrarySurfaceState => {
-      if (activeSurfaceKey !== surfaceKey) {
+      if (!enabled || activeSurfaceKey !== surfaceKey) {
         return idleSurfaceState;
       }
 
@@ -274,13 +283,15 @@ export function useLibraryWordPronunciation(enabled: boolean) {
         phraseRange,
       };
     },
-    [activeSurfaceKey, phraseRange, wordHighlight, wordLoading],
+    [activeSurfaceKey, enabled, phraseRange, wordHighlight, wordLoading],
   );
+
+  const displayError = enabled ? error : null;
 
   return {
     speakWordRange,
     getSurfaceState,
-    error,
+    error: displayError,
     resetPronunciation,
   };
 }
