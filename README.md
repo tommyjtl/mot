@@ -4,6 +4,8 @@
 
 A Chrome extension for hearing natural French pronunciation while reading the web.
 
+For product overview, features, UX differentiation, and website-ready copy, see [PRODUCT-PR.md](PRODUCT-PR.md).
+
 Select text on any page and press **Option+S** to hear it aloud. Speech is synthesized **entirely on-device** using [Supertonic](https://github.com/supertone-inc/supertonic) via ONNX Runtime Web (WebGPU with WebAssembly fallback). No Python server required.
 
 With no text selected, **Option+S** enters **screen capture mode**: drag a rectangle over text in the page (including images), and Motif runs on-device OCR ([Tesseract.js](https://github.com/naptha/tesseract.js) v7, French) before speaking the result.
