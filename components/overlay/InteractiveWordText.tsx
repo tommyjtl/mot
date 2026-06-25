@@ -24,6 +24,8 @@ type InteractiveWordTextProps = {
   loading?: WordRange | null;
   /** Selected multi-word phrase during playback; non-active words get gray fill. */
   phraseRange?: WordRange | null;
+  /** Persistent highlight for saved entry tokens in context sentences. */
+  savedTermRanges?: WordRange[] | null;
   className?: string;
   onWordSelect?: (startIndex: number, endIndex: number) => void;
 };
@@ -40,6 +42,23 @@ function wordIndexInRange(
   const lo = Math.min(start, end);
   const hi = Math.max(start, end);
   return wordIndex >= lo && wordIndex <= hi;
+}
+
+function wordIndexInAnyRange(
+  wordIndex: number,
+  ranges: WordRange[] | null | undefined,
+): boolean {
+  if (!ranges?.length) {
+    return false;
+  }
+
+  return ranges.some((range) =>
+    wordIndexInRange(
+      wordIndex,
+      range.start ?? null,
+      range.end ?? range.start ?? null,
+    ),
+  );
 }
 
 function tokenize(text: string): Array<{ kind: "space" | "word"; value: string }> {
@@ -103,6 +122,7 @@ export function InteractiveWordText({
   highlight,
   loading,
   phraseRange,
+  savedTermRanges,
   className,
   onWordSelect,
 }: InteractiveWordTextProps) {
@@ -143,11 +163,11 @@ export function InteractiveWordText({
   const wordIndexFromPoint = useCallback(
     (clientX: number, clientY: number): number | null => {
       const shadow = shadowRootRef?.current ?? shadowMount?.shadow ?? null;
-      if (!shadow) {
-        return null;
-      }
+      const element = shadow
+        ? shadow.elementFromPoint(clientX, clientY)
+        : document.elementFromPoint(clientX, clientY);
 
-      return wordIndexFromElement(shadow.elementFromPoint(clientX, clientY));
+      return wordIndexFromElement(element);
     },
     [shadowMount?.shadow, shadowRootRef, wordIndexFromElement],
   );
@@ -383,19 +403,27 @@ export function InteractiveWordText({
         if (wordIndexInRange(currentWordIndex, loadingStart, loadingEnd)) {
           classes.push("isLoading");
         }
-        if (
+        const isInPhrase =
           hasPhraseRange &&
-          wordIndexInRange(currentWordIndex, phraseStart, phraseEnd) &&
-          !isActive
-        ) {
+          wordIndexInRange(currentWordIndex, phraseStart, phraseEnd);
+        if (isInPhrase && !isActive) {
           classes.push("isInPhrase");
         }
         if (
           wordIndexInRange(currentWordIndex, previewStart, previewEnd) &&
           !isActive &&
-          !wordIndexInRange(currentWordIndex, phraseStart, phraseEnd)
+          !isInPhrase
         ) {
           classes.push("isInRange");
+        }
+        if (
+          wordIndexInAnyRange(currentWordIndex, savedTermRanges) &&
+          !isActive &&
+          !wordIndexInRange(currentWordIndex, loadingStart, loadingEnd) &&
+          !wordIndexInRange(currentWordIndex, previewStart, previewEnd) &&
+          !isInPhrase
+        ) {
+          classes.push("isSavedTerm");
         }
 
         return (

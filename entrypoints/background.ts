@@ -53,10 +53,12 @@ import { formatKeyboardShortcut } from "../utils/keyboard-shortcut";
 import { motifLog, motifWarn } from "../utils/motif-log";
 import type { Message, SelectionPayload } from "../utils/messages";
 import type { SelectionResult } from "../utils/selection";
+import { libraryPageUrl } from "../utils/open-library";
 import {
   addVocabContext,
   createVocabEntry,
   deleteVocabContext,
+  deleteVocabEntry,
   exportVocab,
   importVocab,
   lookupVocabEntry,
@@ -608,9 +610,29 @@ async function startTranscriptionWithCapture(
   }
 }
 
+async function deliverWordTtsResult(
+  tabId: number | undefined,
+  result: Extract<Message, { type: "word-tts-result" }>,
+): Promise<void> {
+  if (tabId != null) {
+    try {
+      await browser.tabs.sendMessage(tabId, result);
+    } catch {
+      // Tab may have navigated away.
+    }
+    return;
+  }
+
+  try {
+    await browser.runtime.sendMessage(result);
+  } catch {
+    // Extension page may have closed.
+  }
+}
+
 async function handleSpeakWordMessage(
   message: Extract<Message, { type: "speak-word" }>,
-  tabId: number,
+  tabId: number | undefined,
 ): Promise<void> {
   await stopAudioInOffscreen();
   await abortOffscreenSynthesis(0);
@@ -627,17 +649,17 @@ async function handleSpeakWordMessage(
     });
 
     if (!result.ok) {
-      await browser.tabs.sendMessage(tabId, {
+      await deliverWordTtsResult(tabId, {
         type: "word-tts-result",
         requestId: message.requestId,
         wordIndex: message.wordIndex,
         endWordIndex: message.endWordIndex,
         payload: { ok: false, error: result.error },
-      } satisfies Message);
+      });
       return;
     }
 
-    await browser.tabs.sendMessage(tabId, {
+    await deliverWordTtsResult(tabId, {
       type: "word-tts-result",
       requestId: message.requestId,
       wordIndex: message.wordIndex,
@@ -648,7 +670,7 @@ async function handleSpeakWordMessage(
         audioBase64: result.audioBase64,
         alignment: result.alignment,
       },
-    } satisfies Message);
+    });
 
     void playAudioInOffscreen(
       base64ToArrayBuffer(result.audioBase64),
@@ -662,17 +684,13 @@ async function handleSpeakWordMessage(
         ? error.message
         : "Could not generate word pronunciation.";
 
-    try {
-      await browser.tabs.sendMessage(tabId, {
-        type: "word-tts-result",
-        requestId: message.requestId,
-        wordIndex: message.wordIndex,
-        endWordIndex: message.endWordIndex,
-        payload: { ok: false, error: errorMessage },
-      } satisfies Message);
-    } catch {
-      // Tab may have navigated away.
-    }
+    await deliverWordTtsResult(tabId, {
+      type: "word-tts-result",
+      requestId: message.requestId,
+      wordIndex: message.wordIndex,
+      endWordIndex: message.endWordIndex,
+      payload: { ok: false, error: errorMessage },
+    });
   }
 }
 
@@ -717,8 +735,10 @@ function isVocabMessageType(type: string | undefined): boolean {
     type === "vocab-add-context" ||
     type === "vocab-update-note" ||
     type === "vocab-delete-context" ||
+    type === "vocab-delete-entry" ||
     type === "vocab-export" ||
-    type === "vocab-import"
+    type === "vocab-import" ||
+    type === "open-library"
   );
 }
 
@@ -1119,6 +1139,16 @@ export default defineBackground(() => {
         }));
     }
 
+    if (message?.type === "vocab-delete-entry") {
+      return deleteVocabEntry(message.normalized)
+        .then(() => ({ ok: true as const }))
+        .catch((error: unknown) => ({
+          ok: false as const,
+          error:
+            error instanceof Error ? error.message : "Could not remove saved item.",
+        }));
+    }
+
     if (message?.type === "vocab-export") {
       return exportVocab()
         .then((data) => ({ ok: true as const, data }))
@@ -1141,6 +1171,11 @@ export default defineBackground(() => {
           error:
             error instanceof Error ? error.message : "Vocabulary import failed.",
         }));
+    }
+
+    if (message?.type === "open-library") {
+      void browser.tabs.create({ url: libraryPageUrl(message.entry) });
+      return false;
     }
 
     return false;
@@ -1168,26 +1203,31 @@ export default defineBackground(() => {
     }
 
     if (message.type === "mot-playback-relay") {
-      void browser.tabs
-        .sendMessage(message.tabId, {
-          type: "tts-playback",
-          state: message.state,
-          currentTime: message.currentTime,
-          duration: message.duration,
-        } satisfies Message)
-        .catch(() => {
-          // Tab may have navigated away.
-        });
+      const playbackMessage = {
+        type: "tts-playback" as const,
+        state: message.state,
+        currentTime: message.currentTime,
+        duration: message.duration,
+      };
+
+      if (message.tabId != null) {
+        void browser.tabs
+          .sendMessage(message.tabId, playbackMessage satisfies Message)
+          .catch(() => {
+            // Tab may have navigated away.
+          });
+      } else {
+        void browser.runtime
+          .sendMessage(playbackMessage satisfies Message)
+          .catch(() => {
+            // Extension page may have closed.
+          });
+      }
       return;
     }
 
     if (message.type === "speak-word") {
-      const tabId = sender.tab?.id;
-      if (!tabId) {
-        return;
-      }
-
-      void handleSpeakWordMessage(message, tabId);
+      void handleSpeakWordMessage(message, sender.tab?.id);
       return;
     }
 

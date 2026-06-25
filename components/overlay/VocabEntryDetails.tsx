@@ -1,24 +1,14 @@
 import { useId, type ReactNode } from "react";
 import type { VocabEntry } from "../../utils/vocab/types";
 import {
+  formatContextHost,
+  formatSavedDate,
+} from "../vocab/vocab-format";
+import {
   getContextHighlightSegments,
 } from "../../utils/vocab/context-highlight";
+import { openLibraryTab } from "../../utils/open-library";
 import { IconButton, PlusIcon, TrashIcon } from "./IconButton";
-
-function formatDate(timestamp: number): string {
-  return new Date(timestamp).toLocaleDateString(undefined, {
-    month: "short",
-    day: "numeric",
-  });
-}
-
-function formatHost(url: string): string {
-  try {
-    return new URL(url).host;
-  } catch {
-    return url;
-  }
-}
 
 function renderContextSentence(sentence: string, original: string): ReactNode {
   const segments = getContextHighlightSegments(sentence, original);
@@ -85,7 +75,7 @@ export function VocabEntryDetails({
                 </p>
                 <div className="vocabContextFooter">
                   <p className="vocabContextMeta">
-                    {formatDate(context.addedAt)}
+                    {formatSavedDate(context.addedAt)}
                     {context.url ? (
                       <>
                         {" · "}
@@ -97,7 +87,7 @@ export function VocabEntryDetails({
                           title={context.url}
                           onClick={(event) => event.stopPropagation()}
                         >
-                          {formatHost(context.url)}
+                          {formatContextHost(context.url)}
                         </a>
                       </>
                     ) : null}
@@ -142,7 +132,19 @@ export function VocabEntryDetails({
         />
       </div>
 
-      <p className="vocabCardFooter">Saved {formatDate(entry.createdAt)}</p>
+      <div className="vocabCardFooterRow">
+        <p className="vocabCardFooter">Saved {formatSavedDate(entry.createdAt)}</p>
+        <button
+          type="button"
+          className="vocabLibraryLink"
+          onClick={(event) => {
+            event.stopPropagation();
+            void openLibraryTab(entry.normalized);
+          }}
+        >
+          Go to Library →
+        </button>
+      </div>
     </div>
   );
 }

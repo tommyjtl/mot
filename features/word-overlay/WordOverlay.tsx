@@ -251,7 +251,7 @@ export function WordOverlay() {
         ariaLabel="Drag saved word panel"
         onClose={closeWordOverlay}
         showDragHandle
-        headerLeft={<p className="headerTitle">Saved word</p>}
+        headerLeft={<p className="headerTitle">Saved</p>}
       >
         <div className="body wordOverlayBody">
           <TranslationPanel

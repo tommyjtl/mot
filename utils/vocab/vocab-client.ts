@@ -131,3 +131,16 @@ export async function importVocabData(data: VocabExport): Promise<{
 
   return { imported: response.imported, merged: response.merged };
 }
+
+export async function deleteVocabEntry(normalized: string): Promise<void> {
+  const response = await sendVocabMessage<
+    { ok: true } | { ok: false; error: string }
+  >({
+    type: "vocab-delete-entry",
+    normalized,
+  });
+
+  if (!response.ok) {
+    throw new Error(response.error);
+  }
+}

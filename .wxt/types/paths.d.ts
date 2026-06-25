@@ -14,6 +14,7 @@ declare module "wxt/browser" {
     | "/icon-24.png"
     | "/icon-48.png"
     | "/icon-96.png"
+    | "/library.html"
     | "/offscreen.html"
     | "/options.html"
     | "/ort/ort-wasm-simd-threaded.jsep.mjs"

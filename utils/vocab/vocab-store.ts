@@ -169,6 +169,31 @@ export async function updateVocabNote(
   return nextEntry;
 }
 
+export async function listVocabEntries(): Promise<VocabEntry[]> {
+  const store = await loadVocabStore();
+  return Object.values(store.entries).sort((a, b) => b.updatedAt - a.updatedAt);
+}
+
+export async function getVocabEntryByNormalized(
+  normalized: string,
+): Promise<VocabEntry | null> {
+  const store = await loadVocabStore();
+  return store.entries[normalized] ?? null;
+}
+
+export async function deleteVocabEntry(normalized: string): Promise<void> {
+  const store = await loadVocabStore();
+  if (!store.entries[normalized]) {
+    throw new Error("Vocabulary entry not found.");
+  }
+
+  const { [normalized]: _removed, ...rest } = store.entries;
+  await saveVocabStore({
+    ...store,
+    entries: rest,
+  });
+}
+
 export async function exportVocab(): Promise<VocabExport> {
   const store = await loadVocabStore();
   return {

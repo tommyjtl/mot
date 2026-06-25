@@ -56,11 +56,15 @@ function relayModelProgress(progress: TtsProgress): void {
 }
 
 async function notifyTabProgress(
-  tabId: number,
+  tabId: number | undefined,
   requestId: number,
   progress: TtsProgress,
 ): Promise<void> {
   relayModelProgress(progress);
+
+  if (tabId == null) {
+    return;
+  }
 
   try {
     await browser.tabs.sendMessage(tabId, {
@@ -124,7 +128,7 @@ export function setupOffscreenDocument(): void {
     tabId: number | undefined,
     state: "playing" | "timeupdate" | "paused" | "ended",
   ): void {
-    if (!tabId || !currentAudio) {
+    if (!currentAudio) {
       return;
     }
 

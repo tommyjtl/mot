@@ -36,6 +36,7 @@
     "wxt": "^0.20.26"
   },
   "dependencies": {
+    "@radix-ui/react-dialog": "^1.1.17",
     "@radix-ui/react-label": "^2.1.10",
     "@radix-ui/react-progress": "^1.1.10",
     "@radix-ui/react-select": "^2.3.1",

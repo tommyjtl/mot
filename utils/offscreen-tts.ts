@@ -56,7 +56,7 @@ export async function synthesizeInOffscreen(options: {
   text: string;
   voice: Voice;
   lang: Lang;
-  tabId: number;
+  tabId?: number;
   requestId: number;
   signal?: AbortSignal;
 }): Promise<OffscreenSynthResult> {

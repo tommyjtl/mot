@@ -79,7 +79,7 @@ export type Message =
   }
   | {
     type: "mot-playback-relay";
-    tabId: number;
+    tabId?: number;
     state: "playing" | "timeupdate" | "paused" | "ended";
     currentTime: number;
     duration: number;
@@ -197,5 +197,7 @@ export type Message =
   }
   | { type: "vocab-update-note"; normalized: string; note: string }
   | { type: "vocab-delete-context"; normalized: string; contextId: string }
+  | { type: "vocab-delete-entry"; normalized: string }
   | { type: "vocab-export" }
-  | { type: "vocab-import"; data: VocabExport };
+  | { type: "vocab-import"; data: VocabExport }
+  | { type: "open-library"; entry?: string };

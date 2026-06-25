@@ -6,6 +6,11 @@ export type TextRange = {
   end: number;
 };
 
+export type WordIndexRange = {
+  start: number;
+  end: number;
+};
+
 function normalizeToken(text: string): string {
   return normalizeVocabKey(text);
 }
@@ -64,6 +69,49 @@ export function findContextTermRanges(
   }
 
   return mergeRanges(ranges);
+}
+
+/** Map saved-term character spans to word indices for InteractiveWordText. */
+export function findContextTermWordRanges(
+  sentence: string,
+  original: string,
+): WordIndexRange[] {
+  const normalizedSentence = sentence.normalize("NFC");
+  const charRanges = findContextTermRanges(normalizedSentence, original);
+  if (charRanges.length === 0) {
+    return [];
+  }
+
+  const words = tokenizeWords(normalizedSentence);
+  const wordRanges: WordIndexRange[] = [];
+
+  for (const range of charRanges) {
+    let startIdx: number | null = null;
+    let endIdx: number | null = null;
+
+    for (let index = 0; index < words.length; index += 1) {
+      const word = words[index];
+      if (!word) {
+        continue;
+      }
+      if (word.end <= range.start) {
+        continue;
+      }
+      if (word.start >= range.end) {
+        break;
+      }
+      if (startIdx === null) {
+        startIdx = index;
+      }
+      endIdx = index;
+    }
+
+    if (startIdx !== null && endIdx !== null) {
+      wordRanges.push({ start: startIdx, end: endIdx });
+    }
+  }
+
+  return wordRanges;
 }
 
 function mergeRanges(ranges: TextRange[]): TextRange[] {
