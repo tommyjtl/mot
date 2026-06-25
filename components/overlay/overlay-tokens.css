@@ -6,6 +6,11 @@
   --mot-overlay-line-height: 1.45;
   --mot-overlay-color: #0f172a;
 
+  /* Interactive body text (selected text, transcript, translation values).
+     Use px — rem resolves against the page <html>, not :host, so host sites
+     like Instagram with a large root font-size inflate rem-based overlay text. */
+  --mot-overlay-body-text-size: 18px;
+
   /* Icon controls — icon size drives button size; padding adds tap target */
   --mot-icon-size: 12px;
   --mot-icon-size-sm: 12px;

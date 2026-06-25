@@ -80,7 +80,7 @@
   padding: 0;
   background: transparent;
   font-family: inherit;
-  font-size: 1.75rem;
+  font-size: var(--mot-overlay-body-text-size);
   line-height: 1.45;
   color: #0f172a;
   overflow-x: hidden;
