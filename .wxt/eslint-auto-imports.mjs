@@ -200,7 +200,6 @@ const globals = {
   "tokenizeWords": true,
   "updateAlignmentDebugDuringPlayback": true,
   "useAppConfig": true,
-  "useAutoGrowRows": true,
   "useCallback": true,
   "useContext": true,
   "useDocumentEvent": true,

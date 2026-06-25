@@ -1,4 +1,4 @@
-import { useCallback, useMemo, useRef } from "react";
+import { useCallback, useEffect, useMemo, useRef } from "react";
 import { OverlayHost } from "../../components/overlay/OverlayHost";
 import { OverlayPanel } from "../../components/overlay/OverlayPanel";
 import {
@@ -20,7 +20,6 @@ import { TranscriptEditor } from "../../components/overlay/TranscriptEditor";
 import { TranscriptTranslationPanel } from "../../components/overlay/TranslationPanel";
 import { useShadowMount } from "../../components/overlay/mount-shadow-react";
 import { isShadowHostMounted } from "../../components/overlay/mount-shadow-react";
-import { useAutoGrowRows } from "../../hooks/useAutoGrowRows";
 import { useOverlayDismissals } from "../../hooks/useOverlayDismissals";
 import { useTranscriptHostDrag } from "../../hooks/useOverlayDrag";
 import { useTranscriptEditGuard } from "../../hooks/useTranscriptEditGuard";
@@ -156,17 +155,22 @@ export function TranscriptOverlay() {
     [lines, partial],
   );
 
-  const transcriptRows = useAutoGrowRows(
-    transcriptRef,
-    visibleText,
-    MAX_VISIBLE_TRANSCRIPT_LINES,
-    editMode,
-  );
-
-  const transcriptRowAttr =
-    transcriptRows > 1 ? String(transcriptRows) : undefined;
-
   const isReadMode = view.kind === "paused" && Boolean(handlersRef.current.onWordSelect);
+
+  useEffect(() => {
+    if (editMode || view.kind !== "streaming") {
+      return;
+    }
+
+    const el = transcriptRef.current;
+    if (!el) {
+      return;
+    }
+
+    requestAnimationFrame(() => {
+      el.scrollTop = el.scrollHeight;
+    });
+  }, [editMode, view.kind, visibleText]);
 
   const derivedStatus = useMemo(
     () => deriveStatusFromTranscriptView(view),
@@ -279,7 +283,6 @@ export function TranscriptOverlay() {
                 transcriptOverlayStore.setState({ editDraft: value });
               }}
               innerRef={transcriptRef}
-              dataRows={String(MAX_VISIBLE_TRANSCRIPT_LINES)}
               maxRows={MAX_VISIBLE_TRANSCRIPT_LINES}
             />
           ) : isReadMode && visibleText ? (
@@ -287,7 +290,6 @@ export function TranscriptOverlay() {
               text={visibleText}
               className={`transcript is-read-mode${isPlaceholder ? " isPlaceholder" : ""
                 }`}
-              dataRows={transcriptRowAttr}
               innerRef={transcriptRef}
               highlight={wordHighlight}
               phraseRange={phraseRange}
@@ -298,7 +300,6 @@ export function TranscriptOverlay() {
             <PlainWordText
               text={displayText}
               className={`transcript${isPlaceholder ? " isPlaceholder" : ""}`}
-              dataRows={transcriptRowAttr}
               innerRef={transcriptRef}
             />
           )}

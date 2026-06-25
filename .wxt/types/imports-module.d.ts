@@ -19,7 +19,6 @@ declare module '#imports' {
   export { useState, useCallback, useMemo, useEffect, useRef, useContext, useReducer } from 'react';
   export { fakeBrowser } from 'wxt/testing';
   export { KeybindInput } from '../components/KeybindInput';
-  export { useAutoGrowRows } from '../hooks/useAutoGrowRows';
   export { useDocumentEvent } from '../hooks/useDocumentEvent';
   export { useEscapeKey } from '../hooks/useEscapeKey';
   export { useEventListener } from '../hooks/useEventListener';

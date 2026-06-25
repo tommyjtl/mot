@@ -143,7 +143,6 @@ declare global {
   const tokenizeWords: typeof import('/Users/tommyjtl/Documents/Projects/mot/utils/overlay-phrase').tokenizeWords
   const updateAlignmentDebugDuringPlayback: typeof import('/Users/tommyjtl/Documents/Projects/mot/utils/overlay-alignment-debug').updateAlignmentDebugDuringPlayback
   const useAppConfig: typeof import('wxt/utils/app-config').useAppConfig
-  const useAutoGrowRows: typeof import('/Users/tommyjtl/Documents/Projects/mot/hooks/useAutoGrowRows').useAutoGrowRows
   const useCallback: typeof import('react').useCallback
   const useContext: typeof import('react').useContext
   const useDocumentEvent: typeof import('/Users/tommyjtl/Documents/Projects/mot/hooks/useDocumentEvent').useDocumentEvent
