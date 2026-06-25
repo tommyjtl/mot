@@ -45,7 +45,7 @@ declare module '#imports' {
   export { OFFSCREEN_OCR, OFFSCREEN_OCR_WARMUP, recognizeInOffscreen, warmUpOffscreenOcr, OffscreenOcrResult } from '../utils/offscreen-ocr';
   export { OFFSCREEN_STT_START, OFFSCREEN_STT_STOP, OFFSCREEN_STT_CANCEL, OFFSCREEN_STT_WARMUP, OFFSCREEN_STT_STATUS, OFFSCREEN_STT_SESSION, startTabTranscriptionInOffscreen, stopTabTranscriptionInOffscreen, cancelTabTranscriptionInOffscreen, warmUpOffscreenStt, getOffscreenSttStatus, getOffscreenTranscriptionSession, OffscreenSttStartResult } from '../utils/offscreen-stt';
   export { OFFSCREEN_SYNTHESIZE, OFFSCREEN_WARMUP, OFFSCREEN_STATUS, ensureOffscreenDocument, warmUpOffscreenTts, synthesizeInOffscreen, playAudioInOffscreen, stopAudioInOffscreen, abortOffscreenSynthesis, getOffscreenModelStatus, TtsEngineError, OffscreenSynthResult } from '../utils/offscreen-tts';
-  export { libraryPageUrl, openLibraryTab } from '../utils/open-library';
+  export { libraryPageUrl, getLibraryEntryParam, setLibraryEntryParam, openLibraryTab } from '../utils/open-library';
   export { resetAlignmentDebugBindings, syncAlignmentDebug, updateAlignmentDebugDuringPlayback, estimateAlignmentWithDebugTuning, AlignmentDebugHost } from '../utils/overlay-alignment-debug';
   export { clampPanelPosition, computeCardPositionNearSelection, computeTopRightPanelPosition, defaultCardPosition, applyPanelPosition, positionCardNearSelection, placeCardDefault, PanelSize, ViewportSize, PanelPosition, SelectionRectLike } from '../utils/overlay-layout';
   export { tokenizeWords, isSingleWordText, phraseFromWordRange, WordToken } from '../utils/overlay-phrase';

@@ -75,6 +75,7 @@ declare global {
   const formatKeyboardShortcut: typeof import('/Users/tommyjtl/Documents/Projects/mot/utils/keyboard-shortcut').formatKeyboardShortcut
   const formatTabCaptureError: typeof import('/Users/tommyjtl/Documents/Projects/mot/utils/tab-capture').formatTabCaptureError
   const getAppConfig: typeof import('wxt/utils/app-config').getAppConfig
+  const getLibraryEntryParam: typeof import('/Users/tommyjtl/Documents/Projects/mot/utils/open-library').getLibraryEntryParam
   const getOffscreenModelStatus: typeof import('/Users/tommyjtl/Documents/Projects/mot/utils/offscreen-tts').getOffscreenModelStatus
   const getOffscreenSttStatus: typeof import('/Users/tommyjtl/Documents/Projects/mot/utils/offscreen-stt').getOffscreenSttStatus
   const getOffscreenTranscriptionSession: typeof import('/Users/tommyjtl/Documents/Projects/mot/utils/offscreen-stt').getOffscreenTranscriptionSession
@@ -122,6 +123,7 @@ declare global {
   const resolveCaptureWait: typeof import('/Users/tommyjtl/Documents/Projects/mot/utils/capture-session').resolveCaptureWait
   const saveSettings: typeof import('/Users/tommyjtl/Documents/Projects/mot/utils/settings').saveSettings
   const sendSpeakWordMessage: typeof import('/Users/tommyjtl/Documents/Projects/mot/utils/speak-word-client').sendSpeakWordMessage
+  const setLibraryEntryParam: typeof import('/Users/tommyjtl/Documents/Projects/mot/utils/open-library').setLibraryEntryParam
   const setTabSession: typeof import('/Users/tommyjtl/Documents/Projects/mot/utils/session').setTabSession
   const setupOffscreenDocument: typeof import('/Users/tommyjtl/Documents/Projects/mot/utils/offscreen-document').setupOffscreenDocument
   const shortcutsEqual: typeof import('/Users/tommyjtl/Documents/Projects/mot/utils/keyboard-shortcut').shortcutsEqual

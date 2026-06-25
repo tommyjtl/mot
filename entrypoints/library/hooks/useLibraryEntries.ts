@@ -115,9 +115,3 @@ export function useLibraryEntries() {
     updateEntry,
   };
 }
-
-export function getEntryParamFromLocation(): string | null {
-  const params = new URLSearchParams(window.location.search);
-  const entry = params.get("entry");
-  return entry?.trim() ? entry : null;
-}

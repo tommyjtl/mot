@@ -1,12 +1,13 @@
 import { useCallback, useEffect, useState } from "react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
+import {
+  getLibraryEntryParam,
+  setLibraryEntryParam,
+} from "@/utils/open-library";
 import { getVocabEntryByNormalized } from "@/utils/vocab/vocab-store";
 import type { VocabEntry } from "@/utils/vocab/types";
-import {
-  getEntryParamFromLocation,
-  useLibraryEntries,
-} from "./hooks/useLibraryEntries";
+import { useLibraryEntries } from "./hooks/useLibraryEntries";
 import { LibraryEmptyState } from "./components/LibraryEmptyState";
 import { LibrarySortSelect } from "./components/LibrarySortSelect";
 import { SavedEntryDialog } from "./components/SavedEntryDialog";
@@ -36,6 +37,7 @@ export function App() {
   const openEntry = useCallback((entry: VocabEntry) => {
     setSelectedEntry(entry);
     setDialogOpen(true);
+    setLibraryEntryParam(entry.normalized);
   }, []);
 
   useEffect(() => {
@@ -43,7 +45,7 @@ export function App() {
       return;
     }
 
-    const normalized = getEntryParamFromLocation();
+    const normalized = getLibraryEntryParam();
     if (!normalized) {
       setDeepLinkHandled(true);
       return;
@@ -52,6 +54,8 @@ export function App() {
     void getVocabEntryByNormalized(normalized).then((entry) => {
       if (entry) {
         openEntry(entry);
+      } else {
+        setLibraryEntryParam(null);
       }
       setDeepLinkHandled(true);
     });
@@ -61,6 +65,7 @@ export function App() {
     setDialogOpen(open);
     if (!open) {
       setSelectedEntry(null);
+      setLibraryEntryParam(null);
     }
   }, []);
 
