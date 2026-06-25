@@ -58,10 +58,7 @@ export default defineConfig({
         description: "Transcribe audio from the active tab",
       },
     },
-    host_permissions: [
-      "https://huggingface.co/*",
-      "http://127.0.0.1:8091/*",
-    ],
+    host_permissions: ["https://huggingface.co/*"],
     web_accessible_resources: [
       {
         resources: ["ort/*", "tesseract/*", "tesseract/tessdata/*", "stt/*", "stt/pkg/*"],
