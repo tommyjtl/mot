@@ -115,12 +115,12 @@ Based on the official [Supertonic web example](https://github.com/supertone-inc/
 
 ## Highlight sync
 
-See [docs/highlight-sync.md](docs/highlight-sync.md) for what the model outputs (audio, alignment, word timings) and how playback ticks drive overlay highlights.
+See [specs/highlight-sync.md](specs/highlight-sync.md) for what the model outputs (audio, alignment, word timings) and how playback ticks drive overlay highlights.
 
 ## Translation & IPA (deferred)
 
-Word-level English glosses use Chrome’s built-in Translator API. On-device IPA was investigated and deferred — see [docs/ipa-g2p-notes.md](docs/ipa-g2p-notes.md).
+Word-level English glosses use Chrome’s built-in Translator API. On-device IPA was investigated and deferred — see [specs/ipa-g2p-notes.md](specs/ipa-g2p-notes.md).
 
 ## Authenticated model CDN (planned)
 
-Future: Google sign-in + private S3/CloudFront for TTS model downloads — see [docs/authenticated-model-cdn.md](docs/authenticated-model-cdn.md).
+Future: Google sign-in + private S3/CloudFront for TTS model downloads — see [specs/authenticated-model-cdn.md](specs/authenticated-model-cdn.md).

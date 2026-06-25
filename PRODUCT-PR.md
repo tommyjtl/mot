@@ -96,7 +96,7 @@ With no text selected, **Option+S** enters screen capture mode. The page dims; d
 
 During TTS playback, words highlight in sync with the audio. The overlay follows along word by word so you can connect sound to spelling.
 
-**How it works:** Supertonic produces word alignment timings. An adaptive playback clock drives highlight updates at ~60 fps. See [docs/highlight-sync.md](docs/highlight-sync.md) for technical detail.
+**How it works:** Supertonic produces word alignment timings. An adaptive playback clock drives highlight updates at ~60 fps. See [specs/highlight-sync.md](specs/highlight-sync.md) for technical detail.
 
 > **Copy block**
 >
@@ -208,7 +208,7 @@ Switch the library to **Cards** mode for passive review. A week-scoped carousel 
 
 Inside the saved entry dialog, hear a word or phrase via TTS, then type it from memory. Binary correct/incorrect feedback. Practice stats collected for future weak-spot sorting.
 
-**How it works (planned):** Per-entry dictation mode in `SavedEntryDialog`, reusing existing Supertonic TTS. Spec: [docs/plans/library-study/library-study-v1.md](docs/plans/library-study/library-study-v1.md).
+**How it works (planned):** Per-entry dictation mode in `SavedEntryDialog`, reusing existing Supertonic TTS. Spec: [specs/plans/library-study/library-study-v1.md](specs/plans/library-study/library-study-v1.md).
 
 > **Copy block**
 >
@@ -240,7 +240,7 @@ A top-level Practice surface with pooled review sessions, multiple exercise type
 
 On-device IPA (International Phonetic Alphabet) display for saved words. Explored via ByT5 G2P ONNX; deferred due to integration complexity.
 
-**Reference:** [docs/ipa-g2p-notes.md](docs/ipa-g2p-notes.md)
+**Reference:** [specs/ipa-g2p-notes.md](specs/ipa-g2p-notes.md)
 
 ---
 
@@ -406,7 +406,7 @@ flowchart TB
 >
 > Translation uses Chrome's on-device AI when available — managed by Chrome, not Motif.
 
-**Future:** Authenticated model CDN with Google sign-in for private TTS model delivery — inference remains on-device. See [docs/authenticated-model-cdn.md](docs/authenticated-model-cdn.md).
+**Future:** Authenticated model CDN with Google sign-in for private TTS model delivery — inference remains on-device. See [specs/authenticated-model-cdn.md](specs/authenticated-model-cdn.md).
 
 ---
 
@@ -471,7 +471,7 @@ Motif's arc is **Hear → Save → Remember**. Each stage builds on the last usi
 - **Type-after-dictation** per saved entry — active recall without leaving the library
 - Practice stats collection (`attemptCount`, `mistakeCount`) for future sorting
 
-Spec: [docs/plans/library-study/library-study-v1.md](docs/plans/library-study/library-study-v1.md)
+Spec: [specs/plans/library-study/library-study-v1.md](specs/plans/library-study/library-study-v1.md)
 
 ### Later
 
@@ -483,8 +483,8 @@ Spec: [docs/plans/library-study/library-study-v1.md](docs/plans/library-study/li
 
 ### Explored / deferred
 
-- On-device IPA via G2P models — [docs/ipa-g2p-notes.md](docs/ipa-g2p-notes.md)
-- Authenticated model CDN — [docs/authenticated-model-cdn.md](docs/authenticated-model-cdn.md)
+- On-device IPA via G2P models — [specs/ipa-g2p-notes.md](specs/ipa-g2p-notes.md)
+- Authenticated model CDN — [specs/authenticated-model-cdn.md](specs/authenticated-model-cdn.md)
 
 Roadmap items extend existing UX patterns — they are not a pivot to a different product shape.
 
