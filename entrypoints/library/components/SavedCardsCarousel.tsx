@@ -1,4 +1,4 @@
-import { useCallback, useEffect, useState } from "react";
+import { useCallback, useEffect, useRef, useState } from "react";
 import { ChevronLeftIcon, ChevronRightIcon } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import type { VocabEntry } from "@/utils/vocab/types";
@@ -8,11 +8,13 @@ import { useLibraryWeekNavigation } from "../hooks/useLibraryWeekNavigation";
 
 type SavedCardsCarouselProps = {
   entries: VocabEntry[];
+  detailsDialogOpen?: boolean;
   onOpenDetails: (entry: VocabEntry) => void;
 };
 
 export function SavedCardsCarousel({
   entries,
+  detailsDialogOpen = false,
   onOpenDetails,
 }: SavedCardsCarouselProps) {
   const {
@@ -30,15 +32,14 @@ export function SavedCardsCarousel({
     goToNextCard,
   } = useLibraryWeekNavigation(entries);
 
-  const [isFlipped, setIsFlipped] = useState(false);
-
-  useEffect(() => {
-    setIsFlipped(false);
-  }, [activeEntry?.normalized, activeBucket?.weekStart]);
+  const cardKey = `${activeBucket?.weekStart ?? ""}:${activeEntry?.normalized ?? ""}`;
+  const [flipState, setFlipState] = useState({ cardKey: "", flipped: false });
+  const isFlipped =
+    flipState.cardKey === cardKey ? flipState.flipped : false;
 
   const handleFlip = useCallback(() => {
-    setIsFlipped((current) => !current);
-  }, []);
+    setFlipState({ cardKey, flipped: !isFlipped });
+  }, [cardKey, isFlipped]);
 
   const handleOpenDetails = useCallback(() => {
     if (!activeEntry) {
@@ -48,7 +49,24 @@ export function SavedCardsCarousel({
     onOpenDetails(activeEntry);
   }, [activeEntry, onOpenDetails]);
 
+  const cardNavRef = useRef({
+    canGoPreviousCard,
+    canGoNextCard,
+    goToPreviousCard,
+    goToNextCard,
+  });
+  cardNavRef.current = {
+    canGoPreviousCard,
+    canGoNextCard,
+    goToPreviousCard,
+    goToNextCard,
+  };
+
   useEffect(() => {
+    if (detailsDialogOpen) {
+      return;
+    }
+
     const handleKeyDown = (event: KeyboardEvent) => {
       if (
         event.target instanceof HTMLInputElement ||
@@ -57,18 +75,16 @@ export function SavedCardsCarousel({
         return;
       }
 
-      if (event.key === "ArrowLeft") {
+      const nav = cardNavRef.current;
+
+      if (event.key === "ArrowLeft" && nav.canGoPreviousCard) {
         event.preventDefault();
-        if (canGoPreviousCard) {
-          goToPreviousCard();
-        }
+        nav.goToPreviousCard();
       }
 
-      if (event.key === "ArrowRight") {
+      if (event.key === "ArrowRight" && nav.canGoNextCard) {
         event.preventDefault();
-        if (canGoNextCard) {
-          goToNextCard();
-        }
+        nav.goToNextCard();
       }
     };
 
@@ -76,12 +92,7 @@ export function SavedCardsCarousel({
     return () => {
       window.removeEventListener("keydown", handleKeyDown);
     };
-  }, [
-    canGoNextCard,
-    canGoPreviousCard,
-    goToNextCard,
-    goToPreviousCard,
-  ]);
+  }, [detailsDialogOpen]);
 
   if (entries.length === 0) {
     return null;

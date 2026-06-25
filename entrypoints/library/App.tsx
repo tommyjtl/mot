@@ -127,9 +127,14 @@ export function App() {
 
       {!loading && totalCount === 0 ? (
         <LibraryEmptyState query={query} />
+      ) : showCardsLayout && loading ? (
+        <p className="py-10 text-center text-sm text-muted-foreground">
+          Loading saved items…
+        </p>
       ) : showCardsLayout ? (
         <SavedCardsCarousel
           entries={cardEntries}
+          detailsDialogOpen={dialogOpen}
           onOpenDetails={openEntry}
         />
       ) : !loading && filteredCount === 0 ? (

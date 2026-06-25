@@ -1,6 +1,13 @@
-import { useCallback, useEffect, useMemo, useState } from "react";
+import { useCallback, useMemo, useState } from "react";
 import type { VocabEntry } from "@/utils/vocab/types";
 import { bucketEntriesByWeek, type WeekBucket } from "../lib/week-bucket";
+
+export type NavigationAnchor = {
+  weekStart: number | null;
+  entryId: string | null;
+  cardIndex: number;
+  fallbackWeekIndex: number;
+};
 
 function clampIndex(index: number, length: number): number {
   if (length <= 0) {
@@ -10,75 +17,141 @@ function clampIndex(index: number, length: number): number {
   return Math.min(Math.max(index, 0), length - 1);
 }
 
+function resolveNavigationPosition(
+  buckets: WeekBucket[],
+  anchor: NavigationAnchor,
+): { weekIndex: number; cardIndex: number } {
+  if (buckets.length === 0) {
+    return { weekIndex: 0, cardIndex: 0 };
+  }
+
+  let weekIndex = 0;
+  if (anchor.weekStart !== null) {
+    const foundWeek = buckets.findIndex(
+      (bucket) => bucket.weekStart === anchor.weekStart,
+    );
+    weekIndex =
+      foundWeek >= 0
+        ? foundWeek
+        : clampIndex(anchor.fallbackWeekIndex, buckets.length);
+  }
+
+  const weekEntries = buckets[weekIndex]?.entries ?? [];
+  let cardIndex = 0;
+
+  if (anchor.entryId !== null) {
+    const foundCard = weekEntries.findIndex(
+      (entry) => entry.id === anchor.entryId,
+    );
+    cardIndex =
+      foundCard >= 0
+        ? foundCard
+        : clampIndex(anchor.cardIndex, weekEntries.length);
+  } else {
+    cardIndex = clampIndex(anchor.cardIndex, weekEntries.length);
+  }
+
+  return { weekIndex, cardIndex };
+}
+
+function anchorFromPosition(
+  buckets: WeekBucket[],
+  weekIndex: number,
+  cardIndex: number,
+): NavigationAnchor {
+  const weekEntries = buckets[weekIndex]?.entries ?? [];
+
+  return {
+    weekStart: buckets[weekIndex]?.weekStart ?? null,
+    entryId: weekEntries[cardIndex]?.id ?? null,
+    cardIndex,
+    fallbackWeekIndex: weekIndex,
+  };
+}
+
+const DEFAULT_ANCHOR: NavigationAnchor = {
+  weekStart: null,
+  entryId: null,
+  cardIndex: 0,
+  fallbackWeekIndex: 0,
+};
+
 export function useLibraryWeekNavigation(entries: VocabEntry[]) {
   const buckets = useMemo(() => bucketEntriesByWeek(entries), [entries]);
-  const [weekIndex, setWeekIndex] = useState(0);
-  const [cardIndex, setCardIndex] = useState(0);
+  const [anchor, setAnchor] = useState<NavigationAnchor>(DEFAULT_ANCHOR);
 
-  const entriesKey = useMemo(
-    () => entries.map((entry) => entry.id).join("\0"),
-    [entries],
+  const { weekIndex, cardIndex } = useMemo(
+    () => resolveNavigationPosition(buckets, anchor),
+    [buckets, anchor],
   );
 
-  useEffect(() => {
-    setWeekIndex(0);
-    setCardIndex(0);
-  }, [entriesKey]);
-
-  const safeWeekIndex = clampIndex(weekIndex, buckets.length);
-  const activeBucket: WeekBucket | null = buckets[safeWeekIndex] ?? null;
+  const activeBucket: WeekBucket | null = buckets[weekIndex] ?? null;
   const weekEntries = activeBucket?.entries ?? [];
-  const safeCardIndex = clampIndex(cardIndex, weekEntries.length);
-  const activeEntry = weekEntries[safeCardIndex] ?? null;
-
-  useEffect(() => {
-    if (weekIndex !== safeWeekIndex) {
-      setWeekIndex(safeWeekIndex);
-    }
-  }, [safeWeekIndex, weekIndex]);
-
-  useEffect(() => {
-    if (cardIndex !== safeCardIndex) {
-      setCardIndex(safeCardIndex);
-    }
-  }, [safeCardIndex, cardIndex]);
+  const activeEntry = weekEntries[cardIndex] ?? null;
 
   /** buckets[0] is newest; older weeks have higher indices. */
   const goToOlderWeek = useCallback(() => {
-    setWeekIndex((current) =>
-      buckets.length === 0 ? 0 : Math.min(current + 1, buckets.length - 1),
-    );
-    setCardIndex(0);
-  }, [buckets.length]);
+    setAnchor((current) => {
+      const { weekIndex: currentWeekIndex } = resolveNavigationPosition(
+        buckets,
+        current,
+      );
+      const nextWeekIndex =
+        buckets.length === 0
+          ? 0
+          : Math.min(currentWeekIndex + 1, buckets.length - 1);
+
+      return anchorFromPosition(buckets, nextWeekIndex, 0);
+    });
+  }, [buckets]);
 
   const goToNewerWeek = useCallback(() => {
-    setWeekIndex((current) => Math.max(current - 1, 0));
-    setCardIndex(0);
-  }, []);
+    setAnchor((current) => {
+      const { weekIndex: currentWeekIndex } = resolveNavigationPosition(
+        buckets,
+        current,
+      );
+      const nextWeekIndex = Math.max(currentWeekIndex - 1, 0);
+
+      return anchorFromPosition(buckets, nextWeekIndex, 0);
+    });
+  }, [buckets]);
 
   const goToPreviousCard = useCallback(() => {
-    setCardIndex((current) => Math.max(current - 1, 0));
-  }, []);
+    setAnchor((current) => {
+      const { weekIndex: currentWeekIndex, cardIndex: currentCardIndex } =
+        resolveNavigationPosition(buckets, current);
+      const nextCardIndex = Math.max(currentCardIndex - 1, 0);
+
+      return anchorFromPosition(buckets, currentWeekIndex, nextCardIndex);
+    });
+  }, [buckets]);
 
   const goToNextCard = useCallback(() => {
-    setCardIndex((current) =>
-      weekEntries.length === 0
-        ? 0
-        : Math.min(current + 1, weekEntries.length - 1),
-    );
-  }, [weekEntries.length]);
+    setAnchor((current) => {
+      const { weekIndex: currentWeekIndex, cardIndex: currentCardIndex } =
+        resolveNavigationPosition(buckets, current);
+      const weekLength = buckets[currentWeekIndex]?.entries.length ?? 0;
+      const nextCardIndex =
+        weekLength === 0
+          ? 0
+          : Math.min(currentCardIndex + 1, weekLength - 1);
+
+      return anchorFromPosition(buckets, currentWeekIndex, nextCardIndex);
+    });
+  }, [buckets]);
 
   return {
     buckets,
     activeBucket,
     weekEntries,
     activeEntry,
-    weekIndex: safeWeekIndex,
-    cardIndex: safeCardIndex,
-    canGoToOlderWeek: safeWeekIndex < buckets.length - 1,
-    canGoToNewerWeek: safeWeekIndex > 0,
-    canGoPreviousCard: safeCardIndex > 0,
-    canGoNextCard: safeCardIndex < weekEntries.length - 1,
+    weekIndex,
+    cardIndex,
+    canGoToOlderWeek: weekIndex < buckets.length - 1,
+    canGoToNewerWeek: weekIndex > 0,
+    canGoPreviousCard: cardIndex > 0,
+    canGoNextCard: cardIndex < weekEntries.length - 1,
     goToOlderWeek,
     goToNewerWeek,
     goToPreviousCard,
