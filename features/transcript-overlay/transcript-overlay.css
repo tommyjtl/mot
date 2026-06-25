@@ -234,6 +234,24 @@
   transform: translateX(12px);
 }
 
+.realtimeTranslationToggle.isDisabled {
+  cursor: not-allowed;
+  opacity: 0.55;
+}
+
+.realtimeTranslationToggle.isDisabled .realtimeTranslationToggleLabel {
+  color: #94a3b8;
+}
+
+.realtimeTranslationSwitch:disabled {
+  cursor: not-allowed;
+  opacity: 1;
+}
+
+.realtimeTranslationSwitch:disabled.isOn {
+  background: #cbd5e1;
+}
+
 .realtimeTranslationSwitch:focus-visible {
   outline: 2px solid rgba(79, 70, 229, 0.45);
   outline-offset: 2px;

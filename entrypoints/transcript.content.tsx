@@ -29,7 +29,7 @@ import {
 } from "../features/transcript-overlay/transcript-overlay-controller";
 import { mountTranscriptOverlay } from "../features/transcript-overlay/mount";
 import {
-  isLearningTranslationSupported,
+  isLearningTranslationReady,
   translateForLearning,
 } from "../utils/translation";
 import {
@@ -169,6 +169,10 @@ function clearReadModeUi(): void {
 }
 
 function setShowRealtimeTranslationEnabled(enabled: boolean): void {
+  if (enabled && !isLearningTranslationReady()) {
+    return;
+  }
+
   patchTranscriptSession({ showRealtimeTranslation: enabled });
   setTranscriptShowRealtimeTranslation(enabled);
 
@@ -236,7 +240,7 @@ function showFullTranslation(): void {
 }
 
 async function refreshFullTranslation(text: string): Promise<void> {
-  if (!getTranscriptSession().showRealtimeTranslation || !isLearningTranslationSupported()) {
+  if (!getTranscriptSession().showRealtimeTranslation || !isLearningTranslationReady()) {
     if (isTranscriptOverlayVisible()) {
       setTranscriptWordTranslation({ visible: false });
     }
@@ -460,10 +464,6 @@ function requestPlayback(audioBase64: string): void {
 }
 
 async function refreshWordTranslation(word: string): Promise<void> {
-  if (!isLearningTranslationSupported()) {
-    return;
-  }
-
   const contextText = getVisibleTranscriptText();
   const vocabContext = {
     contextText,

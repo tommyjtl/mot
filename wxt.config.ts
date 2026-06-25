@@ -38,6 +38,7 @@ export default defineConfig({
       extension_pages: "script-src 'self' 'wasm-unsafe-eval'; object-src 'self';",
     },
     name: "Motif",
+    theme_color: "#f1c057",
     description:
       "Hear it, save it, remember it. On-device French pronunciation and live tab transcription.",
     permissions: ["storage", "activeTab", "tabs", "offscreen", "tabCapture"],

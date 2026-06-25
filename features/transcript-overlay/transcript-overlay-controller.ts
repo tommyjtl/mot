@@ -1,5 +1,11 @@
 import type { TranscriptWordTranslationState } from "../../components/overlay/TranslationPanel";
 import { destroyShadowReactMount } from "../../components/overlay/mount-shadow-react";
+import {
+  getLearningTranslationReadiness,
+  isLearningTranslationReady,
+  isLearningTranslationSupported,
+  prepareLearningTranslation,
+} from "../../utils/translation";
 import { mountTranscriptOverlay } from "./mount";
 import {
   resetTranscriptOverlayStore,
@@ -17,6 +23,40 @@ export { MAX_VISIBLE_TRANSCRIPT_LINES } from "./types";
 
 function ensureMounted(): void {
   mountTranscriptOverlay();
+}
+
+function shouldPrepareTranslation(state: TranscriptOverlayState): boolean {
+  return (
+    state.kind === "loading" ||
+    state.kind === "streaming" ||
+    state.kind === "paused"
+  );
+}
+
+function beginTranslationPrepare(): void {
+  if (!isLearningTranslationSupported()) {
+    transcriptOverlayStore.setState({ translationReadiness: "unsupported" });
+    return;
+  }
+
+  if (getLearningTranslationReadiness() === "ready") {
+    transcriptOverlayStore.setState({ translationReadiness: "ready" });
+    return;
+  }
+
+  const current = transcriptOverlayStore.getState().translationReadiness;
+  if (current === "loading") {
+    return;
+  }
+
+  transcriptOverlayStore.setState({ translationReadiness: "loading" });
+  void prepareLearningTranslation().then((readiness) => {
+    if (!transcriptOverlayStore.getState().visible) {
+      return;
+    }
+
+    transcriptOverlayStore.setState({ translationReadiness: readiness });
+  });
 }
 
 function applyViewState(
@@ -43,6 +83,10 @@ function applyViewState(
     statusMessage: null,
     statusError: false,
   });
+
+  if (shouldPrepareTranslation(state)) {
+    beginTranslationPrepare();
+  }
 }
 
 export const transcriptOverlay = {
@@ -142,6 +186,10 @@ export const transcriptOverlay = {
 
   setShowRealtimeTranslation(enabled: boolean): void {
     if (!isTranscriptOverlayMounted()) {
+      return;
+    }
+
+    if (enabled && !isLearningTranslationReady()) {
       return;
     }
 

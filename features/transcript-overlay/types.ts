@@ -1,5 +1,7 @@
 import type { TranslationState } from "../../components/overlay/TranslationPanel";
 import type { WordRange } from "../../components/overlay/InteractiveWordText";
+import type { LearningTranslationReadiness } from "../../utils/translation";
+import { isLearningTranslationSupported } from "../../utils/translation";
 
 export const MAX_VISIBLE_TRANSCRIPT_LINES = 3;
 export const WAITING_PLACEHOLDER = "Waiting for transcription";
@@ -43,6 +45,7 @@ export type TranscriptOverlayStoreState = {
   phraseRange: WordRange | null;
   playbackVisible: boolean;
   showRealtimeTranslation: boolean;
+  translationReadiness: LearningTranslationReadiness;
   statusMessage: string | null;
   statusError: boolean;
   handlersRef: HandlersRef<TranscriptOverlayHandlers>;
@@ -59,6 +62,7 @@ export const initialTranscriptOverlayState = (): TranscriptOverlayStoreState => 
   phraseRange: null,
   playbackVisible: false,
   showRealtimeTranslation: false,
+  translationReadiness: isLearningTranslationSupported() ? "idle" : "unsupported",
   statusMessage: null,
   statusError: false,
   handlersRef: transcriptHandlersRef,

@@ -44,10 +44,7 @@ import {
   showCaptureOverlay,
 } from "../utils/capture-region";
 import type { TtsAlignment } from "../utils/tts-types";
-import {
-  isLearningTranslationSupported,
-  translateForLearning,
-} from "../utils/translation";
+import { translateForLearning } from "../utils/translation";
 import { evaluateSelection } from "../utils/selection";
 import { sendSpeakWordMessage } from "../utils/speak-word-client";
 
@@ -145,11 +142,6 @@ function showFullTranslation(): void {
 }
 
 async function refreshFullTranslation(text: string): Promise<void> {
-  if (!isLearningTranslationSupported()) {
-    setOverlayTranslation({ visible: false });
-    return;
-  }
-
   const requestId = nextTtsRequestId("fullTranslationRequestId");
   if (getTtsSession().translationDisplayMode === "full") {
     setOverlayTranslation(
@@ -206,10 +198,6 @@ async function refreshFullTranslation(text: string): Promise<void> {
 }
 
 async function refreshWordTranslation(word: string): Promise<void> {
-  if (!isLearningTranslationSupported()) {
-    return;
-  }
-
   const contextText = getTtsSession().cachedSpeechText ?? "";
   const vocabContext = {
     contextText,

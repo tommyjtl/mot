@@ -9,11 +9,18 @@ import {
 import {
   Select,
   SelectContent,
+  SelectGroup,
   SelectItem,
+  SelectLabel,
   SelectTrigger,
   SelectValue,
 } from "@/components/ui/select";
-import type { Lang, Voice } from "@/utils/settings";
+import {
+  FEMALE_VOICE_OPTIONS,
+  MALE_VOICE_OPTIONS,
+  type Voice,
+} from "@/utils/supertonic/voices";
+import type { Lang } from "@/utils/settings";
 import { useSettingsForm } from "../hooks/useSettingsForm";
 
 export function VoiceSettingsSection() {
@@ -46,8 +53,22 @@ export function VoiceSettingsSection() {
                     <SelectValue placeholder="Select voice" />
                   </SelectTrigger>
                   <SelectContent>
-                    <SelectItem value="F1">F1</SelectItem>
-                    <SelectItem value="M1">M1</SelectItem>
+                    <SelectGroup>
+                      <SelectLabel>Male voices</SelectLabel>
+                      {MALE_VOICE_OPTIONS.map((option) => (
+                        <SelectItem key={option.id} value={option.id}>
+                          {option.label}
+                        </SelectItem>
+                      ))}
+                    </SelectGroup>
+                    <SelectGroup>
+                      <SelectLabel>Female voices</SelectLabel>
+                      {FEMALE_VOICE_OPTIONS.map((option) => (
+                        <SelectItem key={option.id} value={option.id}>
+                          {option.label}
+                        </SelectItem>
+                      ))}
+                    </SelectGroup>
                   </SelectContent>
                 </Select>
               </Field>

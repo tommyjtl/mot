@@ -28,14 +28,11 @@ import {
 } from "@/utils/vocab/vocab-client";
 import type { VocabEntry } from "@/utils/vocab/types";
 import { findContextTermWordRanges } from "@/utils/vocab/context-highlight";
+import { contextWordSurfaceKey } from "@/utils/overlay-word-surface";
 import { useLibraryWordPronunciation } from "../hooks/useLibraryWordPronunciation";
 import { SavedEntryDefinition } from "./SavedEntryDefinition";
 
 const ORIGINAL_SURFACE = "original";
-
-function contextSurfaceKey(contextId: string): string {
-  return `context:${contextId}`;
-}
 
 type SavedEntryDialogProps = {
   entry: VocabEntry | null;
@@ -247,7 +244,7 @@ export function SavedEntryDialog({
             {localEntry.contexts.length ? (
               <ul className="m-0 space-y-2 p-0">
                 {[...localEntry.contexts].reverse().map((context) => {
-                  const surfaceKey = contextSurfaceKey(context.id);
+                  const surfaceKey = contextWordSurfaceKey(context.id);
                   const contextState = getSurfaceState(surfaceKey);
 
                   return (
@@ -275,7 +272,7 @@ export function SavedEntryDialog({
                       }
                     />
                     <div className="flex items-center justify-between gap-2">
-                      <p className="text-xs text-muted-foreground">
+                      <p className="text-[13px] leading-[1.4] text-gray-400">
                         {formatSavedDate(context.addedAt)}
                         {context.url ? (
                           <>
@@ -341,7 +338,7 @@ export function SavedEntryDialog({
           </div>
 
           <div className="flex items-center justify-between gap-3 pt-1">
-            <p className="text-xs text-muted-foreground">
+            <p className="text-[13px] leading-[1.4] text-gray-400">
               Saved {formatSavedDate(localEntry.createdAt)}
             </p>
             {!showDeleteConfirm ? (

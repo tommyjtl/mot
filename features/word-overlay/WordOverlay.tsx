@@ -21,6 +21,8 @@ import {
   computeTopRightPanelPosition,
   type PanelPosition,
 } from "../../utils/overlay-layout";
+import { useWordSurfacePronunciation } from "../../hooks/useWordSurfacePronunciation";
+import { contextWordSurfaceKey } from "../../utils/overlay-word-surface";
 import { closeWordOverlay } from "./word-overlay-controller";
 import {
   WORD_OVERLAY_WIDTH,
@@ -66,6 +68,13 @@ export function WordOverlay() {
     "idle" | "loading" | "active"
   >("idle");
 
+  const {
+    speakWordRange,
+    getSurfaceState,
+    error: pronunciationError,
+    resetPronunciation,
+  } = useWordSurfacePronunciation(open);
+
   const { headerProps } = useOverlayDrag(panelRef, headerRef, {
     onDragStart: () => {
       if (!wordOverlayStore.getState().userMoved) {
@@ -101,6 +110,12 @@ export function WordOverlay() {
     },
     [],
   );
+
+  useEffect(() => {
+    if (!open) {
+      resetPronunciation();
+    }
+  }, [open, resetPronunciation]);
 
   useEffect(() => {
     const listener = (message: Message) => {
@@ -274,10 +289,21 @@ export function WordOverlay() {
             onAddContext={() => void handleAddContext()}
             onDeleteContext={(contextId) => void handleDeleteContext(contextId)}
             onNoteChange={handleNoteChange}
+            getContextSurfaceState={(contextId) =>
+              getSurfaceState(contextWordSurfaceKey(contextId))
+            }
+            onContextWordSelect={(contextId, sentence, startIndex, endIndex) =>
+              speakWordRange(
+                contextWordSurfaceKey(contextId),
+                sentence,
+                startIndex,
+                endIndex,
+              )
+            }
           />
-          {actionError ? (
+          {actionError || pronunciationError ? (
             <p className="vocabActionError" role="alert">
-              {actionError}
+              {actionError ?? pronunciationError}
             </p>
           ) : null}
         </div>

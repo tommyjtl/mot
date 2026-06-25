@@ -5,9 +5,10 @@ import {
   type Lang,
   type Voice,
 } from "@/utils/settings";
+import { DEFAULT_VOICE } from "@/utils/supertonic/voices";
 
 export function useSettingsForm() {
-  const [voice, setVoice] = useState<Voice>("F1");
+  const [voice, setVoice] = useState<Voice>(DEFAULT_VOICE);
   const [lang, setLang] = useState<Lang>("fr");
   const [saveMessage, setSaveMessage] = useState("");
   const [loading, setLoading] = useState(true);

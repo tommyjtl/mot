@@ -4,8 +4,10 @@ import {
   formatContextHost,
   formatSavedDate,
 } from "../vocab/vocab-format";
-import { getContextHighlightSegments } from "../../utils/vocab/context-highlight";
+import { findContextTermWordRanges } from "../../utils/vocab/context-highlight";
 import { openLibraryTab } from "../../utils/open-library";
+import { InteractiveWordText } from "./InteractiveWordText";
+import type { WordSurfaceState } from "../../hooks/useWordSurfacePronunciation";
 import { IconButton, PlusIcon, TrashIcon } from "./IconButton";
 
 type VocabEntryDetailsProps = {
@@ -16,6 +18,13 @@ type VocabEntryDetailsProps = {
   onAddContext: () => void;
   onDeleteContext: (contextId: string) => void;
   onNoteChange: (note: string) => void;
+  getContextSurfaceState: (contextId: string) => WordSurfaceState;
+  onContextWordSelect: (
+    contextId: string,
+    sentence: string,
+    startIndex: number,
+    endIndex: number,
+  ) => void;
 };
 
 export function VocabEntryDetails({
@@ -26,6 +35,8 @@ export function VocabEntryDetails({
   onAddContext,
   onDeleteContext,
   onNoteChange,
+  getContextSurfaceState,
+  onContextWordSelect,
 }: VocabEntryDetailsProps) {
   const noteId = useId();
   const canAddContext = Boolean(contextText.trim());
@@ -52,67 +63,68 @@ export function VocabEntryDetails({
         </div>
         {entry.contexts.length ? (
           <ul className="vocabContextList">
-            {[...entry.contexts].reverse().map((context) => (
-              <li key={context.id} className="vocabContextItem">
-                <p className="vocabContextSentence">
-                  {(() => {
-                    const segments = getContextHighlightSegments(
+            {[...entry.contexts].reverse().map((context) => {
+              const contextState = getContextSurfaceState(context.id);
+
+              return (
+                <li key={context.id} className="vocabContextItem">
+                  <InteractiveWordText
+                    text={context.sentence}
+                    className="wordText vocabContextText"
+                    highlight={contextState.highlight}
+                    loading={contextState.loading}
+                    phraseRange={contextState.phraseRange}
+                    savedTermRanges={findContextTermWordRanges(
                       context.sentence,
                       entry.original,
-                    );
-                    let offset = 0;
-
-                    return segments.map((segment) => {
-                      const key = `${offset}-${segment.kind}`;
-                      offset += segment.value.length;
-
-                      return segment.kind === "term" ? (
-                        <strong key={key} className="vocabContextTerm">
-                          {segment.value}
-                        </strong>
-                      ) : (
-                        <span key={key}>{segment.value}</span>
-                      );
-                    });
-                  })()}
-                </p>
-                <div className="vocabContextFooter">
-                  <p className="vocabContextMeta">
-                    {formatSavedDate(context.addedAt)}
-                    {context.url ? (
-                      <>
-                        {" · "}
-                        <a
-                          className="vocabContextLink"
-                          href={context.url}
-                          target="_blank"
-                          rel="noopener noreferrer"
-                          title={context.url}
-                          onClick={(event) => event.stopPropagation()}
-                        >
-                          {formatContextHost(context.url)}
-                        </a>
-                      </>
-                    ) : null}
-                  </p>
-                  <IconButton
-                    label="Delete context"
-                    title="Delete context"
-                    className="vocabContextDelete"
-                    onClick={(event) => {
-                      event.stopPropagation();
-                      onDeleteContext(context.id);
-                    }}
-                  >
-                    {deletingContextId === context.id ? (
-                      <span className="inlineSpinner" aria-hidden="true" />
-                    ) : (
-                      <TrashIcon />
                     )}
-                  </IconButton>
-                </div>
-              </li>
-            ))}
+                    onWordSelect={(startIndex, endIndex) =>
+                      onContextWordSelect(
+                        context.id,
+                        context.sentence,
+                        startIndex,
+                        endIndex,
+                      )
+                    }
+                  />
+                  <div className="vocabContextFooter">
+                    <p className="vocabContextMeta">
+                      {formatSavedDate(context.addedAt)}
+                      {context.url ? (
+                        <>
+                          {" · "}
+                          <a
+                            className="vocabContextLink"
+                            href={context.url}
+                            target="_blank"
+                            rel="noopener noreferrer"
+                            title={context.url}
+                            onClick={(event) => event.stopPropagation()}
+                          >
+                            {formatContextHost(context.url)}
+                          </a>
+                        </>
+                      ) : null}
+                    </p>
+                    <IconButton
+                      label="Delete context"
+                      title="Delete context"
+                      className="vocabContextDelete"
+                      onClick={(event) => {
+                        event.stopPropagation();
+                        onDeleteContext(context.id);
+                      }}
+                    >
+                      {deletingContextId === context.id ? (
+                        <span className="inlineSpinner" aria-hidden="true" />
+                      ) : (
+                        <TrashIcon />
+                      )}
+                    </IconButton>
+                  </div>
+                </li>
+              );
+            })}
           </ul>
         ) : (
           <p className="vocabCardEmpty">No contexts saved yet.</p>
@@ -145,7 +157,7 @@ export function VocabEntryDetails({
             void openLibraryTab(entry.normalized);
           }}
         >
-          Go to Library →
+          Go to Library
         </button>
       </div>
     </div>

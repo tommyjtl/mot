@@ -4,8 +4,13 @@ import {
   normalizeKeyboardShortcut,
   type KeyboardShortcut,
 } from "./keyboard-shortcut";
+import {
+  DEFAULT_VOICE,
+  isVoice,
+  type Voice,
+} from "./supertonic/voices";
 
-export type Voice = "M1" | "F1";
+export type { Voice };
 export type Lang = "fr" | "na";
 
 export type MotSettings = {
@@ -16,7 +21,7 @@ export type MotSettings = {
 };
 
 export const DEFAULT_SETTINGS: MotSettings = {
-  voice: "F1",
+  voice: DEFAULT_VOICE,
   lang: "fr",
   speakShortcut: DEFAULT_SPEAK_SHORTCUT,
   transcribeShortcut: DEFAULT_TRANSCRIBE_SHORTCUT,
@@ -30,6 +35,7 @@ export async function getSettings(): Promise<MotSettings> {
   return {
     ...DEFAULT_SETTINGS,
     ...value,
+    voice: isVoice(value?.voice) ? value.voice : DEFAULT_SETTINGS.voice,
     speakShortcut: normalizeKeyboardShortcut(
       value?.speakShortcut,
       DEFAULT_SPEAK_SHORTCUT,

@@ -24,7 +24,7 @@ import { useAutoGrowRows } from "../../hooks/useAutoGrowRows";
 import { useOverlayDismissals } from "../../hooks/useOverlayDismissals";
 import { useTranscriptHostDrag } from "../../hooks/useOverlayDrag";
 import { useTranscriptEditGuard } from "../../hooks/useTranscriptEditGuard";
-import { isLearningTranslationSupported } from "../../utils/translation";
+import { isLearningTranslationReady } from "../../utils/translation";
 import { deriveStatusFromTranscriptView } from "../../utils/overlay-view-status";
 import type { TranscriptOverlayViewState } from "./types";
 import { transcriptHandlersRef } from "./types";
@@ -108,6 +108,9 @@ export function TranscriptOverlay() {
   );
   const showRealtimeTranslation = useTranscriptOverlaySelector(
     (state) => state.showRealtimeTranslation,
+  );
+  const translationReadiness = useTranscriptOverlaySelector(
+    (state) => state.translationReadiness,
   );
   const statusMessage = useTranscriptOverlaySelector(
     (state) => state.statusMessage,
@@ -219,8 +222,16 @@ export function TranscriptOverlay() {
   const showAllow =
     view.kind === "needs-capture" && Boolean(handlersRef.current.onAllowCapture);
   const showRealtimeTranslationToggle =
-    isLearningTranslationSupported() &&
-    (view.kind === "streaming" || view.kind === "paused");
+    (view.kind === "streaming" || view.kind === "paused") &&
+    translationReadiness !== "unsupported";
+  const realtimeTranslationToggleEnabled =
+    translationReadiness === "ready";
+  const realtimeTranslationToggleTitle =
+    translationReadiness === "loading" || translationReadiness === "idle"
+      ? "Loading translation model…"
+      : translationReadiness === "unavailable"
+        ? "Translation model is unavailable on this device."
+        : undefined;
 
   const displayText =
     editMode && editDraft !== null
@@ -335,7 +346,11 @@ export function TranscriptOverlay() {
               </IconButton>
 
               {showRealtimeTranslationToggle ? (
-                <label className="realtimeTranslationToggle">
+                <label
+                  className={`realtimeTranslationToggle${realtimeTranslationToggleEnabled ? "" : " isDisabled"
+                    }`}
+                  title={realtimeTranslationToggleTitle}
+                >
                   <span className="realtimeTranslationToggleLabel">
                     Show real-time translation
                   </span>
@@ -345,9 +360,14 @@ export function TranscriptOverlay() {
                     className={`realtimeTranslationSwitch${showRealtimeTranslation ? " isOn" : ""
                       }`}
                     aria-checked={showRealtimeTranslation}
+                    aria-disabled={!realtimeTranslationToggleEnabled}
                     aria-label="Show real-time translation"
+                    disabled={!realtimeTranslationToggleEnabled}
                     onClick={(event) => {
                       event.stopPropagation();
+                      if (!realtimeTranslationToggleEnabled) {
+                        return;
+                      }
                       handlersRef.current.onToggleRealtimeTranslation?.(
                         !showRealtimeTranslation,
                       );

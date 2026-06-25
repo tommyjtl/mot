@@ -28,6 +28,7 @@ declare module '#imports' {
   export { usePointerDownOutside } from '../hooks/usePointerDownOutside';
   export { useTranscriptEditGuard } from '../hooks/useTranscriptEditGuard';
   export { useWindowEvent } from '../hooks/useWindowEvent';
+  export { useWordSurfacePronunciation, useLibraryWordPronunciation, WordSurfaceState, LibrarySurfaceState } from '../hooks/useWordSurfacePronunciation';
   export { estimateAlignmentFromAudio } from '../utils/alignment-from-audio';
   export { arrayBufferToBase64, base64ToArrayBuffer } from '../utils/audio-encoding';
   export { viewportRectToSelectionRect, showCaptureOverlay, hideCaptureOverlay, isCaptureOverlayVisible, ViewportCaptureRect, ViewportCaptureSelection } from '../utils/capture-region';
@@ -50,11 +51,12 @@ declare module '#imports' {
   export { tokenizeWords, isSingleWordText, phraseFromWordRange, WordToken } from '../utils/overlay-phrase';
   export { resetPlaybackClock, stopPlaybackClock, syncPlaybackClock, estimatedPlaybackTimeS, highlightPlaybackTimeS, currentLatencyCompensationS } from '../utils/overlay-playback-clock';
   export { deriveStatusFromTranscriptView, deriveStatusFromTtsView, OverlayStatus } from '../utils/overlay-view-status';
+  export { contextWordSurfaceKey } from '../utils/overlay-word-surface';
   export { overlayWordIndexAtTime } from '../utils/overlay-word-sync';
   export { clearPageUi } from '../utils/page-ui';
   export { MAX_SELECTION_LENGTH, expandIndicesToWordBoundaries, evaluateSelection, getSelectionPayload, SelectionResult } from '../utils/selection';
   export { getTabSession, setTabSession, clearTabSession, TabSessionState } from '../utils/session';
-  export { DEFAULT_SETTINGS, STORAGE_KEY, getSettings, saveSettings, Voice, Lang, MotSettings } from '../utils/settings';
+  export { DEFAULT_SETTINGS, STORAGE_KEY, getSettings, saveSettings, Lang, MotSettings, Voice } from '../utils/settings';
   export { initShortcutRuntime, bindShortcutSettingsSync, getSpeakShortcut, getTranscribeShortcut, isShortcutRuntimeReady } from '../utils/shortcut-runtime';
   export { isSpeakSelectionShortcut } from '../utils/speak-shortcut';
   export { sendSpeakWordMessage, SpeakWordParams } from '../utils/speak-word-client';

@@ -38,9 +38,9 @@
   --card-foreground: #26251e;
   --popover: #ffffff;
   --popover-foreground: #26251e;
-  --primary: #2a3b80;
-  --primary-hover: #223068;
-  --primary-foreground: #ffffff;
+  --primary: #f1c057;
+  --primary-hover: #e0ad4a;
+  --primary-foreground: #26251e;
   --secondary: #ffffff;
   --secondary-foreground: #26251e;
   --muted: #efeee8;
@@ -51,7 +51,7 @@
   --success: #1f8a65;
   --border: #e6e5e0;
   --input: #cfcdc4;
-  --ring: #2a3b80;
+  --ring: #f1c057;
   --radius: 8px;
 }
 

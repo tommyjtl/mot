@@ -18,7 +18,7 @@ export function App() {
           </div>
           <a
             href={libraryPageUrl()}
-            className="shrink-0 pt-1 text-sm text-primary underline-offset-4 hover:underline"
+            className="shrink-0 pt-1 text-sm text-foreground underline-offset-4 hover:underline"
           >
             Saved Library →
           </a>

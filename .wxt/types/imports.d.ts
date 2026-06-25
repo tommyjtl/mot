@@ -51,6 +51,7 @@ declare global {
   const clearTabSession: typeof import('/Users/tommyjtl/Documents/Projects/mot/utils/session').clearTabSession
   const computeCardPositionNearSelection: typeof import('/Users/tommyjtl/Documents/Projects/mot/utils/overlay-layout').computeCardPositionNearSelection
   const computeTopRightPanelPosition: typeof import('/Users/tommyjtl/Documents/Projects/mot/utils/overlay-layout').computeTopRightPanelPosition
+  const contextWordSurfaceKey: typeof import('/Users/tommyjtl/Documents/Projects/mot/utils/overlay-word-surface').contextWordSurfaceKey
   const createIframeUi: typeof import('wxt/utils/content-script-ui/iframe').createIframeUi
   const createIntegratedUi: typeof import('wxt/utils/content-script-ui/integrated').createIntegratedUi
   const createShadowRootUi: typeof import('wxt/utils/content-script-ui/shadow-root').createShadowRootUi
@@ -147,6 +148,7 @@ declare global {
   const useEffect: typeof import('react').useEffect
   const useEscapeKey: typeof import('/Users/tommyjtl/Documents/Projects/mot/hooks/useEscapeKey').useEscapeKey
   const useEventListener: typeof import('/Users/tommyjtl/Documents/Projects/mot/hooks/useEventListener').useEventListener
+  const useLibraryWordPronunciation: typeof import('/Users/tommyjtl/Documents/Projects/mot/hooks/useWordSurfacePronunciation').useLibraryWordPronunciation
   const useMemo: typeof import('react').useMemo
   const useOverlayDismissals: typeof import('/Users/tommyjtl/Documents/Projects/mot/hooks/useOverlayDismissals').useOverlayDismissals
   const useOverlayDrag: typeof import('/Users/tommyjtl/Documents/Projects/mot/hooks/useOverlayDrag').useOverlayDrag
@@ -158,6 +160,7 @@ declare global {
   const useTranscriptEditGuard: typeof import('/Users/tommyjtl/Documents/Projects/mot/hooks/useTranscriptEditGuard').useTranscriptEditGuard
   const useTranscriptHostDrag: typeof import('/Users/tommyjtl/Documents/Projects/mot/hooks/useOverlayDrag').useTranscriptHostDrag
   const useWindowEvent: typeof import('/Users/tommyjtl/Documents/Projects/mot/hooks/useWindowEvent').useWindowEvent
+  const useWordSurfacePronunciation: typeof import('/Users/tommyjtl/Documents/Projects/mot/hooks/useWordSurfacePronunciation').useWordSurfacePronunciation
   const viewportRectToSelectionRect: typeof import('/Users/tommyjtl/Documents/Projects/mot/utils/capture-region').viewportRectToSelectionRect
   const warmUpOffscreenOcr: typeof import('/Users/tommyjtl/Documents/Projects/mot/utils/offscreen-ocr').warmUpOffscreenOcr
   const warmUpOffscreenStt: typeof import('/Users/tommyjtl/Documents/Projects/mot/utils/offscreen-stt').warmUpOffscreenStt
@@ -192,6 +195,9 @@ declare global {
   // @ts-ignore
   export type { ScriptPublicPath, InjectScriptOptions } from 'wxt/utils/inject-script'
   import('wxt/utils/inject-script')
+  // @ts-ignore
+  export type { WordSurfaceState, LibrarySurfaceState } from '/Users/tommyjtl/Documents/Projects/mot/hooks/useWordSurfacePronunciation'
+  import('/Users/tommyjtl/Documents/Projects/mot/hooks/useWordSurfacePronunciation')
   // @ts-ignore
   export type { ViewportCaptureRect, ViewportCaptureSelection } from '/Users/tommyjtl/Documents/Projects/mot/utils/capture-region'
   import('/Users/tommyjtl/Documents/Projects/mot/utils/capture-region')
@@ -232,7 +238,7 @@ declare global {
   export type { TabSessionState } from '/Users/tommyjtl/Documents/Projects/mot/utils/session'
   import('/Users/tommyjtl/Documents/Projects/mot/utils/session')
   // @ts-ignore
-  export type { Voice, Lang, MotSettings } from '/Users/tommyjtl/Documents/Projects/mot/utils/settings'
+  export type { Lang, MotSettings, Voice } from '/Users/tommyjtl/Documents/Projects/mot/utils/settings'
   import('/Users/tommyjtl/Documents/Projects/mot/utils/settings')
   // @ts-ignore
   export type { SpeakWordParams } from '/Users/tommyjtl/Documents/Projects/mot/utils/speak-word-client'

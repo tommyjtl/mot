@@ -146,7 +146,7 @@ export function KeybindInput({
             "hover:bg-muted focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 focus-visible:ring-offset-background",
             "disabled:pointer-events-none disabled:opacity-50",
             recording &&
-              "border-primary bg-[#eef0f8] text-primary ring-2 ring-primary/20",
+              "border-primary bg-[#fdf6e3] text-primary ring-2 ring-primary/20",
           )}
         >
           {recording ? "Press shortcut…" : formatKeyboardShortcut(value)}
