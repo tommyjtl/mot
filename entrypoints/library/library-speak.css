@@ -1,0 +1,31 @@
+@media (prefers-reduced-motion: no-preference) {
+  @keyframes librarySpeakerWave {
+    0%,
+    100% {
+      opacity: 0.25;
+    }
+
+    50% {
+      opacity: 1;
+    }
+  }
+
+  .savedSpeakButton.isActive .speakerWave1 {
+    animation: librarySpeakerWave 1s ease-in-out infinite;
+  }
+
+  .savedSpeakButton.isActive .speakerWave2 {
+    animation: librarySpeakerWave 1s ease-in-out 0.35s infinite;
+  }
+}
+
+.savedSpeakButton svg {
+  width: 1rem;
+  height: 1rem;
+  display: block;
+}
+
+.savedSpeakButton--inline svg {
+  width: 1.125rem;
+  height: 1.125rem;
+}

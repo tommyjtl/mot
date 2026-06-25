@@ -1,0 +1,326 @@
+.hostWrap {
+  position: fixed;
+  left: 50%;
+  bottom: 24px;
+  transform: translateX(-50%);
+  z-index: 2147483647;
+  pointer-events: none;
+  font-family: system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
+}
+
+.transcriptCard {
+  pointer-events: auto;
+  width: min(420px, calc(100vw - 24px));
+  border-radius: 14px;
+}
+
+.headerLeft {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  min-width: 0;
+}
+
+.headerSpinner {
+  display: none;
+  flex: 0 0 auto;
+}
+
+.headerSpinner.isVisible {
+  display: inline-block;
+}
+
+.headerPause {
+  display: none;
+  width: var(--mot-icon-size-sm);
+  height: var(--mot-icon-size-sm);
+  flex: 0 0 auto;
+  color: #64748b;
+}
+
+.headerPause.isVisible {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.headerPause svg {
+  width: 100%;
+  height: 100%;
+  display: block;
+}
+
+.headerActions {
+  display: flex;
+  align-items: center;
+  gap: 2px;
+  flex-shrink: 0;
+}
+
+.title {
+  margin: 0;
+  font-size: 11px;
+  font-weight: 500;
+  line-height: 1;
+  letter-spacing: 0.04em;
+  text-transform: uppercase;
+  color: #64748b;
+}
+
+.transcriptBody {
+  padding: 12px 14px 10px;
+}
+
+.transcript {
+  display: block;
+  width: 100%;
+  box-sizing: border-box;
+  margin: 0;
+  border: 0;
+  padding: 0;
+  background: transparent;
+  font-family: inherit;
+  font-size: var(--mot-overlay-body-text-size);
+  line-height: 1.45;
+  color: #0f172a;
+  overflow-x: hidden;
+  overflow-y: auto;
+  outline: none;
+  word-break: break-word;
+  white-space: pre-wrap;
+  height: calc(1.45em * 1);
+  min-height: calc(1.45em * 1);
+  max-height: calc(1.45em * 3);
+}
+
+.transcript[data-rows="2"] {
+  height: calc(1.45em * 2);
+}
+
+.transcript[data-rows="3"] {
+  height: calc(1.45em * 3);
+}
+
+.transcript.is-read-mode .word {
+  cursor: pointer;
+  border-radius: 3px;
+}
+
+.transcript.is-read-mode .word:hover:not(.isActive):not(.isLoading) {
+  background: rgba(79, 70, 229, 0.1);
+}
+
+.transcript.is-read-mode .word.isLoading {
+  opacity: 0.65;
+}
+
+.transcript.is-read-mode.isSelecting {
+  user-select: none;
+  cursor: text;
+}
+
+.transcript.is-read-mode .word.isInRange:not(.isActive):not(.isLoading):not(.isInPhrase) {
+  background: rgba(79, 70, 229, 0.18);
+}
+
+.transcript.is-read-mode .word.isInPhrase:not(.isActive):not(.isLoading) {
+  background-color: #e2e8f0;
+  box-decoration-break: clone;
+  -webkit-box-decoration-break: clone;
+  border-radius: 3px;
+  padding: 0 1px;
+}
+
+.transcript.is-read-mode .word.isActive {
+  background-color: var(--mot-word-highlight-bg);
+  box-decoration-break: clone;
+  -webkit-box-decoration-break: clone;
+  border-radius: var(--mot-word-highlight-radius);
+  padding: 0 1px;
+}
+
+.transcript.isSelecting {
+  user-select: none;
+  cursor: text;
+}
+
+.transcript.isPlaceholder {
+  color: #94a3b8;
+  font-style: italic;
+}
+
+.transcript.isEditing {
+  background: #f1f5f9;
+  border-radius: 6px;
+  cursor: text;
+  resize: none;
+}
+
+.transcriptFooter {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  padding: 0 14px 14px;
+}
+
+.footerToolbar {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.footerToolbarLeft {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  min-width: 0;
+  flex: 1;
+}
+
+.footerToolbarActions {
+  display: flex;
+  align-items: center;
+  gap: 2px;
+  flex-shrink: 0;
+}
+
+.realtimeTranslationToggle {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  min-width: 0;
+  cursor: pointer;
+  user-select: none;
+}
+
+.realtimeTranslationToggleLabel {
+  font-size: 11px;
+  line-height: 1.2;
+  color: #64748b;
+}
+
+.realtimeTranslationSwitch {
+  position: relative;
+  flex: 0 0 auto;
+  width: 28px;
+  height: 16px;
+  margin: 0;
+  padding: 0;
+  border: 0;
+  border-radius: 999px;
+  background: #cbd5e1;
+  cursor: pointer;
+  transition: background-color 0.15s ease;
+}
+
+.realtimeTranslationSwitch::after {
+  content: "";
+  position: absolute;
+  top: 2px;
+  left: 2px;
+  width: 12px;
+  height: 12px;
+  border-radius: 50%;
+  background: #ffffff;
+  box-shadow: 0 1px 2px rgba(15, 23, 42, 0.18);
+  transition: transform 0.15s ease;
+}
+
+.realtimeTranslationSwitch.isOn {
+  background: #4f46e5;
+}
+
+.realtimeTranslationSwitch.isOn::after {
+  transform: translateX(12px);
+}
+
+.realtimeTranslationToggle.isDisabled {
+  cursor: not-allowed;
+  opacity: 0.55;
+}
+
+.realtimeTranslationToggle.isDisabled .realtimeTranslationToggleLabel {
+  color: #94a3b8;
+}
+
+.realtimeTranslationSwitch:disabled {
+  cursor: not-allowed;
+  opacity: 1;
+}
+
+.realtimeTranslationSwitch:disabled.isOn {
+  background: #cbd5e1;
+}
+
+.realtimeTranslationSwitch:focus-visible {
+  outline: 2px solid rgba(79, 70, 229, 0.45);
+  outline-offset: 2px;
+}
+
+.iconButton.transcriptRecordButton {
+  color: #ef4444;
+}
+
+.iconButton.transcriptRecordButton:hover {
+  background: rgba(239, 68, 68, 0.1);
+  color: #dc2626;
+}
+
+.playbackBtn .iconStop {
+  display: none;
+}
+
+.playbackBtn:hover .iconSpeaker {
+  display: none;
+}
+
+.playbackBtn:hover .iconStop {
+  display: block;
+}
+
+@keyframes motSpeakerWave {
+
+  0%,
+  100% {
+    opacity: 0.25;
+  }
+
+  50% {
+    opacity: 1;
+  }
+}
+
+.speakerWave1 {
+  animation: motSpeakerWave 1s ease-in-out infinite;
+}
+
+.speakerWave2 {
+  animation: motSpeakerWave 1s ease-in-out 0.35s infinite;
+}
+
+.captureAllowFrame {
+  display: block;
+  width: 100%;
+  height: 36px;
+  border: 0;
+  background: transparent;
+  overflow: hidden;
+}
+
+.allowButton {
+  appearance: none;
+  align-self: flex-start;
+  border: 1px solid rgba(79, 70, 229, 0.25);
+  background: #eef2ff;
+  color: #3730a3;
+  border-radius: 8px;
+  padding: 8px 12px;
+  font: inherit;
+  font-size: 13px;
+  cursor: pointer;
+}
+
+.allowButton:hover {
+  background: #e0e7ff;
+  border-color: rgba(79, 70, 229, 0.4);
+}

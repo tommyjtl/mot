@@ -85,6 +85,21 @@ export const chromeTranslatorProvider: TranslationProvider = {
     return typeof Translator !== "undefined";
   },
 
+  async prepare({
+    sourceLanguage,
+    targetLanguage,
+  }: {
+    sourceLanguage: string;
+    targetLanguage: string;
+  }): Promise<boolean> {
+    if (!this.isSupported()) {
+      return false;
+    }
+
+    const translator = await getTranslator(sourceLanguage, targetLanguage);
+    return translator !== null;
+  },
+
   async translate(request: TranslationRequest): Promise<TranslationResponse> {
     const trimmed = request.text.trim();
     if (!trimmed) {
@@ -124,16 +139,3 @@ export const chromeTranslatorProvider: TranslationProvider = {
     }
   },
 };
-
-/** Default provider for Mot (French → English gloss while learning). */
-export function translateForLearning(text: string): Promise<TranslationResponse> {
-  return chromeTranslatorProvider.translate({
-    text,
-    sourceLanguage: "fr",
-    targetLanguage: "en",
-  });
-}
-
-export function isLearningTranslationSupported(): boolean {
-  return chromeTranslatorProvider.isSupported();
-}

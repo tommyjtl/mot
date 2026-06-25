@@ -1,6 +1,6 @@
 # IPA / G2P — investigation notes (deferred)
 
-Mot explored on-device IPA (International Phonetic Alphabet) for tapped words. We **deferred** this feature: the cost/complexity outweighs the benefit for now, especially next to Chrome’s built-in Translator API for glosses.
+Motif explored on-device IPA (International Phonetic Alphabet) for tapped words. We **deferred** this feature: the cost/complexity outweighs the benefit for now, especially next to Chrome’s built-in Translator API for glosses.
 
 ## What we wanted
 
@@ -56,7 +56,7 @@ Local file missing at ".../tokenizer.json"
 
 ## What a full implementation would require
 
-If we revisit IPA later, a realistic path (aligned with Mot’s Supertonic pattern):
+If we revisit IPA later, a realistic path (aligned with Motif’s Supertonic pattern):
 
 1. **Download & serve** — Extend `scripts/models.py` to fetch G2P assets into `models/g2p/` (with `onnx/` subfolder + tokenizer sidecars), serve from port 8091 like Supertonic.
 

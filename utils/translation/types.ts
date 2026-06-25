@@ -15,5 +15,9 @@ export type TranslationResponse =
 export interface TranslationProvider {
   readonly id: string;
   isSupported(): boolean;
+  prepare?(request: {
+    sourceLanguage: TranslationLanguage;
+    targetLanguage: TranslationLanguage;
+  }): Promise<boolean>;
   translate(request: TranslationRequest): Promise<TranslationResponse>;
 }

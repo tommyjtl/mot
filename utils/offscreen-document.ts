@@ -18,6 +18,23 @@ import {
   warmUpOcrEngine,
 } from "./ocr/tesseract-engine";
 import {
+  OFFSCREEN_STT_START,
+  OFFSCREEN_STT_STOP,
+  OFFSCREEN_STT_CANCEL,
+  OFFSCREEN_STT_STATUS,
+  OFFSCREEN_STT_SESSION,
+  OFFSCREEN_STT_WARMUP,
+} from "./offscreen-stt";
+import {
+  getSttEngineStatus,
+  isTranscriptionActive,
+  startTabTranscription,
+  stopTabTranscription,
+  cancelTabTranscription,
+  transcriptionTabId,
+  warmUpSttEngine,
+} from "./stt/offscreen-stt-session";
+import {
   synthesizeLocally,
   warmUpTtsEngine,
   getEngineStatus,
@@ -39,11 +56,15 @@ function relayModelProgress(progress: TtsProgress): void {
 }
 
 async function notifyTabProgress(
-  tabId: number,
+  tabId: number | undefined,
   requestId: number,
   progress: TtsProgress,
 ): Promise<void> {
   relayModelProgress(progress);
+
+  if (tabId == null) {
+    return;
+  }
 
   try {
     await browser.tabs.sendMessage(tabId, {
@@ -107,7 +128,7 @@ export function setupOffscreenDocument(): void {
     tabId: number | undefined,
     state: "playing" | "timeupdate" | "paused" | "ended",
   ): void {
-    if (!tabId || !currentAudio) {
+    if (!currentAudio) {
       return;
     }
 
@@ -173,7 +194,7 @@ export function setupOffscreenDocument(): void {
       }
 
       void currentAudio.play().catch((error: unknown) => {
-        console.error("[mot] Offscreen audio playback failed:", error);
+        console.error("[motif] Offscreen audio playback failed:", error);
       });
     };
 
@@ -256,6 +277,62 @@ export function setupOffscreenDocument(): void {
             error: error instanceof Error ? error.message : "OCR failed",
           });
         });
+      return true;
+    }
+
+    if (message?.type === OFFSCREEN_STT_START) {
+      const { streamId, tabId } = message as {
+        streamId: string;
+        tabId: number;
+      };
+
+      void startTabTranscription(streamId, tabId)
+        .then(() => sendResponse({ ok: true }))
+        .catch((error: unknown) => {
+          sendResponse({
+            ok: false,
+            error:
+              error instanceof Error ? error.message : "Transcription failed",
+          });
+        });
+      return true;
+    }
+
+    if (message?.type === OFFSCREEN_STT_WARMUP) {
+      void warmUpSttEngine()
+        .then(() => sendResponse({ ok: true }))
+        .catch((error: unknown) => {
+          sendResponse({
+            ok: false,
+            error:
+              error instanceof Error
+                ? error.message
+                : "Speech model warm-up failed",
+          });
+        });
+      return true;
+    }
+
+    if (message?.type === OFFSCREEN_STT_STATUS) {
+      sendResponse({ status: getSttEngineStatus() });
+      return false;
+    }
+
+    if (message?.type === OFFSCREEN_STT_SESSION) {
+      sendResponse({
+        active: isTranscriptionActive(),
+        tabId: transcriptionTabId(),
+      });
+      return false;
+    }
+
+    if (message?.type === OFFSCREEN_STT_STOP) {
+      void stopTabTranscription().then(() => sendResponse({ ok: true }));
+      return true;
+    }
+
+    if (message?.type === OFFSCREEN_STT_CANCEL) {
+      void cancelTabTranscription().then(() => sendResponse({ ok: true }));
       return true;
     }
 

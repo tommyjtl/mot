@@ -1,0 +1,84 @@
+:root {
+  --mot-word-highlight-bg: rgb(250 204 21);
+  --mot-word-highlight-radius: 3px;
+}
+
+.libraryWordText {
+  margin: 0;
+  font-size: 1.25rem;
+  font-weight: 600;
+  line-height: 1.35;
+  white-space: pre-wrap;
+  word-break: break-word;
+}
+
+.libraryTranslationText {
+  margin: 0;
+  font-size: 1.25rem;
+  font-weight: 600;
+  line-height: 1.35;
+  white-space: pre-wrap;
+  word-break: break-word;
+  color: var(--foreground);
+}
+
+.libraryContextText {
+  margin: 0;
+  font-size: 18px;
+  font-weight: 400;
+  line-height: 1.45;
+  white-space: pre-wrap;
+  word-break: break-word;
+  color: var(--foreground);
+}
+
+.libraryContextText .word,
+.libraryWordText .word,
+.libraryWordText.wordText .word {
+  cursor: pointer;
+  border-radius: 3px;
+}
+
+.libraryContextText .word:hover:not(.isActive):not(.isLoading),
+.libraryWordText .word:hover:not(.isActive):not(.isLoading) {
+  background: rgba(79, 70, 229, 0.1);
+}
+
+.libraryContextText .word.isLoading,
+.libraryWordText .word.isLoading {
+  opacity: 0.65;
+}
+
+.libraryContextText.isSelecting,
+.libraryWordText.isSelecting {
+  user-select: none;
+  cursor: text;
+}
+
+.libraryContextText .word.isInRange:not(.isActive):not(.isLoading):not(.isInPhrase),
+.libraryWordText .word.isInRange:not(.isActive):not(.isLoading):not(.isInPhrase) {
+  background: rgba(79, 70, 229, 0.18);
+}
+
+.libraryContextText .word.isInPhrase:not(.isActive):not(.isLoading),
+.libraryWordText .word.isInPhrase:not(.isActive):not(.isLoading) {
+  background-color: #e2e8f0;
+  box-decoration-break: clone;
+  -webkit-box-decoration-break: clone;
+  border-radius: 3px;
+  padding: 0 1px;
+}
+
+.libraryContextText .word.isSavedTerm:not(.isActive):not(.isLoading):not(.isInRange):not(.isInPhrase),
+.libraryContextText .word.isActive,
+.libraryWordText .word.isActive {
+  background-color: var(--mot-word-highlight-bg);
+  box-decoration-break: clone;
+  -webkit-box-decoration-break: clone;
+  border-radius: var(--mot-word-highlight-radius);
+  padding: 0 1px;
+}
+
+.libraryContextText .word.isSavedTerm:not(.isActive):not(.isLoading):not(.isInRange):not(.isInPhrase) {
+  font-weight: 600;
+}

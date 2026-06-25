@@ -1,4 +1,5 @@
 import type { Lang, Voice } from "../settings";
+import { DEFAULT_VOICE } from "./voices";
 import type { TtsAlignment } from "../tts-types";
 import { DEFAULT_SPEED, DEFAULT_TOTAL_STEPS } from "./constants";
 import { isModelCached } from "./model-cache";
@@ -9,8 +10,6 @@ import {
 } from "./loader";
 import { Style, TextToSpeech } from "./text-to-speech";
 import { writeWavFile } from "./wav";
-
-const DEFAULT_VOICE: Voice = "F1";
 
 export type TtsProgress =
   | ModelLoadProgress

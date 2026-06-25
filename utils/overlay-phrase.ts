@@ -27,6 +27,10 @@ export function tokenizeWords(source: string): WordToken[] {
   return tokens;
 }
 
+export function isSingleWordText(source: string): boolean {
+  return tokenizeWords(source.normalize("NFC")).length === 1;
+}
+
 /** Slice source text for a word index range, expanding partial edges to whole words. */
 export function phraseFromWordRange(
   source: string,

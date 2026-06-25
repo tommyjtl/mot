@@ -1,6 +1,15 @@
 import { resolve } from "node:path";
+import tailwindcss from "@tailwindcss/vite";
 import { defineConfig } from "wxt";
 
+/**
+ * @note
+ * - https://www.youtube.com/watch?v=axzZ3zvdA9M
+ * - https://www.rfi.fr/fr/france/
+ * - https://www.instagram.com/p/DWrTxvjgv_g/
+ * - https://www.youtube.com/watch?v=IVo5R2yaxB0
+ * - https://youtu.be/tA3YBYYmIrg?t=18
+ */
 const DEV_START_URL =
   "https://www.rfi.fr/fr/france/";
 
@@ -8,38 +17,56 @@ const DEV_START_URL =
 const DEV_CHROME_PROFILE = resolve(".wxt/chrome-data");
 
 export default defineConfig({
+  modules: ["@wxt-dev/module-react"],
   webExt: {
     chromiumArgs: [`--user-data-dir=${DEV_CHROME_PROFILE}`],
     startUrls: [DEV_START_URL],
   },
   vite: () => ({
+    plugins: [tailwindcss()],
     optimizeDeps: {
       exclude: ["onnxruntime-web"],
     },
+    resolve: {
+      alias: {
+        "@": resolve("."),
+      },
+    },
   }),
   manifest: {
-    name: "Mot",
+    content_security_policy: {
+      extension_pages: "script-src 'self' 'wasm-unsafe-eval'; object-src 'self';",
+    },
+    name: "Motif",
+    theme_color: "#f1c057",
     description:
-      "Hear natural French pronunciation while reading the web, powered by on-device Supertonic TTS.",
-    permissions: ["storage", "activeTab", "offscreen"],
-    host_permissions: [
-      "https://huggingface.co/*",
-      "http://127.0.0.1:8091/*",
-    ],
-    web_accessible_resources: [
-      {
-        resources: ["ort/*", "tesseract/*", "tesseract/tessdata/*"],
-        matches: ["<all_urls>"],
-      },
-    ],
+      "Hear it, save it, remember it. On-device French pronunciation and live tab transcription.",
+    permissions: ["storage", "activeTab", "tabs", "offscreen", "tabCapture"],
     commands: {
       "speak-selection": {
         suggested_key: {
           default: "Alt+S",
           mac: "Alt+S",
         },
-        description: "Speak the selected text aloud",
+        description: "Speak selected text on the active page",
+      },
+      "transcribe-tab": {
+        suggested_key: {
+          default: "Alt+T",
+          mac: "Alt+T",
+        },
+        description: "Transcribe audio from the active tab",
       },
     },
+    host_permissions: [
+      "https://huggingface.co/*",
+      "http://127.0.0.1:8091/*",
+    ],
+    web_accessible_resources: [
+      {
+        resources: ["ort/*", "tesseract/*", "tesseract/tessdata/*", "stt/*", "stt/pkg/*"],
+        matches: ["<all_urls>"],
+      },
+    ],
   },
 });

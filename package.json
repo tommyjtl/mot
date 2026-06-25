@@ -1,5 +1,5 @@
 {
-  "name": "mot",
+  "name": "motif",
   "version": "1.0.0",
   "description": "",
   "main": "index.js",
@@ -9,28 +9,49 @@
     "dev:clean-tmp": "node scripts/clean-web-ext-tmp.mjs",
     "build": "wxt build",
     "zip": "wxt zip",
-    "postinstall": "wxt prepare && node scripts/copy-ort-wasm.mjs && node scripts/copy-tesseract-assets.mjs",
+    "postinstall": "wxt prepare && node scripts/copy-ort-wasm.mjs && node scripts/copy-tesseract-assets.mjs && node scripts/copy-stt-assets.mjs",
+    "stt:download": "node scripts/copy-stt-assets.mjs",
     "models:download": "python3 scripts/models.py download",
-    "models:serve": "python3 scripts/models.py serve --port 8091"
+    "models:serve": "python3 scripts/models.py serve --port 8091",
+    "icons:generate": "node scripts/generate-icons.mjs",
+    "doctor": "npx react-doctor@latest"
   },
   "repository": {
     "type": "git",
-    "url": "git+https://github.com/tommyjtl/mot.git"
+    "url": "git+https://github.com/tommyjtl/motif.git"
   },
   "keywords": [],
   "author": "",
   "license": "ISC",
   "type": "module",
   "bugs": {
-    "url": "https://github.com/tommyjtl/mot/issues"
+    "url": "https://github.com/tommyjtl/motif/issues"
   },
-  "homepage": "https://github.com/tommyjtl/mot#readme",
+  "homepage": "https://github.com/tommyjtl/motif#readme",
   "devDependencies": {
+    "@types/react": "^19.2.17",
+    "@types/react-dom": "^19.2.3",
+    "@wxt-dev/module-react": "^1.2.2",
+    "react-doctor": "^0.5.8",
     "typescript": "^6.0.3",
     "wxt": "^0.20.26"
   },
   "dependencies": {
+    "@radix-ui/react-dialog": "^1.1.17",
+    "@radix-ui/react-label": "^2.1.10",
+    "@radix-ui/react-progress": "^1.1.10",
+    "@radix-ui/react-select": "^2.3.1",
+    "@radix-ui/react-separator": "^1.1.10",
+    "@radix-ui/react-slot": "^1.3.0",
+    "@tailwindcss/vite": "^4.3.1",
+    "class-variance-authority": "^0.7.1",
+    "clsx": "^2.1.1",
+    "lucide-react": "^1.21.0",
     "onnxruntime-web": "^1.21.0",
+    "react": "^19.2.7",
+    "react-dom": "^19.2.7",
+    "tailwind-merge": "^3.6.0",
+    "tailwindcss": "^4.3.1",
     "tesseract.js": "^7.0.0"
   }
 }

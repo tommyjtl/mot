@@ -1,0 +1,680 @@
+:host {
+  all: initial;
+  font-family: var(--mot-overlay-font-family);
+  font-size: var(--mot-overlay-font-size);
+  line-height: var(--mot-overlay-line-height);
+  color: var(--mot-overlay-color);
+}
+
+.card {
+  position: relative;
+  box-sizing: border-box;
+  border-radius: 10px;
+  border: 1px solid rgba(15, 23, 42, 0.12);
+  background: #ffffff;
+  color: #0f172a;
+  box-shadow:
+    0 10px 30px rgba(15, 23, 42, 0.12),
+    0 2px 8px rgba(15, 23, 42, 0.08);
+  font-family: var(--mot-overlay-font-family);
+  font-size: 14px;
+  line-height: 1.45;
+  overflow: hidden;
+}
+
+.header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 6px;
+  min-height: 0;
+  padding: 4px 6px 4px 8px;
+  border-bottom: 1px solid rgba(15, 23, 42, 0.08);
+  background: #f8fafc;
+  cursor: grab;
+  user-select: none;
+  touch-action: none;
+}
+
+.header.isDragging {
+  cursor: grabbing;
+}
+
+.dragHandle {
+  display: flex;
+  flex-direction: column;
+  justify-content: center;
+  gap: 2px;
+  width: var(--mot-icon-size-sm);
+  height: var(--mot-icon-size-sm);
+  pointer-events: none;
+}
+
+.dragHandle span {
+  display: block;
+  height: 1.5px;
+  border-radius: 999px;
+  background: #94a3b8;
+}
+
+.headerTitle {
+  flex: 1;
+  margin: 0;
+  color: #64748b;
+  font-size: 11px;
+  font-weight: 500;
+  line-height: 1;
+  letter-spacing: 0.01em;
+  pointer-events: none;
+}
+
+.closeButton {
+  margin-left: auto;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: var(--mot-close-button-size);
+  height: var(--mot-close-button-size);
+  padding: 0;
+  border: 0;
+  border-radius: 4px;
+  background: transparent;
+  color: #64748b;
+  font: inherit;
+  font-size: 15px;
+  line-height: 1;
+  cursor: pointer;
+  flex-shrink: 0;
+}
+
+.closeButton:hover {
+  background: rgba(15, 23, 42, 0.06);
+  color: #0f172a;
+}
+
+.body {
+  padding: 12px 14px 14px;
+}
+
+.translationSection {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  margin-bottom: 8px;
+}
+
+.translationLine {
+  margin: 0;
+  min-width: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+  font-size: 14px;
+  line-height: 1.4;
+  color: #334155;
+}
+
+.translationLineHeader {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 8px;
+  width: 100%;
+}
+
+.translationLabel {
+  color: #64748b;
+  font-weight: 500;
+  font-size: 11px;
+  line-height: 1.3;
+  letter-spacing: 0.04em;
+  text-transform: uppercase;
+  margin-bottom: 2px;
+}
+
+.translationOriginalValue,
+.translationGlossValue {
+  font-size: var(--mot-overlay-body-text-size);
+  font-weight: 700;
+  white-space: pre-wrap;
+  word-break: break-word;
+}
+
+.translationSpeakable {
+  appearance: none;
+  display: inline;
+  border: 0;
+  background: transparent;
+  padding: 0 1px;
+  margin: 0;
+  color: inherit;
+  font: inherit;
+  font-weight: inherit;
+  line-height: inherit;
+  text-align: left;
+  border-radius: 3px;
+  box-decoration-break: clone;
+  -webkit-box-decoration-break: clone;
+}
+
+.translationSpeakable:focus-visible {
+  outline: 2px solid rgba(79, 70, 229, 0.35);
+  outline-offset: 2px;
+}
+
+.translationSpeakable:disabled {
+  cursor: wait;
+}
+
+.translationGlossValue.isLoading {
+  font-weight: 400;
+  color: #64748b;
+}
+
+.translationRestore {
+  appearance: none;
+  border: 0;
+  background: transparent;
+  color: #64748b;
+  font-weight: 500;
+  font-size: 11px;
+  line-height: 1.3;
+  cursor: pointer;
+  margin: 0;
+  padding: 0;
+  text-align: right;
+  white-space: nowrap;
+  flex-shrink: 0;
+}
+
+.translationRestore:hover {
+  color: #0f172a;
+  text-decoration: underline;
+  text-underline-offset: 2px;
+}
+
+.vocabActionRoot {
+  position: relative;
+  display: flex;
+  align-items: center;
+  flex-shrink: 0;
+}
+
+.vocabRowAction {
+  color: #4f46e5;
+}
+
+.vocabRowAction:hover {
+  color: #4338ca;
+  background: rgba(79, 70, 229, 0.1);
+}
+
+.inlineSpinner {
+  display: inline-block;
+  box-sizing: border-box;
+  width: var(--mot-spinner-size, var(--mot-spinner-size-sm));
+  height: var(--mot-spinner-size, var(--mot-spinner-size-sm));
+  flex: 0 0 auto;
+  border: var(--mot-spinner-border-width) solid rgba(71, 85, 105, 0.25);
+  border-top-color: #475569;
+  border-radius: 50%;
+  animation: motSpin 0.8s linear infinite;
+}
+
+.status .inlineSpinner {
+  margin-right: 6px;
+  vertical-align: -2px;
+}
+
+.iconButton .inlineSpinner {
+  --mot-spinner-size: var(--mot-icon-size);
+}
+
+@keyframes motSpin {
+  to {
+    transform: rotate(360deg);
+  }
+}
+
+.vocabCard {
+  box-sizing: border-box;
+  padding: 10px 10px 8px;
+  border: 1px solid rgba(15, 23, 42, 0.12);
+  border-radius: 10px;
+  background: #ffffff;
+  font-family: var(--mot-overlay-font-family);
+  font-size: 14px;
+  line-height: 1.45;
+  color: #0f172a;
+  box-shadow:
+    0 10px 30px rgba(15, 23, 42, 0.12),
+    0 2px 8px rgba(15, 23, 42, 0.08);
+}
+
+.vocabCardFloating {
+  max-height: min(70vh, 420px);
+  overflow-y: auto;
+}
+
+.vocabActionError {
+  margin: 0;
+  padding: 6px 8px;
+  border-radius: 8px;
+  background: #fef2f2;
+  border: 1px solid rgba(185, 28, 28, 0.2);
+  color: #b91c1c;
+  font-size: 11px;
+  line-height: 1.35;
+  text-align: left;
+}
+
+.vocabActionErrorInline {
+  position: absolute;
+  top: calc(100% + 4px);
+  right: 0;
+  z-index: 3;
+  width: max-content;
+  max-width: min(240px, calc(100vw - 48px));
+}
+
+.vocabCardIntro {
+  margin-bottom: 10px;
+}
+
+.vocabCardHeader {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 8px;
+}
+
+.vocabCardOriginal {
+  margin: 0;
+  flex: 1;
+  min-width: 0;
+  font-size: var(--mot-overlay-body-text-size);
+  font-weight: 700;
+  line-height: 1.3;
+  color: #0f172a;
+  word-break: break-word;
+}
+
+.vocabCardTranslation {
+  margin: 2px 0 0;
+  font-size: var(--mot-overlay-body-text-size);
+  font-weight: 400;
+  line-height: 1.3;
+  color: #0f172a;
+  word-break: break-word;
+}
+
+.vocabEntryDetails {
+  display: flex;
+  flex-direction: column;
+}
+
+.vocabCardSection {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+  margin-bottom: 0;
+  padding: 8px 0;
+}
+
+.vocabEntryDetails > .vocabCardSection:first-child {
+  padding-top: 0;
+  min-height: 0;
+}
+
+.vocabEntryDetails > .vocabCardSection:last-child {
+  padding-bottom: 0;
+}
+
+.vocabCardSectionHeader {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 8px;
+  min-height: 20px;
+}
+
+.vocabCardLabel {
+  margin: 0;
+  color: #64748b;
+  font-size: 10px;
+  font-weight: 600;
+  line-height: 1.3;
+  letter-spacing: 0.04em;
+  text-transform: uppercase;
+}
+
+.vocabContextList {
+  margin: 0;
+  padding: 0;
+  list-style: none;
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  max-height: var(--mot-vocab-context-max-height);
+  overflow-y: auto;
+  overscroll-behavior: contain;
+  -webkit-overflow-scrolling: touch;
+}
+
+.vocabContextItem {
+  margin: 0;
+  padding: 10px 10px 8px;
+  border-radius: 8px;
+  background: #f8fafc;
+}
+
+.vocabContextItem .wordText.vocabContextText {
+  margin: 0;
+  max-height: none;
+  overflow: visible;
+  line-height: 1.45;
+  color: #0f172a;
+}
+
+.vocabContextItem .wordText.vocabContextText .word.isSavedTerm:not(.isActive):not(.isLoading):not(.isInRange):not(.isInPhrase) {
+  font-weight: 600;
+  background-color: var(--mot-word-highlight-bg);
+  box-decoration-break: clone;
+  -webkit-box-decoration-break: clone;
+  border-radius: var(--mot-word-highlight-radius);
+  padding: 0 1px;
+}
+
+.vocabContextFooter {
+  display: flex;
+  align-items: flex-end;
+  justify-content: space-between;
+  gap: 8px;
+  margin-top: 2px;
+}
+
+.vocabContextMeta {
+  margin: 0;
+  flex: 1;
+  min-width: 0;
+  font-size: 13px;
+  font-weight: 400;
+  line-height: 1.4;
+  color: #9ca3af;
+  word-break: break-word;
+}
+
+.vocabContextDelete {
+  flex-shrink: 0;
+  color: #94a3b8;
+}
+
+.vocabContextDelete:hover {
+  color: #b91c1c;
+  background: rgba(185, 28, 28, 0.08);
+}
+
+.vocabContextLink {
+  color: inherit;
+  text-decoration: none;
+}
+
+.vocabContextLink:hover {
+  color: #4f46e5;
+  text-decoration: underline;
+  text-underline-offset: 2px;
+}
+
+.vocabCardEmpty {
+  margin: 0;
+  font-size: 12px;
+  line-height: 1.4;
+  color: #94a3b8;
+}
+
+.vocabNoteInput {
+  width: 100%;
+  box-sizing: border-box;
+  margin: 0;
+  padding: 6px 8px;
+  border: 1px solid rgba(15, 23, 42, 0.12);
+  border-radius: 6px;
+  background: #ffffff;
+  color: #0f172a;
+  font-family: inherit;
+  font-size: 13px;
+  font-weight: 400;
+  line-height: 1.4;
+  resize: vertical;
+  min-height: 56px;
+}
+
+.vocabNoteInput:focus {
+  outline: 2px solid rgba(79, 70, 229, 0.25);
+  outline-offset: 1px;
+}
+
+.vocabCardFooter {
+  margin: 0;
+  padding-top: 8px;
+  font-size: 13px;
+  line-height: 1.4;
+  color: #9ca3af;
+  word-break: break-word;
+}
+
+.vocabCardFooterRow {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+  padding-top: 8px;
+}
+
+.vocabCardFooterRow .vocabCardFooter {
+  padding-top: 0;
+}
+
+.vocabLibraryLink {
+  margin: 0;
+  padding: 0;
+  border: 0;
+  background: transparent;
+  color: #26251e;
+  font-size: 13px;
+  font-weight: 500;
+  line-height: 1.4;
+  white-space: nowrap;
+  cursor: pointer;
+  text-decoration: none;
+}
+
+.vocabLibraryLink:hover {
+  text-decoration: underline;
+}
+
+.vocabLibraryLink:focus-visible {
+  outline: 2px solid #26251e;
+  outline-offset: 2px;
+  border-radius: 2px;
+}
+
+.translationDivider {
+  border: 0;
+  border-top: 1px solid rgba(15, 23, 42, 0.1);
+  margin: 6px 0 0;
+}
+
+.wordText {
+  font-size: var(--mot-overlay-body-text-size);
+  margin: 0 0 10px;
+  max-height: min(40vh, 320px);
+  overflow-y: auto;
+  word-break: break-word;
+  white-space: pre-wrap;
+}
+
+.word {
+  cursor: pointer;
+  border-radius: 3px;
+}
+
+.word:hover:not(.isActive):not(.isLoading) {
+  background: rgba(79, 70, 229, 0.1);
+}
+
+.word.isLoading {
+  opacity: 0.65;
+}
+
+.wordText.isSelecting {
+  user-select: none;
+  cursor: text;
+}
+
+.word.isInRange:not(.isActive):not(.isLoading):not(.isInPhrase) {
+  background: rgba(79, 70, 229, 0.18);
+}
+
+.word.isInPhrase:not(.isActive):not(.isLoading) {
+  background-color: #e2e8f0;
+  box-decoration-break: clone;
+  -webkit-box-decoration-break: clone;
+  border-radius: 3px;
+  padding: 0 1px;
+}
+
+.word.isActive {
+  background-color: var(--mot-word-highlight-bg);
+  box-decoration-break: clone;
+  -webkit-box-decoration-break: clone;
+  border-radius: var(--mot-word-highlight-radius);
+  padding: 0 1px;
+}
+
+.status {
+  margin: 0;
+  color: #475569;
+  font-size: 13px;
+  line-height: 1.4;
+}
+
+.statusBlock {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+}
+
+.statusOptionsLink {
+  appearance: none;
+  align-self: flex-start;
+  margin: 0;
+  padding: 0;
+  border: 0;
+  background: transparent;
+  color: #64748b;
+  font: inherit;
+  font-size: 12px;
+  font-weight: 500;
+  line-height: 1.35;
+  text-align: left;
+  cursor: pointer;
+}
+
+.statusOptionsLink:hover {
+  color: #4f46e5;
+  text-decoration: underline;
+  text-underline-offset: 2px;
+}
+
+.status.error {
+  color: #b91c1c;
+}
+
+.footer {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+
+.progressTrack {
+  height: 6px;
+  margin-top: 10px;
+  border-radius: 999px;
+  background: rgba(15, 23, 42, 0.08);
+  overflow: hidden;
+}
+
+.progressFill {
+  height: 100%;
+  width: 0%;
+  border-radius: inherit;
+  background: #4f46e5;
+  transition: width 180ms ease;
+}
+
+.actions {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.actionButton {
+  appearance: none;
+  border: 1px solid rgba(15, 23, 42, 0.14);
+  background: #f8fafc;
+  color: #0f172a;
+  border-radius: 8px;
+  padding: 6px 10px;
+  font: inherit;
+  font-size: 13px;
+  cursor: pointer;
+}
+
+.actionButton:hover {
+  background: #eef2ff;
+  border-color: rgba(79, 70, 229, 0.35);
+}
+
+.actionButton.isPlaying {
+  background: #fef2f2;
+  border-color: rgba(220, 38, 38, 0.25);
+  color: #991b1b;
+}
+
+.actionButton.isPlaying:hover {
+  background: #fee2e2;
+  border-color: rgba(220, 38, 38, 0.4);
+}
+
+.iconButton {
+  appearance: none;
+  border: 0;
+  background: transparent;
+  color: #64748b;
+  box-sizing: border-box;
+  padding: var(--mot-icon-button-padding);
+  border-radius: var(--mot-icon-button-radius);
+  cursor: pointer;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  flex-shrink: 0;
+  line-height: 0;
+}
+
+.iconButton:hover {
+  background: rgba(15, 23, 42, 0.06);
+  color: #0f172a;
+}
+
+.iconButton.isActive {
+  background: rgba(15, 23, 42, 0.08);
+  color: #0f172a;
+}
+
+.iconButton svg {
+  width: var(--mot-icon-size);
+  height: var(--mot-icon-size);
+  display: block;
+}

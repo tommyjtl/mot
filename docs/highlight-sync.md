@@ -1,10 +1,10 @@
 # Highlight sync and model output
 
-This document describes what Supertonic gives Mot during synthesis, and how the overlay keeps word highlights aligned with audio playback.
+This document describes what Supertonic gives Motif during synthesis, and how the overlay keeps word highlights aligned with audio playback.
 
 ## What the model gives us
 
-Mot runs **Supertonic 3** in an offscreen document via ONNX Runtime Web. For each synthesis request, the pipeline produces:
+Motif runs **Supertonic 3** in an offscreen document via ONNX Runtime Web. For each synthesis request, the pipeline produces:
 
 ### 1. WAV audio
 
@@ -93,7 +93,7 @@ Prefer alignment’s last word `end` time when available; otherwise use the audi
 
 When the user **clicks a word** in the ready overlay:
 
-1. Mot **stops** current playback.
+1. Motif **stops** current playback.
 2. Sends **only that word** back through the same Supertonic pipeline (new synthesis).
 3. Plays the short clip and **highlights that word** for the duration of the clip.
 4. **Listen** still replays the **full** original selection audio.
