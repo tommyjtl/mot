@@ -492,6 +492,34 @@
   line-height: 1.4;
 }
 
+.statusBlock {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+}
+
+.statusOptionsLink {
+  appearance: none;
+  align-self: flex-start;
+  margin: 0;
+  padding: 0;
+  border: 0;
+  background: transparent;
+  color: #64748b;
+  font: inherit;
+  font-size: 12px;
+  font-weight: 500;
+  line-height: 1.35;
+  text-align: left;
+  cursor: pointer;
+}
+
+.statusOptionsLink:hover {
+  color: #4f46e5;
+  text-decoration: underline;
+  text-underline-offset: 2px;
+}
+
 .status.error {
   color: #b91c1c;
 }

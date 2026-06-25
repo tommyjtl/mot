@@ -8,7 +8,7 @@ With no text selected, **Option+S** enters **screen capture mode**: drag a recta
 
 ## First run
 
-On first use, Mot downloads the Supertonic model assets (~400 MB) from Hugging Face and caches them in the browser. This happens once; later sessions reuse the cache.
+On first use, Mot downloads the Supertonic model assets (~400 MB), preferring a local dev server when `npm run models:serve` is running, otherwise from Hugging Face. Files are cached in the browser and reused across restarts.
 
 While the model is loading, the overlay shows **Loading model…**. Once ready, it switches to **Generating pronunciation…** during synthesis.
 
@@ -81,3 +81,7 @@ See [docs/highlight-sync.md](docs/highlight-sync.md) for what the model outputs 
 ## Translation & IPA (deferred)
 
 Word-level English glosses use Chrome’s built-in Translator API. On-device IPA was investigated and deferred — see [docs/ipa-g2p-notes.md](docs/ipa-g2p-notes.md).
+
+## Authenticated model CDN (planned)
+
+Future: Google sign-in + private S3/CloudFront for TTS model downloads — see [docs/authenticated-model-cdn.md](docs/authenticated-model-cdn.md).

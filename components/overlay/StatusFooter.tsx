@@ -6,6 +6,10 @@ type StatusFooterProps = {
   loadingPercent?: number;
 };
 
+function openOptionsPage(): void {
+  void browser.runtime.openOptionsPage();
+}
+
 export function StatusFooter({
   message,
   error,
@@ -28,9 +32,20 @@ export function StatusFooter({
         : "";
 
     return (
-      <p className="status" role="status" aria-live="polite">
-        <span className="spinner" />
-        {`${label}${suffix}`}
+      <div className="statusBlock" role="status" aria-live="polite">
+        <p className="status">
+          <span className="spinner" />
+          {`${label}${suffix}`}
+        </p>
+        {loadingPhase === "loading-model" ? (
+          <button
+            type="button"
+            className="statusOptionsLink"
+            onClick={openOptionsPage}
+          >
+            Open Options for download progress
+          </button>
+        ) : null}
         {typeof loadingPercent === "number" && loadingPhase === "loading-model" ? (
           <div className="progressTrack">
             <div
@@ -41,7 +56,7 @@ export function StatusFooter({
             />
           </div>
         ) : null}
-      </p>
+      </div>
     );
   }
 

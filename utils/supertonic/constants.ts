@@ -4,9 +4,6 @@ export const HF_BASE_URL = `https://huggingface.co/${HF_MODEL_REPO}/resolve/main
 
 export type ModelSource = "local" | "remote";
 
-/** Switch to `"remote"` to load from Hugging Face instead of the local dev server. */
-export const MODEL_SOURCE: ModelSource = "local";
-
 export const LOCAL_MODEL_HOST = "127.0.0.1";
 export const LOCAL_MODEL_PORT = 8091;
 export const LOCAL_MODEL_BASE_URL = `http://${LOCAL_MODEL_HOST}:${LOCAL_MODEL_PORT}`;
@@ -73,13 +70,13 @@ export const AVAILABLE_LANGS = [
 
 export type SupertonicLang = (typeof AVAILABLE_LANGS)[number];
 
-export function modelAssetBaseUrl(source: ModelSource = MODEL_SOURCE): string {
+export function modelAssetBaseUrl(source: ModelSource): string {
   return source === "local" ? LOCAL_MODEL_BASE_URL : HF_BASE_URL;
 }
 
 export function modelAssetUrl(
   relativePath: string,
-  source: ModelSource = MODEL_SOURCE,
+  source: ModelSource,
 ): string {
   return `${modelAssetBaseUrl(source)}/${relativePath}`;
 }

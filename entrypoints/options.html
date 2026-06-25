@@ -126,10 +126,13 @@
       }
 
       .status {
-        min-height: 20px;
         margin: 12px 0 0;
         color: #047857;
         font-size: 14px;
+      }
+
+      .status:empty {
+        display: none;
       }
 
       .model-card {
@@ -162,6 +165,8 @@
 
       .model-card-status.is-error {
         color: #991b1b;
+        white-space: pre-wrap;
+        word-break: break-word;
       }
 
       .progress-track {
