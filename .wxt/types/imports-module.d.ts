@@ -18,6 +18,7 @@ declare module '#imports' {
   export { InvalidMatchPattern, MatchPattern } from 'wxt/utils/match-patterns';
   export { useState, useCallback, useMemo, useEffect, useRef, useContext, useReducer } from 'react';
   export { fakeBrowser } from 'wxt/testing';
+  export { KeybindInput } from '../components/KeybindInput';
   export { useAutoGrowRows } from '../hooks/useAutoGrowRows';
   export { useDocumentEvent } from '../hooks/useDocumentEvent';
   export { useEscapeKey } from '../hooks/useEscapeKey';
@@ -32,8 +33,12 @@ declare module '#imports' {
   export { viewportRectToSelectionRect, showCaptureOverlay, hideCaptureOverlay, isCaptureOverlayVisible, ViewportCaptureRect, ViewportCaptureSelection } from '../utils/capture-region';
   export { cropScreenshotToBase64, captureVisibleRegionBase64 } from '../utils/capture-screenshot';
   export { beginCaptureWait, resolveCaptureWait, cancelCaptureWait, cancelAllCaptureWaits } from '../utils/capture-session';
+  export { DEFAULT_SPEAK_SHORTCUT, DEFAULT_TRANSCRIBE_SHORTCUT, normalizeKeyboardShortcut, shortcutsEqual, isValidKeyboardShortcut, keyboardEventToShortcut, matchesKeyboardShortcut, formatKeyboardShortcut, keyboardShortcutToCommandSuggestedKey, KeyboardShortcut } from '../utils/keyboard-shortcut';
+  export { SPEAK_COMMAND, TRANSCRIBE_COMMAND, logRegisteredCommands, syncManifestCommands, syncTranscribeManifestCommand, bindManifestCommandSync, bindTranscribeCommandSync } from '../utils/manifest-commands';
   export { SelectionRect, SelectionPayload, ModelLoadBroadcastMessage, Message } from '../utils/messages';
   export { broadcastModelLoadProgress, broadcastModelLoadError, ModelLoadBroadcast } from '../utils/model-load-broadcast';
+  export { motifLog, motifWarn } from '../utils/motif-log';
+  export { MOTIF_UI_HOST_IDS, isPointerOnMotifUi } from '../utils/motif-ui';
   export { PLAY_AUDIO, STOP_AUDIO, setupOffscreenDocument } from '../utils/offscreen-document';
   export { OFFSCREEN_OCR, OFFSCREEN_OCR_WARMUP, recognizeInOffscreen, warmUpOffscreenOcr, OffscreenOcrResult } from '../utils/offscreen-ocr';
   export { OFFSCREEN_STT_START, OFFSCREEN_STT_STOP, OFFSCREEN_STT_CANCEL, OFFSCREEN_STT_WARMUP, OFFSCREEN_STT_STATUS, OFFSCREEN_STT_SESSION, startTabTranscriptionInOffscreen, stopTabTranscriptionInOffscreen, cancelTabTranscriptionInOffscreen, warmUpOffscreenStt, getOffscreenSttStatus, getOffscreenTranscriptionSession, OffscreenSttStartResult } from '../utils/offscreen-stt';
@@ -47,11 +52,14 @@ declare module '#imports' {
   export { clearPageUi } from '../utils/page-ui';
   export { MAX_SELECTION_LENGTH, expandIndicesToWordBoundaries, evaluateSelection, getSelectionPayload, SelectionResult } from '../utils/selection';
   export { getTabSession, setTabSession, clearTabSession, TabSessionState } from '../utils/session';
-  export { DEFAULT_SETTINGS, getSettings, saveSettings, Voice, Lang, MotSettings } from '../utils/settings';
+  export { DEFAULT_SETTINGS, STORAGE_KEY, getSettings, saveSettings, Voice, Lang, MotSettings } from '../utils/settings';
+  export { initShortcutRuntime, bindShortcutSettingsSync, getSpeakShortcut, getTranscribeShortcut, isShortcutRuntimeReady } from '../utils/shortcut-runtime';
   export { isSpeakSelectionShortcut } from '../utils/speak-shortcut';
+  export { sendSpeakWordMessage, SpeakWordParams } from '../utils/speak-word-client';
   export { suppressNoisyOffscreenLogs } from '../utils/suppress-noisy-logs';
-  export { formatTabCaptureError, requestTabCaptureStreamId, isTabCapturePermissionError } from '../utils/tab-capture';
+  export { TabCaptureError, formatTabCaptureError, requestTabCaptureStreamId, isTabCapturePermissionError, isCapturableWebTab, TabCaptureErrorKind } from '../utils/tab-capture';
   export { beginTabRequest, getTabRequestGeneration, isCurrentTabRequest, invalidateTabRequest, clearTabRequest } from '../utils/tab-requests';
   export { hideSelectionToast, showSelectionLimitToast } from '../utils/toast';
+  export { isTranscribeShortcut } from '../utils/transcribe-shortcut';
   export { WordTiming, TtsAlignment, SynthesizeResult } from '../utils/tts-types';
 }

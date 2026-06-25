@@ -1,11 +1,9 @@
 :host {
   all: initial;
-  --mot-overlay-font-family: system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI",
-    sans-serif;
   font-family: var(--mot-overlay-font-family);
-  font-size: 14px;
-  line-height: 1.45;
-  color: #0f172a;
+  font-size: var(--mot-overlay-font-size);
+  line-height: var(--mot-overlay-line-height);
+  color: var(--mot-overlay-color);
 }
 
 .card {
@@ -47,8 +45,8 @@
   flex-direction: column;
   justify-content: center;
   gap: 2px;
-  width: 12px;
-  height: 12px;
+  width: var(--mot-icon-size-sm);
+  height: var(--mot-icon-size-sm);
   pointer-events: none;
 }
 
@@ -75,8 +73,8 @@
   display: flex;
   align-items: center;
   justify-content: center;
-  width: 20px;
-  height: 20px;
+  width: var(--mot-close-button-size);
+  height: var(--mot-close-button-size);
   padding: 0;
   border: 0;
   border-radius: 4px;
@@ -142,6 +140,32 @@
   word-break: break-word;
 }
 
+.translationSpeakable {
+  appearance: none;
+  display: inline;
+  border: 0;
+  background: transparent;
+  padding: 0 1px;
+  margin: 0;
+  color: inherit;
+  font: inherit;
+  font-weight: inherit;
+  line-height: inherit;
+  text-align: left;
+  border-radius: 3px;
+  box-decoration-break: clone;
+  -webkit-box-decoration-break: clone;
+}
+
+.translationSpeakable:focus-visible {
+  outline: 2px solid rgba(79, 70, 229, 0.35);
+  outline-offset: 2px;
+}
+
+.translationSpeakable:disabled {
+  cursor: wait;
+}
+
 .translationGlossValue.isLoading {
   font-weight: 400;
   color: #64748b;
@@ -176,14 +200,7 @@
   flex-shrink: 0;
 }
 
-.vocabActionPlaceholder {
-  width: 22px;
-  height: 22px;
-}
-
 .vocabRowAction {
-  width: 22px;
-  height: 22px;
   color: #4f46e5;
 }
 
@@ -192,19 +209,31 @@
   background: rgba(79, 70, 229, 0.1);
 }
 
-.vocabRowAction svg {
-  width: 14px;
-  height: 14px;
-}
-
-.vocabInlineSpinner {
+.inlineSpinner {
   display: inline-block;
-  width: 12px;
-  height: 12px;
-  border: 2px solid rgba(71, 85, 105, 0.25);
+  box-sizing: border-box;
+  width: var(--mot-spinner-size, var(--mot-spinner-size-sm));
+  height: var(--mot-spinner-size, var(--mot-spinner-size-sm));
+  flex: 0 0 auto;
+  border: var(--mot-spinner-border-width) solid rgba(71, 85, 105, 0.25);
   border-top-color: #475569;
   border-radius: 50%;
   animation: motSpin 0.8s linear infinite;
+}
+
+.status .inlineSpinner {
+  margin-right: 6px;
+  vertical-align: -2px;
+}
+
+.iconButton .inlineSpinner {
+  --mot-spinner-size: var(--mot-icon-size);
+}
+
+@keyframes motSpin {
+  to {
+    transform: rotate(360deg);
+  }
 }
 
 .vocabCard {
@@ -279,11 +308,26 @@
   word-break: break-word;
 }
 
+.vocabEntryDetails {
+  display: flex;
+  flex-direction: column;
+}
+
 .vocabCardSection {
   display: flex;
   flex-direction: column;
   gap: 4px;
-  margin-bottom: 8px;
+  margin-bottom: 0;
+  padding: 8px 0;
+}
+
+.vocabEntryDetails > .vocabCardSection:first-child {
+  padding-top: 0;
+  min-height: 0;
+}
+
+.vocabEntryDetails > .vocabCardSection:last-child {
+  padding-bottom: 0;
 }
 
 .vocabCardSectionHeader {
@@ -291,6 +335,7 @@
   align-items: center;
   justify-content: space-between;
   gap: 8px;
+  min-height: 20px;
 }
 
 .vocabCardLabel {
@@ -303,16 +348,6 @@
   text-transform: uppercase;
 }
 
-.vocabCardAddContext {
-  width: 20px;
-  height: 20px;
-}
-
-.vocabCardAddContext svg {
-  width: 12px;
-  height: 12px;
-}
-
 .vocabContextList {
   margin: 0;
   padding: 0;
@@ -320,8 +355,10 @@
   display: flex;
   flex-direction: column;
   gap: 8px;
-  max-height: min(50vh, 360px);
+  max-height: var(--mot-vocab-context-max-height);
   overflow-y: auto;
+  overscroll-behavior: contain;
+  -webkit-overflow-scrolling: touch;
 }
 
 .vocabContextItem {
@@ -342,6 +379,11 @@
 
 .vocabContextTerm {
   font-weight: 600;
+  background-color: var(--mot-word-highlight-bg);
+  box-decoration-break: clone;
+  -webkit-box-decoration-break: clone;
+  border-radius: var(--mot-word-highlight-radius);
+  padding: 0 1px;
 }
 
 .vocabContextFooter {
@@ -357,15 +399,13 @@
   flex: 1;
   min-width: 0;
   font-size: 10px;
-  font-weight: 600;
+  font-weight: 400;
   line-height: 1.3;
   color: #64748b;
   word-break: break-word;
 }
 
 .vocabContextDelete {
-  width: 22px;
-  height: 22px;
   flex-shrink: 0;
   color: #94a3b8;
 }
@@ -373,11 +413,6 @@
 .vocabContextDelete:hover {
   color: #b91c1c;
   background: rgba(185, 28, 28, 0.08);
-}
-
-.vocabContextDelete svg {
-  width: 14px;
-  height: 14px;
 }
 
 .vocabContextLink {
@@ -422,6 +457,7 @@
 
 .vocabCardFooter {
   margin: 0;
+  padding-top: 8px;
   font-size: 10px;
   line-height: 1.35;
   color: #94a3b8;
@@ -432,10 +468,6 @@
   border: 0;
   border-top: 1px solid rgba(15, 23, 42, 0.1);
   margin: 6px 0 0;
-}
-
-.vocabSectionDivider {
-  margin: 4px 0 8px;
 }
 
 .wordText {
@@ -478,10 +510,10 @@
 }
 
 .word.isActive {
-  background-color: rgb(250 204 21);
+  background-color: var(--mot-word-highlight-bg);
   box-decoration-break: clone;
   -webkit-box-decoration-break: clone;
-  border-radius: 3px;
+  border-radius: var(--mot-word-highlight-radius);
   padding: 0 1px;
 }
 
@@ -580,36 +612,20 @@
   border-color: rgba(220, 38, 38, 0.4);
 }
 
-.spinner {
-  display: inline-block;
-  width: 12px;
-  height: 12px;
-  margin-right: 6px;
-  border: 2px solid rgba(71, 85, 105, 0.25);
-  border-top-color: #475569;
-  border-radius: 50%;
-  vertical-align: -2px;
-  animation: motSpin 0.8s linear infinite;
-}
-
-@keyframes motSpin {
-  to {
-    transform: rotate(360deg);
-  }
-}
-
 .iconButton {
   appearance: none;
   border: 0;
   background: transparent;
   color: #64748b;
-  padding: 6px;
-  border-radius: 8px;
+  box-sizing: border-box;
+  padding: var(--mot-icon-button-padding);
+  border-radius: var(--mot-icon-button-radius);
   cursor: pointer;
-  display: flex;
+  display: inline-flex;
   align-items: center;
   justify-content: center;
   flex-shrink: 0;
+  line-height: 0;
 }
 
 .iconButton:hover {
@@ -623,7 +639,7 @@
 }
 
 .iconButton svg {
-  width: 16px;
-  height: 16px;
+  width: var(--mot-icon-size);
+  height: var(--mot-icon-size);
   display: block;
 }

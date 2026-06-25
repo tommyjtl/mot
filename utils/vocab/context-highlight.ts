@@ -15,14 +15,14 @@ export function findContextTermRanges(
   sentence: string,
   original: string,
 ): TextRange[] {
-  const term = original.trim();
+  const normalizedSentence = sentence.normalize("NFC");
+  const term = original.trim().normalize("NFC");
   if (!term) {
     return [];
   }
 
-  const normalizedSentence = sentence.normalize("NFC");
   const sentenceTokens = tokenizeWords(normalizedSentence);
-  const termTokens = tokenizeWords(term.normalize("NFC"));
+  const termTokens = tokenizeWords(term);
   if (termTokens.length === 0 || sentenceTokens.length < termTokens.length) {
     return [];
   }
@@ -121,4 +121,14 @@ export function splitTextByRanges(
   }
 
   return segments;
+}
+
+/** Highlight segments for a saved term in context. Normalizes to NFC once. */
+export function getContextHighlightSegments(
+  sentence: string,
+  original: string,
+): HighlightSegment[] {
+  const normalizedSentence = sentence.normalize("NFC");
+  const ranges = findContextTermRanges(normalizedSentence, original);
+  return splitTextByRanges(normalizedSentence, ranges);
 }

@@ -240,7 +240,7 @@ export function TranscriptOverlay() {
         headerLeft={
           <div className="headerLeft">
             <span
-              className={`headerSpinner${headerActivity === "transcribing" ? " isVisible" : ""
+              className={`inlineSpinner headerSpinner${headerActivity === "transcribing" ? " isVisible" : ""
                 }`}
               aria-hidden="true"
             />
@@ -387,7 +387,9 @@ export function TranscriptOverlay() {
               </IconButton>
 
               <IconButton
-                className="transcriptTransportButton"
+                className={
+                  primaryAction === "resume" ? "transcriptRecordButton" : undefined
+                }
                 hidden={primaryAction === "hidden"}
                 label={
                   primaryAction === "resume"

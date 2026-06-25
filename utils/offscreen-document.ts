@@ -190,7 +190,7 @@ export function setupOffscreenDocument(): void {
       }
 
       void currentAudio.play().catch((error: unknown) => {
-        console.error("[mot] Offscreen audio playback failed:", error);
+        console.error("[motif] Offscreen audio playback failed:", error);
       });
     };
 

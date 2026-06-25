@@ -1,6 +1,6 @@
 # Testing plan
 
-Mot will use [WXT Vitest](https://wxt.dev/guide/essentials/unit-testing.html) for unit tests and [Playwright](https://wxt.dev/guide/essentials/e2e-testing.html) for E2E tests against `.output/chrome-mv3`.
+Motif will use [WXT Vitest](https://wxt.dev/guide/essentials/unit-testing.html) for unit tests and [Playwright](https://wxt.dev/guide/essentials/e2e-testing.html) for E2E tests against `.output/chrome-mv3`.
 
 ## Setup (future)
 

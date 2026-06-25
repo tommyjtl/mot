@@ -138,7 +138,7 @@ export async function loadTextToSpeech(
   }
 
   const [dpOrt, textEncOrt, vectorEstOrt, vocoderOrt] = sessions;
-  console.info("[mot] Supertonic using", providers[0]);
+  console.info("[motif] Supertonic using", providers[0]);
 
   onProgress?.(tracker.finish());
   return new TextToSpeech(cfgs, textProcessor, dpOrt, textEncOrt, vectorEstOrt, vocoderOrt);

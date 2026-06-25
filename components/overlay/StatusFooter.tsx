@@ -34,7 +34,7 @@ export function StatusFooter({
     return (
       <div className="statusBlock" role="status" aria-live="polite">
         <p className="status">
-          <span className="spinner" />
+          <span className="inlineSpinner" />
           {`${label}${suffix}`}
         </p>
         {loadingPhase === "loading-model" ? (

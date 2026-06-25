@@ -1,4 +1,5 @@
 import { resolve } from "node:path";
+import tailwindcss from "@tailwindcss/vite";
 import { defineConfig } from "wxt";
 
 /**
@@ -22,18 +23,40 @@ export default defineConfig({
     startUrls: [DEV_START_URL],
   },
   vite: () => ({
+    plugins: [tailwindcss()],
     optimizeDeps: {
       exclude: ["onnxruntime-web"],
+    },
+    resolve: {
+      alias: {
+        "@": resolve("."),
+      },
     },
   }),
   manifest: {
     content_security_policy: {
       extension_pages: "script-src 'self' 'wasm-unsafe-eval'; object-src 'self';",
     },
-    name: "Mot",
+    name: "Motif",
     description:
-      "Hear natural French pronunciation while reading the web, powered by on-device Supertonic TTS.",
-    permissions: ["storage", "activeTab", "offscreen", "tabCapture"],
+      "Hear it, save it, remember it. On-device French pronunciation and live tab transcription.",
+    permissions: ["storage", "activeTab", "tabs", "offscreen", "tabCapture"],
+    commands: {
+      "speak-selection": {
+        suggested_key: {
+          default: "Alt+S",
+          mac: "Alt+S",
+        },
+        description: "Speak selected text on the active page",
+      },
+      "transcribe-tab": {
+        suggested_key: {
+          default: "Alt+T",
+          mac: "Alt+T",
+        },
+        description: "Transcribe audio from the active tab",
+      },
+    },
     host_permissions: [
       "https://huggingface.co/*",
       "http://127.0.0.1:8091/*",
@@ -44,21 +67,5 @@ export default defineConfig({
         matches: ["<all_urls>"],
       },
     ],
-    commands: {
-      "speak-selection": {
-        suggested_key: {
-          default: "Alt+S",
-          mac: "Alt+S",
-        },
-        description: "Speak the selected text aloud",
-      },
-      "transcribe-tab": {
-        suggested_key: {
-          default: "Alt+T",
-          mac: "Alt+T",
-        },
-        description: "Transcribe audio from this tab",
-      },
-    },
   },
 });

@@ -2,8 +2,11 @@ import {
   useCallback,
   useEffect,
   useRef,
+  useState,
   type CSSProperties,
 } from "react";
+import type { Message } from "../../utils/messages";
+import { sendSpeakWordMessage } from "../../utils/speak-word-client";
 import { VocabEntryDetails } from "../../components/overlay/VocabEntryDetails";
 import { OverlayHost } from "../../components/overlay/OverlayHost";
 import { OverlayPanel } from "../../components/overlay/OverlayPanel";
@@ -57,6 +60,11 @@ export function WordOverlay() {
   const panelRef = useRef<HTMLDivElement>(null);
   const headerRef = useRef<HTMLElement>(null);
   const noteSaveTimerRef = useRef<number | null>(null);
+  const speakRequestIdRef = useRef<number | null>(null);
+  const awaitingWordPlaybackRef = useRef(false);
+  const [originalSpeakHighlight, setOriginalSpeakHighlight] = useState<
+    "idle" | "loading" | "active"
+  >("idle");
 
   const { headerProps } = useOverlayDrag(panelRef, headerRef, {
     onDragStart: () => {
@@ -93,6 +101,62 @@ export function WordOverlay() {
     },
     [],
   );
+
+  useEffect(() => {
+    const listener = (message: Message) => {
+      if (message.type === "word-tts-result") {
+        if (message.requestId !== speakRequestIdRef.current) {
+          return;
+        }
+
+        speakRequestIdRef.current = null;
+
+        if (!message.payload.ok) {
+          awaitingWordPlaybackRef.current = false;
+          setOriginalSpeakHighlight("idle");
+          wordOverlayStore.setState({ actionError: message.payload.error });
+          return;
+        }
+
+        awaitingWordPlaybackRef.current = true;
+        setOriginalSpeakHighlight("active");
+        return;
+      }
+
+      if (message.type !== "tts-playback") {
+        return;
+      }
+
+      if (!awaitingWordPlaybackRef.current) {
+        return;
+      }
+
+      if (message.state === "paused" || message.state === "ended") {
+        awaitingWordPlaybackRef.current = false;
+        setOriginalSpeakHighlight("idle");
+      }
+    };
+
+    browser.runtime.onMessage.addListener(listener);
+    return () => {
+      browser.runtime.onMessage.removeListener(listener);
+    };
+  }, []);
+
+  const handleSpeakOriginal = useCallback(() => {
+    const text = wordOverlayStore.getState().originalText.trim();
+    if (!text || originalSpeakHighlight === "loading") {
+      return;
+    }
+
+    const requestId = Date.now();
+    speakRequestIdRef.current = requestId;
+    awaitingWordPlaybackRef.current = false;
+    setOriginalSpeakHighlight("loading");
+    wordOverlayStore.setState({ actionError: null });
+
+    sendSpeakWordMessage({ word: text, requestId });
+  }, [originalSpeakHighlight]);
 
   const persistNote = useCallback((note: string, normalized: string) => {
     if (noteSaveTimerRef.current !== null) {
@@ -199,6 +263,8 @@ export function WordOverlay() {
             }}
             showRestore={false}
             showVocabAction={false}
+            onSpeakOriginal={handleSpeakOriginal}
+            originalSpeakHighlight={originalSpeakHighlight}
           />
           <VocabEntryDetails
             entry={entry}

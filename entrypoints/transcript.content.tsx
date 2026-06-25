@@ -2,6 +2,7 @@ import type { Message } from "../utils/messages";
 import type { TtsAlignment } from "../utils/tts-types";
 import { estimateAlignmentFromAudio } from "../utils/alignment-from-audio";
 import { phraseFromWordRange } from "../utils/overlay-phrase";
+import { sendSpeakWordMessage } from "../utils/speak-word-client";
 import { buildWordTranslationState } from "../utils/vocab/translation-vocab";
 import { overlayWordIndexAtTime } from "../utils/overlay-word-sync";
 import {
@@ -38,6 +39,12 @@ import {
   patchTranscriptSession,
   resetTranscriptSession,
 } from "../features/transcript-overlay/transcript-session-store";
+import {
+  bindShortcutSettingsSync,
+  initShortcutRuntime,
+} from "../utils/shortcut-runtime";
+import { isTranscribeShortcut } from "../utils/transcribe-shortcut";
+import { motifLog, motifWarn } from "../utils/motif-log";
 
 type StartCaptureResponse = {
   ok?: boolean;
@@ -527,13 +534,12 @@ function speakWordRange(startIndex: number, endIndex: number): void {
   void refreshWordTranslation(phraseText);
 
   const requestId = nextTranscriptRequestId("wordSynthRequestId");
-  void browser.runtime.sendMessage({
-    type: "speak-word",
+  sendSpeakWordMessage({
     word: phraseText,
     wordIndex: startIndex,
     endWordIndex: endIndex,
     requestId,
-  } satisfies Message);
+  });
 }
 
 function handleWordTtsResult(
@@ -659,7 +665,7 @@ function handleStartCaptureResponse(
 
   showStartCaptureError(
     response?.error ??
-    "Tab audio capture was denied. Focus this tab and try Option+T.",
+      "Tab audio capture was denied. Focus this tab and try Option+T.",
   );
 }
 
@@ -729,6 +735,37 @@ function resumeTranscriptionFromGesture(
   detail = "Resuming transcription…",
 ): void {
   startCaptureAndTranscribe({ detail, preserveLines: true });
+}
+
+function showCapturePromptOverlay(options: {
+  tabId: number;
+  message?: string;
+  preserveLines?: boolean;
+}): void {
+  patchTranscriptSession({
+    overlayDismissed: false,
+    transcribing: false,
+    captureInitiatedLocally: false,
+    preserveLinesOnNextStart: Boolean(options.preserveLines),
+    ...(options.preserveLines
+      ? {}
+      : {
+          finalizedLines: [],
+          partialLine: "",
+        }),
+  });
+  stopTranscriptAudio();
+  clearReadModeUi();
+  showTranscriptOverlay(
+    {
+      kind: "needs-capture",
+      tabId: options.tabId,
+      message:
+        options.message ??
+        "Click Allow tab audio to capture sound from this page.",
+    },
+    overlayHandlers(),
+  );
 }
 
 function resetTranscriptContent(): void {
@@ -863,12 +900,71 @@ function appendTranscript(text: string, isFinal: boolean): void {
   scheduleFullTranslationRefresh();
 }
 
+function isEditableTarget(target: EventTarget | null): boolean {
+  if (!(target instanceof HTMLElement)) {
+    return false;
+  }
+
+  if (target.isContentEditable) {
+    return true;
+  }
+
+  return Boolean(target.closest("input, textarea, select, [contenteditable='true']"));
+}
+
+function bindTranscribeShortcutListener(): void {
+  window.addEventListener(
+    "keydown",
+    (event) => {
+      if (event.repeat || !isTranscribeShortcut(event)) {
+        return;
+      }
+
+      if (isEditableTarget(event.target)) {
+        motifLog("transcribe", "Shortcut ignored — focus is in an editable field");
+        return;
+      }
+
+      motifLog("transcribe", "Shortcut detected in page content script", {
+        url: location.href,
+        code: event.code,
+      });
+
+      event.preventDefault();
+      event.stopPropagation();
+
+      void browser.runtime
+        .sendMessage({
+          type: "transcribe-command-gesture",
+        } satisfies Message)
+        .then((response) => {
+          motifLog("transcribe", "Background acknowledged content-script gesture", {
+            response,
+          });
+        })
+        .catch((error: unknown) => {
+          motifWarn("transcribe", "Could not reach background from content script", {
+            error: error instanceof Error ? error.message : String(error),
+          });
+        });
+    },
+    true,
+  );
+}
+
 export default defineContentScript({
   matches: ["*://*/*"],
   runAt: "document_idle",
 
   main() {
+    motifLog("transcribe", "Content script loaded", { url: location.href });
     mountTranscriptOverlay();
+
+    void initShortcutRuntime().then(() => {
+      bindTranscribeShortcutListener();
+      motifLog("transcribe", "Shortcut listener ready on page");
+    });
+    bindShortcutSettingsSync();
 
     void browser.runtime
       .sendMessage({ type: "get-transcription-state" })
@@ -901,6 +997,7 @@ export default defineContentScript({
       }
 
       if (message.type === "transcript-started") {
+        motifLog("transcribe", "Received transcript-started message");
         patchTranscriptSession({
           overlayDismissed: false,
           transcribing: true,
@@ -942,25 +1039,11 @@ export default defineContentScript({
       }
 
       if (message.type === "transcript-request-capture") {
-        patchTranscriptSession({
-          overlayDismissed: false,
-          transcribing: false,
-          captureInitiatedLocally: false,
-          preserveLinesOnNextStart: false,
-          finalizedLines: [],
-          partialLine: "",
+        showCapturePromptOverlay({
+          tabId: message.tabId,
+          message: message.message,
+          preserveLines: message.preserveLines,
         });
-        stopTranscriptAudio();
-        clearReadModeUi();
-        showTranscriptOverlay(
-          {
-            kind: "needs-capture",
-            message:
-              message.message ??
-              "Click Allow tab audio to capture sound from this page.",
-          },
-          overlayHandlers(),
-        );
         return;
       }
 

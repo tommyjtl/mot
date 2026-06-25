@@ -30,6 +30,10 @@ type TranslationPanelProps = {
   onRestore?: () => void;
   /** Full passage shown below the translation block (used as vocab context). */
   passageText?: string;
+  /** Play pronunciation for the original word (word overlay, saved vocab). */
+  onSpeakOriginal?: () => void;
+  /** Matches TTS overlay word highlight: loading while synthesizing, active during playback. */
+  originalSpeakHighlight?: "idle" | "loading" | "active";
 };
 
 export function TranslationPanel({
@@ -39,6 +43,8 @@ export function TranslationPanel({
   singleWordVocabInFullMode = false,
   onRestore,
   passageText,
+  onSpeakOriginal,
+  originalSpeakHighlight = "idle",
 }: TranslationPanelProps) {
   if (!state.visible) {
     return null;
@@ -76,7 +82,26 @@ export function TranslationPanel({
               />
             ) : null}
           </span>
-          <span className="translationOriginalValue">{state.originalText}</span>
+          <span className="translationOriginalValue">
+            {onSpeakOriginal ? (
+              <button
+                type="button"
+                className={`translationSpeakable word${
+                  originalSpeakHighlight === "loading" ? " isLoading" : ""
+                }${originalSpeakHighlight === "active" ? " isActive" : ""}`}
+                disabled={originalSpeakHighlight === "loading"}
+                aria-label={`Hear pronunciation of ${state.originalText}`}
+                onClick={(event) => {
+                  event.stopPropagation();
+                  onSpeakOriginal();
+                }}
+              >
+                {state.originalText}
+              </button>
+            ) : (
+              state.originalText
+            )}
+          </span>
         </div>
       ) : null}
       <div className="translationLine">

@@ -125,7 +125,7 @@ export const chromeTranslatorProvider: TranslationProvider = {
   },
 };
 
-/** Default provider for Mot (French → English gloss while learning). */
+/** Default provider for Motif (French → English gloss while learning). */
 export function translateForLearning(text: string): Promise<TranslationResponse> {
   return chromeTranslatorProvider.translate({
     text,

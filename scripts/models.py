@@ -1,5 +1,5 @@
 #!/usr/bin/env python3
-"""Download Supertonic 3 assets into ./models and serve them for local Mot dev."""
+"""Download Supertonic 3 assets into ./models and serve them for local Motif dev."""
 
 from __future__ import annotations
 

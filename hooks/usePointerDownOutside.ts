@@ -3,8 +3,8 @@ import { useDocumentEvent } from "./useDocumentEvent";
 
 type UsePointerDownOutsideOptions = {
   enabled?: boolean;
-  /** Ignore left-clicks when true (e.g. capture overlay active). */
-  shouldIgnore?: () => boolean;
+  /** Skip outside-click handling (e.g. capture overlay visible, other Motif UI). */
+  shouldIgnore?: (event: PointerEvent) => boolean;
 };
 
 export function usePointerDownOutside(
@@ -20,7 +20,7 @@ export function usePointerDownOutside(
         return;
       }
 
-      if (shouldIgnore?.()) {
+      if (shouldIgnore?.(event)) {
         return;
       }
 

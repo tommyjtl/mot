@@ -1,4 +1,4 @@
-import overlayBaseCss from "../../components/overlay/overlay-base.css?inline";
+import { overlaySharedStyles } from "../../components/overlay/overlay-styles";
 import { ensureShadowReactMount } from "../../components/overlay/mount-shadow-react";
 import { mountWordOverlay } from "../word-overlay/mount";
 import ttsOverlayCss from "./tts-overlay.css?inline";
@@ -9,7 +9,7 @@ export function mountTtsOverlay(): void {
     hostId: "mot-tts-overlay-host",
     App: TtsOverlay,
     styles: [
-      { key: "overlay-base", css: overlayBaseCss },
+      ...overlaySharedStyles,
       { key: "tts-overlay", css: ttsOverlayCss },
     ],
   });

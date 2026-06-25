@@ -1,12 +1,21 @@
-import overlayBaseCss from "../../components/overlay/overlay-base.css?inline";
-import { ensureShadowReactMount } from "../../components/overlay/mount-shadow-react";
+import { overlaySharedStyles } from "../../components/overlay/overlay-styles";
+import {
+  ensureShadowReactMount,
+  getShadowReactMount,
+} from "../../components/overlay/mount-shadow-react";
 import wordOverlayCss from "./word-overlay.css?inline";
 import { WordOverlay } from "./WordOverlay";
 
 const HOST_ID = "mot-word-overlay-host";
 
 export function mountWordOverlay(): void {
-  if (document.getElementById(HOST_ID)) {
+  if (getShadowReactMount(HOST_ID)) {
+    return;
+  }
+
+  const existingHost = document.getElementById(HOST_ID);
+  if (existingHost?.shadowRoot?.querySelector("#react-root")) {
+    // Another content-script bundle already mounted the shared host.
     return;
   }
 
@@ -14,7 +23,7 @@ export function mountWordOverlay(): void {
     hostId: HOST_ID,
     App: WordOverlay,
     styles: [
-      { key: "overlay-base", css: overlayBaseCss },
+      ...overlaySharedStyles,
       { key: "word-overlay", css: wordOverlayCss },
     ],
   });

@@ -133,10 +133,12 @@ export type Message =
   | { type: "stop-transcription" }
   | { type: "dismiss-transcription" }
   | { type: "start-transcription-gesture" }
-  | { type: "start-transcription-with-stream"; streamId: string }
+  | { type: "start-transcription-with-stream"; streamId: string; tabId: number }
   | {
     type: "transcript-request-capture";
+    tabId: number;
     message?: string;
+    preserveLines?: boolean;
   }
   | {
     type: "stt-transcript-status-relay";
@@ -175,6 +177,7 @@ export type Message =
     detail: string;
   }
   | { type: "speak-selection-gesture" }
+  | { type: "transcribe-command-gesture" }
   | { type: "toggle-transcription" }
   | { type: "get-transcription-state" }
   | {

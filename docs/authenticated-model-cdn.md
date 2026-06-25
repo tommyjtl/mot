@@ -2,7 +2,7 @@
 
 **Status:** planned — not implemented.
 
-Today Mot loads Supertonic TTS models from **Hugging Face** (production default) or a **local dev server** (`npm run models:serve`). This doc describes a future path: **Google sign-in + private S3/CloudFront** so only signed-in users can fetch models from our origin.
+Today Motif loads Supertonic TTS models from **Hugging Face** (production default) or a **local dev server** (`npm run models:serve`). This doc describes a future path: **Google sign-in + private S3/CloudFront** so only signed-in users can fetch models from our origin.
 
 ## Goals
 
@@ -28,7 +28,7 @@ Today Mot loads Supertonic TTS models from **Hugging Face** (production default)
 | 3 | **Model path versioning** | e.g. `https://models.example.com/supertonic-3/v1/onnx/...` — bump `v1` on breaking updates. |
 | 4 | **Signed access shape** | **Signed cookies** (one auth → many files) vs per-file signed URLs. Prefer **cookies** for ~15 parallel ONNX/JSON fetches. |
 | 5 | **Session length** | e.g. signed cookie TTL **24h**; extension re-auths when cache empty or cookie expired. |
-| 6 | **HF fallback in shipped builds** | Keep `huggingface` source as emergency fallback vs Mot CDN only — recommend **CDN-only** once stable. |
+| 6 | **HF fallback in shipped builds** | Keep `huggingface` source as emergency fallback vs Motif CDN only — recommend **CDN-only** once stable. |
 | 7 | **Chrome Web Store** | Privacy policy + `identity` permission justification for Google sign-in. |
 
 ---
@@ -130,7 +130,7 @@ curl -I https://models.example.com/supertonic-3/v1/onnx/tts.json
    - After sign-in, call auth API → receive signed cookie policy or signed URLs.
    - Attach cookies to model `fetch` (or use signed URLs in `modelAssetUrl`).
 5. **First-run UX** — options page or overlay: “Sign in with Google to download pronunciation models.”
-6. **Build flavors** — dev: local server preferred when running; production: HF via fallback; future: Mot CDN auth.
+6. **Build flavors** — dev: local server preferred when running; production: HF via fallback; future: Motif CDN auth.
 
 ### Fetch flow (today)
 
@@ -149,7 +149,7 @@ isModelCached()?  yes → Cache API (survives browser restart)
 | **0 (now)** | HF + local dev server only. This doc. |
 | **1** | S3 + CloudFront live; manual signed URL tests; no extension changes. |
 | **2** | Auth API + extension sign-in; internal testers only. |
-| **3** | Production extension uses Mot CDN; HF removed from `host_permissions` when stable. |
+| **3** | Production extension uses Motif CDN; HF removed from `host_permissions` when stable. |
 | **4 (optional)** | Allowlist, bans, analytics, paid tiers. |
 
 ---

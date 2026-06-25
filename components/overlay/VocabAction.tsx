@@ -127,7 +127,7 @@ export function VocabAction({
         onClick={handleRowClick}
       >
         {rowBusy ? (
-          <span className="vocabInlineSpinner" aria-hidden="true" />
+          <span className="inlineSpinner" aria-hidden="true" />
         ) : entry ? (
           <GoToIcon />
         ) : (

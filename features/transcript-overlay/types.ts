@@ -9,7 +9,7 @@ export type TranscriptOverlayViewState =
   | { kind: "loading"; detail: string; percent?: number }
   | { kind: "streaming"; lines: string[]; partial: string }
   | { kind: "paused"; lines: string[]; partial?: string }
-  | { kind: "needs-capture"; message?: string }
+  | { kind: "needs-capture"; tabId: number; message?: string }
   | { kind: "error"; message: string };
 
 export type TranscriptOverlayHandlers = {

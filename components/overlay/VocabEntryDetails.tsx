@@ -1,8 +1,7 @@
 import { useId, type ReactNode } from "react";
 import type { VocabEntry } from "../../utils/vocab/types";
 import {
-  findContextTermRanges,
-  splitTextByRanges,
+  getContextHighlightSegments,
 } from "../../utils/vocab/context-highlight";
 import { IconButton, PlusIcon, TrashIcon } from "./IconButton";
 
@@ -22,8 +21,7 @@ function formatHost(url: string): string {
 }
 
 function renderContextSentence(sentence: string, original: string): ReactNode {
-  const ranges = findContextTermRanges(sentence, original);
-  const segments = splitTextByRanges(sentence, ranges);
+  const segments = getContextHighlightSegments(sentence, original);
 
   return segments.map((segment, index) =>
     segment.kind === "term" ? (
@@ -59,7 +57,7 @@ export function VocabEntryDetails({
   const canAddContext = Boolean(contextText.trim());
 
   return (
-    <>
+    <div className="vocabEntryDetails">
       <div className="vocabCardSection">
         <div className="vocabCardSectionHeader">
           <p className="vocabCardLabel">
@@ -72,11 +70,10 @@ export function VocabEntryDetails({
                 ? "Add current context"
                 : "No context available on this page"
             }
-            className="vocabCardAddContext"
             hidden={!canAddContext}
             onClick={onAddContext}
           >
-            {addingContext ? <span className="vocabInlineSpinner" /> : <PlusIcon />}
+            {addingContext ? <span className="inlineSpinner" /> : <PlusIcon />}
           </IconButton>
         </div>
         {entry.contexts.length ? (
@@ -115,7 +112,7 @@ export function VocabEntryDetails({
                     }}
                   >
                     {deletingContextId === context.id ? (
-                      <span className="vocabInlineSpinner" aria-hidden="true" />
+                      <span className="inlineSpinner" aria-hidden="true" />
                     ) : (
                       <TrashIcon />
                     )}
@@ -129,11 +126,12 @@ export function VocabEntryDetails({
         )}
       </div>
 
-      <hr className="translationDivider vocabSectionDivider" aria-hidden="true" />
       <div className="vocabCardSection">
-        <label className="vocabCardLabel" htmlFor={noteId}>
-          Note
-        </label>
+        <div className="vocabCardSectionHeader">
+          <label className="vocabCardLabel" htmlFor={noteId}>
+            Note
+          </label>
+        </div>
         <textarea
           id={noteId}
           className="vocabNoteInput"
@@ -145,6 +143,6 @@ export function VocabEntryDetails({
       </div>
 
       <p className="vocabCardFooter">Saved {formatDate(entry.createdAt)}</p>
-    </>
+    </div>
   );
 }

@@ -1,4 +1,5 @@
-import { createStore, createStoreHook } from "../../lib/create-store";
+import { createCrossContextStore } from "../../lib/cross-context-store";
+import { createStoreHook } from "../../lib/create-store";
 import type { PanelPosition } from "../../utils/overlay-layout";
 import type { VocabEntry } from "../../utils/vocab/types";
 
@@ -32,8 +33,9 @@ export const initialWordOverlayState = (): WordOverlayState => ({
   saveBusy: false,
 });
 
-export const wordOverlayStore = createStore<WordOverlayState>(
-  initialWordOverlayState(),
+export const wordOverlayStore = createCrossContextStore<WordOverlayState>(
+  "motif:word-overlay",
+  initialWordOverlayState,
 );
 
 export function resetWordOverlayStore(): void {

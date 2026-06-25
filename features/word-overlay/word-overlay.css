@@ -26,7 +26,3 @@
 .wordOverlayBody .translationSection {
   margin-bottom: 10px;
 }
-
-.wordOverlayBody .vocabCardSection:first-of-type {
-  margin-top: 0;
-}

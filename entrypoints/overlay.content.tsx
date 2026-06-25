@@ -49,7 +49,7 @@ import {
   translateForLearning,
 } from "../utils/translation";
 import { evaluateSelection } from "../utils/selection";
-import { isSpeakSelectionShortcut } from "../utils/speak-shortcut";
+import { sendSpeakWordMessage } from "../utils/speak-word-client";
 
 function estimateSessionAlignment(
   audioBase64: string,
@@ -465,13 +465,12 @@ function speakWordRange(startIndex: number, endIndex: number): void {
   void refreshWordTranslation(phraseText);
 
   const requestId = nextTtsRequestId("wordSynthRequestId");
-  void browser.runtime.sendMessage({
-    type: "speak-word",
+  sendSpeakWordMessage({
     word: phraseText,
     wordIndex: startIndex,
     endWordIndex: endIndex,
     requestId,
-  } satisfies Message);
+  });
 }
 
 function showReadyOverlay(
@@ -588,23 +587,6 @@ export default defineContentScript({
 
   main() {
     mountTtsOverlay();
-
-    window.addEventListener(
-      "keydown",
-      (event) => {
-        if (!isSpeakSelectionShortcut(event)) {
-          return;
-        }
-
-        event.preventDefault();
-        event.stopPropagation();
-
-        void browser.runtime.sendMessage({
-          type: "speak-selection-gesture",
-        } satisfies Message);
-      },
-      true,
-    );
 
     browser.runtime.onMessage.addListener((message: Message) => {
       if (message.type === "speak-selection") {

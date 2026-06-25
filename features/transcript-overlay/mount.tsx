@@ -1,4 +1,4 @@
-import overlayBaseCss from "../../components/overlay/overlay-base.css?inline";
+import { overlaySharedStyles } from "../../components/overlay/overlay-styles";
 import { ensureShadowReactMount } from "../../components/overlay/mount-shadow-react";
 import { mountWordOverlay } from "../word-overlay/mount";
 import transcriptOverlayCss from "./transcript-overlay.css?inline";
@@ -9,7 +9,7 @@ export function mountTranscriptOverlay(): void {
     hostId: "mot-transcript-overlay-host",
     App: TranscriptOverlay,
     styles: [
-      { key: "overlay-base", css: overlayBaseCss },
+      ...overlaySharedStyles,
       { key: "transcript-overlay", css: transcriptOverlayCss },
     ],
   });
