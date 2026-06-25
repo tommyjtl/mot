@@ -109,12 +109,15 @@ Entries are grouped by **calendar week** using `createdAt`.
 
 | Element | Behavior |
 |---------|----------|
-| **Label** | Relative when possible: “This week”, “Last week”; otherwise a date range (e.g. “Jun 2 – Jun 8, 2025”) |
-| **← / →** | Previous / next week that contains at least one entry matching current search + sort |
+| **Label** | Relative when possible: “This week”, “Last week”, etc. — **bold**, centered |
+| **← Previous week** | Ghost text button on the **left**; navigates to the **chronologically older** week bucket (e.g. from “This week” → “Last week”) |
+| **Next week →** | Ghost text button on the **right**; navigates to the **chronologically newer** week bucket (e.g. from “Last week” → “This week”) |
 | **Empty week** | If the navigated week has no matching entries: empty state copy (e.g. “Nothing saved this week”) |
 | **Initial week** | Default to the week containing the newest matching entry (respecting sort) |
 
-Week navigation skips weeks with zero entries after search filter — do not land the user on blank weeks unnecessarily.
+Week buckets are ordered **newest first** (`buckets[0]` = this week). Navigation skips weeks with zero entries after search filter — do not land the user on blank weeks unnecessarily.
+
+Week rail buttons use **`link` variant** — plain text, no box; underline on hover only.
 
 ### Carousel
 
@@ -130,41 +133,50 @@ Week navigation skips weeks with zero entries after search filter — do not lan
 
 Each active carousel card uses a **dedicated flashcard layout** (not the masonry `SavedCard`).
 
-**Card header (top-right, both faces):**
+**Card chrome (both faces):**
 
-| Control | Icon | Action |
-|---------|------|--------|
-| **Flip** | Flip/rotate icon | Toggles front ↔ back |
-| **Open details** | Details/expand icon | Opens `SavedEntryDialog` in normal mode |
+| Corner | Element | Behavior |
+|--------|---------|----------|
+| **Top-left** | Animated **speaker icon** | Visible on the **front face only** while TTS is loading or playing (word-range pronunciation) |
+| **Top-right** | **Book-a** (flip) + **Arrow up-right** (open dialog) | Floated action group; does not affect centered content |
 
-Both icon buttons sit in the **top-right** of the card, grouped together. Visible on **front and back**.
+No flip icon. The share button is visible on **front and back**.
 
 **Card body:**
 
-| Face | Content |
-|------|---------|
-| **Front** | `original` via **`InteractiveWordText`** — **bold**, prominent; same click/select-to-speak behavior as the saved dialog |
-| **Back** | `translation` only (plain text) |
+**Card body (centered block):**
 
-**Pronunciation on front (no separate speak button):**
+| Face | Label | Content |
+|------|-------|---------|
+| **Front** | **French** — centered above value | `original` via **`InteractiveWordText`** |
+| **Back** | **English** — centered above value | `translation` only (plain text) |
 
-- Reuse `InteractiveWordText` + `useLibraryWordPronunciation` (or equivalent hook) — identical to `SavedEntryDialog` original surface.
+Label + value are **geometrically centered** in the card (`position: absolute; inset: 0` flex center). Tight gap (~2px) between label and value. Speaker (top-left) and share (top-right) **float absolutely** — they do not occupy layout space or offset the centered block.
+
+**Flip interaction:**
+
+- **Book-a icon** (`BookA`, Lucide) in the **top-right** action group flips front ↔ back. Visible on both faces.
+- Card body tap does **not** flip — only the flip button does.
+- Word click/select on the front speaks only (no flip).
+- **Arrow up-right** opens the detail dialog (`stopPropagation` on both action buttons).
+
+**Pronunciation on front (no standalone speak button):**
+
+- Reuse `InteractiveWordText` + `useLibraryWordPronunciation` — identical to `SavedEntryDialog` original surface.
 - User **clicks or selects word ranges** in the original text to hear TTS; word-level highlight sync on playback.
+- While loading or playing, show the **animated speaker icon** (same wave animation as `SavedSpeakButton`) in the **top-left** corner.
 - Use the same `libraryWordText` styling class for visual consistency.
-- No standalone speak icon button on the flashcard.
 
 **Interaction boundaries:**
 
 - Click/select on original text → speak selected range (does not flip or open dialog).
-- Card body tap elsewhere does **not** flip or open dialog; only the header icon buttons do.
+- Tap card body (non-word area) or keyboard activate → flip.
+- Share icon → open detail dialog.
 - No saved date on the card face in v1.
 
 ### Cards mode + search/sort
 
-1. Apply search filter and sort to all entries (same as list mode).
-2. Bucket filtered results by week (`createdAt`).
-3. Week rail navigates buckets.
-4. Carousel shows entries for the selected week only, preserving sort order within the week.
+Search and sort controls are **hidden** in Cards layout. The carousel shows **all saved entries**, bucketed by week (`createdAt`, newest first). List layout keeps search and sort unchanged.
 
 ### Empty / edge cases
 
@@ -187,7 +199,7 @@ Both icon buttons sit in the **top-right** of the card, grouped together. Visibl
 |---|----------|----------------|
 | C1 | Cap entries per week in carousel? | Show all entries for the week; add cap if UX suffers |
 | C2 | Swipe on trackpad/touch | Nice-to-have; arrow buttons sufficient for v1 |
-| C3 | Header button order (flip vs details) | Flip left of details in the top-right cluster |
+| C3 | Header button order (flip vs details) | Resolved: tap body to flip; share icon top-right |
 
 ---
 
@@ -450,8 +462,11 @@ Dictation first proves the learning loop; carousel follows or runs in parallel o
 - [ ] Active card centered; ghost cards visible left/right.
 - [ ] Front: original via `InteractiveWordText` (bold); back: translation only.
 - [ ] Click/select word range on front speaks (same behavior as saved dialog); no separate speak button.
-- [ ] Flip icon toggles face; details icon opens dialog (both faces).
-- [ ] Card body tap (outside word select) does not flip or open dialog.
+- [ ] Animated speaker icon top-left while TTS loading/playing.
+- [ ] Book-a button flips front ↔ back; card body tap does not flip.
+- [ ] Word click/select on front speaks only.
+- [ ] Arrow up-right opens dialog (both faces).
+- [ ] Week rail: link-style “Previous week” (left, older) / “Next week” (right, newer).
 - [ ] Empty states for no entries / no week matches.
 
 ---
@@ -463,3 +478,4 @@ Dictation first proves the learning loop; carousel follows or runs in parallel o
 | 2025-06-25 | Initial v1 spec: carousel + atomic dictation, grading, stats storage |
 | 2025-06-25 | Resolved open decisions: flashcard header actions, dictation exercise row, hold-to-peek hint, binary grading (accents ignored), minimal stats (`attemptCount`, `mistakeCount`) |
 | 2025-06-25 | Flashcard front: `InteractiveWordText` click/select-to-speak (consistent with saved dialog); no standalone speak button |
+| 2025-06-25 | Flashcard UX: tap-to-flip (Y-axis 3D CSS), share icon for details, animated speaker top-left while playing, ghost text week nav |

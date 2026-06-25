@@ -17,6 +17,14 @@
   .savedSpeakButton.isActive .speakerWave2 {
     animation: librarySpeakerWave 1s ease-in-out 0.35s infinite;
   }
+
+  .libraryFlashcardSpeaker.isActive .speakerWave1 {
+    animation: librarySpeakerWave 1s ease-in-out infinite;
+  }
+
+  .libraryFlashcardSpeaker.isActive .speakerWave2 {
+    animation: librarySpeakerWave 1s ease-in-out 0.35s infinite;
+  }
 }
 
 .savedSpeakButton svg {

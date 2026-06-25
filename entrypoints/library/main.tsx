@@ -2,6 +2,7 @@ import { createRoot } from "react-dom/client";
 import "@/assets/styles/globals.css";
 import "./library-speak.css";
 import "./library-word.css";
+import "./library-flashcard.css";
 import { App } from "./App";
 
 const rootElement = document.getElementById("root");
