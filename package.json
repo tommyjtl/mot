@@ -6,7 +6,9 @@
   "scripts": {
     "test": "echo \"Error: no test specified\" && exit 1",
     "dev": "wxt",
-    "dev:clean-tmp": "node scripts/clean-web-ext-tmp.mjs",
+    "dev:storage": "node scripts/dev-storage.mjs",
+    "dev:clean-tmp": "node scripts/dev-storage.mjs --clean-tmp",
+    "dev:clean-profile": "node scripts/dev-storage.mjs --clean-profile",
     "build": "wxt build",
     "zip": "wxt zip",
     "postinstall": "wxt prepare && node scripts/copy-ort-wasm.mjs && node scripts/copy-tesseract-assets.mjs && node scripts/copy-stt-assets.mjs",

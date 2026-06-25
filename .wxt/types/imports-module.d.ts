@@ -27,7 +27,7 @@ declare module '#imports' {
   export { usePointerDownOutside } from '../hooks/usePointerDownOutside';
   export { useTranscriptEditGuard } from '../hooks/useTranscriptEditGuard';
   export { useWindowEvent } from '../hooks/useWindowEvent';
-  export { useWordSurfacePronunciation, useLibraryWordPronunciation, WordSurfaceState, LibrarySurfaceState } from '../hooks/useWordSurfacePronunciation';
+  export { useWordSurfacePronunciation, WordSurfaceState } from '../hooks/useWordSurfacePronunciation';
   export { estimateAlignmentFromAudio } from '../utils/alignment-from-audio';
   export { arrayBufferToBase64, base64ToArrayBuffer } from '../utils/audio-encoding';
   export { viewportRectToSelectionRect, showCaptureOverlay, hideCaptureOverlay, isCaptureOverlayVisible, ViewportCaptureRect, ViewportCaptureSelection } from '../utils/capture-region';

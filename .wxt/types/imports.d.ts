@@ -149,7 +149,6 @@ declare global {
   const useEffect: typeof import('react').useEffect
   const useEscapeKey: typeof import('/Users/tommyjtl/Documents/Projects/mot/hooks/useEscapeKey').useEscapeKey
   const useEventListener: typeof import('/Users/tommyjtl/Documents/Projects/mot/hooks/useEventListener').useEventListener
-  const useLibraryWordPronunciation: typeof import('/Users/tommyjtl/Documents/Projects/mot/hooks/useWordSurfacePronunciation').useLibraryWordPronunciation
   const useMemo: typeof import('react').useMemo
   const useOverlayDismissals: typeof import('/Users/tommyjtl/Documents/Projects/mot/hooks/useOverlayDismissals').useOverlayDismissals
   const useOverlayDrag: typeof import('/Users/tommyjtl/Documents/Projects/mot/hooks/useOverlayDrag').useOverlayDrag
@@ -197,7 +196,7 @@ declare global {
   export type { ScriptPublicPath, InjectScriptOptions } from 'wxt/utils/inject-script'
   import('wxt/utils/inject-script')
   // @ts-ignore
-  export type { WordSurfaceState, LibrarySurfaceState } from '/Users/tommyjtl/Documents/Projects/mot/hooks/useWordSurfacePronunciation'
+  export type { WordSurfaceState } from '/Users/tommyjtl/Documents/Projects/mot/hooks/useWordSurfacePronunciation'
   import('/Users/tommyjtl/Documents/Projects/mot/hooks/useWordSurfacePronunciation')
   // @ts-ignore
   export type { ViewportCaptureRect, ViewportCaptureSelection } from '/Users/tommyjtl/Documents/Projects/mot/utils/capture-region'

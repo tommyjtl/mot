@@ -30,6 +30,36 @@ npm run dev
 
 WXT opens a browser with the extension loaded. Changes hot-reload during development.
 
+Dev uses a **persistent Chrome profile** at `.wxt/chrome-data` (see `wxt.config.ts`). On-device TTS (~400 MB) and STT (~640 MB) models are cached there via the Cache API and reused across restarts — they are **not** stored in `/tmp`.
+
+### Dev storage
+
+Report what is using disk:
+
+```bash
+npm run dev:storage
+```
+
+Remove legacy `tmp-web-ext--*` folders from `/tmp` (usually only a few MB; **does not** clear model caches):
+
+```bash
+npm run dev:clean-tmp
+```
+
+Reset the dev browser profile and clear cached models (they re-download on next warm-up):
+
+```bash
+npm run dev:clean-profile
+```
+
+That command removes `.wxt/chrome-data` — the same as:
+
+```bash
+rm -rf .wxt/chrome-data
+```
+
+Stop `npm run dev` and close the dev browser before cleaning. Add `--dry-run` to preview, or `--force` to skip the running-dev guard.
+
 ## Build
 
 ```bash

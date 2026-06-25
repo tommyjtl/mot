@@ -118,17 +118,19 @@ export function KeybindInput({
         ) : null}
       </div>
       <div className="flex shrink-0 items-center gap-2">
-        <Button
-          type="button"
-          variant="ghost"
-          size="icon"
-          className="size-8 shrink-0"
-          disabled={disabled || recording || isDefault}
-          aria-label={`Reset ${label} to ${formatKeyboardShortcut(defaultShortcut)}`}
-          onClick={resetToDefault}
-        >
-          <RotateCcw aria-hidden="true" />
-        </Button>
+        {!isDefault ? (
+          <Button
+            type="button"
+            variant="ghost"
+            size="icon"
+            className="size-8 shrink-0"
+            disabled={disabled || recording}
+            aria-label={`Reset ${label} to ${formatKeyboardShortcut(defaultShortcut)}`}
+            onClick={resetToDefault}
+          >
+            <RotateCcw aria-hidden="true" />
+          </Button>
+        ) : null}
         <button
           ref={buttonRef}
           id={inputId}
