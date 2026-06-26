@@ -120,6 +120,7 @@ export function TranscriptOverlay() {
   const hostRef = useRef<HTMLDivElement>(null);
   const headerRef = useRef<HTMLElement>(null);
   const transcriptRef = useRef<HTMLElement | null>(null);
+  const translationScrollRef = useRef<HTMLSpanElement>(null);
   const { host } = useShadowMount();
   const shadowHostRef = useRef<HTMLElement | null>(null);
   shadowHostRef.current = host;
@@ -158,7 +159,11 @@ export function TranscriptOverlay() {
   const isReadMode = view.kind === "paused" && Boolean(handlersRef.current.onWordSelect);
 
   useEffect(() => {
-    if (editMode || view.kind !== "streaming") {
+    if (editMode) {
+      return;
+    }
+
+    if (view.kind !== "streaming" && view.kind !== "paused") {
       return;
     }
 
@@ -170,7 +175,22 @@ export function TranscriptOverlay() {
     requestAnimationFrame(() => {
       el.scrollTop = el.scrollHeight;
     });
-  }, [editMode, view.kind, visibleText]);
+  }, [editMode, isReadMode, view.kind, visibleText]);
+
+  useEffect(() => {
+    if (!translation.visible || translation.mode !== "full") {
+      return;
+    }
+
+    const el = translationScrollRef.current;
+    if (!el) {
+      return;
+    }
+
+    requestAnimationFrame(() => {
+      el.scrollTop = el.scrollHeight;
+    });
+  }, [translation]);
 
   const derivedStatus = useMemo(
     () => deriveStatusFromTranscriptView(view),
@@ -274,6 +294,7 @@ export function TranscriptOverlay() {
           <TranscriptTranslationPanel
             state={translation}
             passageText={visibleText || undefined}
+            translationScrollRef={translationScrollRef}
           />
 
           {editMode ? (

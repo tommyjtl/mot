@@ -71,6 +71,13 @@
   padding: 12px 14px 10px;
 }
 
+.transcriptCard .translationGlossValue.isScrollable {
+  display: block;
+  max-height: calc(1.45em * 3);
+  overflow-y: auto;
+  white-space: normal;
+}
+
 .transcript {
   display: block;
   width: 100%;

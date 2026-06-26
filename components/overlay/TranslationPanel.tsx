@@ -1,3 +1,4 @@
+import type { RefObject } from "react";
 import { isSingleWordText } from "../../utils/overlay-phrase";
 import { VocabAction } from "./VocabAction";
 
@@ -34,6 +35,8 @@ type TranslationPanelProps = {
   onSpeakOriginal?: () => void;
   /** Matches TTS overlay word highlight: loading while synthesizing, active during playback. */
   originalSpeakHighlight?: "idle" | "loading" | "active";
+  scrollable?: boolean;
+  translationScrollRef?: RefObject<HTMLElement | null>;
 };
 
 export function TranslationPanel({
@@ -45,6 +48,8 @@ export function TranslationPanel({
   passageText,
   onSpeakOriginal,
   originalSpeakHighlight = "idle",
+  scrollable = false,
+  translationScrollRef,
 }: TranslationPanelProps) {
   if (!state.visible) {
     return null;
@@ -125,9 +130,12 @@ export function TranslationPanel({
           ) : null}
         </span>
         <span
-          className={`translationGlossValue${state.loading ? " isLoading" : ""}`}
+          ref={translationScrollRef}
+          className={`translationGlossValue${state.loading ? " isLoading" : ""}${scrollable ? " isScrollable" : ""}`}
         >
-          {state.loading ? "Translating…" : state.translationText}
+          {state.loading && !state.translationText.trim()
+            ? "Translating…"
+            : state.translationText}
         </span>
       </div>
       <hr className="translationDivider" />
@@ -138,15 +146,19 @@ export function TranslationPanel({
 export function TranscriptTranslationPanel({
   state,
   passageText,
+  translationScrollRef,
 }: {
   state: TranslationState;
   passageText?: string;
+  translationScrollRef?: RefObject<HTMLElement | null>;
 }) {
   return (
     <TranslationPanel
       state={state}
       showRestore={false}
       passageText={passageText}
+      scrollable
+      translationScrollRef={translationScrollRef}
     />
   );
 }

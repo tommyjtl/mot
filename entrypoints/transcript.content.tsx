@@ -33,7 +33,6 @@ import {
   translateForLearning,
 } from "../utils/translation";
 import {
-  FULL_TRANSLATION_DEBOUNCE_MS,
   getTranscriptSession,
   nextTranscriptRequestId,
   patchTranscriptSession,
@@ -44,6 +43,20 @@ import {
   initShortcutRuntime,
 } from "../utils/shortcut-runtime";
 import { isTranscribeShortcut } from "../utils/transcribe-shortcut";
+import {
+  getTranslatableLastSentence,
+} from "../utils/transcript-sentence";
+import {
+  applyActiveTranslationResult,
+  buildRealtimeTranslationDisplay,
+  getNextTranslationTarget,
+  hasPendingTranslationWork,
+  isActiveTranslationStale,
+  readRealtimeTranslationState,
+  REALTIME_TRANSLATION_DEBOUNCE_MS,
+  syncRealtimeTranslationState,
+  writeRealtimeTranslationState,
+} from "../utils/transcript-realtime-translation";
 import { motifLog, motifWarn } from "../utils/motif-log";
 
 type StartCaptureResponse = {
@@ -199,6 +212,56 @@ function setShowRealtimeTranslationEnabled(enabled: boolean): void {
   }
 }
 
+function syncTranslationStateFromTranscript(text: string): void {
+  const session = getTranscriptSession();
+  const next = syncRealtimeTranslationState(
+    text,
+    readRealtimeTranslationState(session),
+  );
+  patchTranscriptSession(writeRealtimeTranslationState(next));
+}
+
+function isTranslationRefreshPending(): boolean {
+  const session = getTranscriptSession();
+  return (
+    session.fullTranslationDebounceId !== null || translationWorkerRunning
+  );
+}
+
+function pushRealtimeTranslationUi(loading = false): void {
+  const session = getTranscriptSession();
+  const visibleText = getVisibleTranscriptText();
+  const translationState = readRealtimeTranslationState(session);
+  const lastSentence = getTranslatableLastSentence(visibleText);
+  const pendingWork = hasPendingTranslationWork(translationState);
+  const staleTail = isActiveTranslationStale(translationState);
+  const refreshPending = isTranslationRefreshPending();
+  const showTailPending = staleTail && (pendingWork || refreshPending);
+  const translationText = buildRealtimeTranslationDisplay(translationState, {
+    markStaleTail: showTailPending,
+  });
+
+  if (!lastSentence && !translationText) {
+    setTranscriptWordTranslation({ visible: false });
+    return;
+  }
+
+  if (getTranscriptSession().translationDisplayMode !== "full") {
+    return;
+  }
+
+  setTranscriptWordTranslation(
+    {
+      visible: true,
+      originalText: lastSentence,
+      translationText,
+      mode: "full",
+      loading: loading || (showTailPending && refreshPending),
+    },
+    showFullTranslation,
+  );
+}
+
 function showFullTranslation(): void {
   const session = getTranscriptSession();
   patchTranscriptSession({
@@ -215,108 +278,155 @@ function showFullTranslation(): void {
 
   const text = getVisibleTranscriptText();
   if (!text.trim()) {
-    setTranscriptWordTranslation({ visible: false });
     return;
   }
 
-  const next = getTranscriptSession();
-  if (
-    next.cachedFullTranslation &&
-    next.cachedFullTranslationText === text
-  ) {
-    setTranscriptWordTranslation(
-      {
-        visible: true,
-        originalText: text,
-        translationText: next.cachedFullTranslation,
-        mode: "full",
-      },
-      showFullTranslation,
-    );
-    return;
-  }
-
-  void refreshFullTranslation(text);
+  syncTranslationStateFromTranscript(text);
+  queueTranslationWorker({ catchup: true, immediate: true });
 }
 
-async function refreshFullTranslation(text: string): Promise<void> {
-  if (!getTranscriptSession().showRealtimeTranslation || !isLearningTranslationReady()) {
-    if (isTranscriptOverlayVisible()) {
-      setTranscriptWordTranslation({ visible: false });
-    }
+let translationWorkerRunning = false;
+let translationWorkerQueued = false;
+let translationCatchupMode = false;
+
+function canRunRealtimeTranslation(): boolean {
+  const session = getTranscriptSession();
+  return (
+    session.showRealtimeTranslation &&
+    session.translationDisplayMode === "full" &&
+    isLearningTranslationReady()
+  );
+}
+
+function queueTranslationWorker(options?: {
+  catchup?: boolean;
+  immediate?: boolean;
+}): void {
+  if (options?.catchup) {
+    translationCatchupMode = true;
+  }
+
+  if (options?.immediate) {
+    void runTranslationWorker();
     return;
   }
 
-  const requestId = nextTranscriptRequestId("fullTranslationRequestId");
-  if (getTranscriptSession().translationDisplayMode === "full") {
-    setTranscriptWordTranslation(
-      {
-        visible: true,
-        originalText: text,
-        translationText: "",
-        mode: "full",
-        loading: true,
-      },
-      showFullTranslation,
-    );
+  const session = getTranscriptSession();
+  if (session.fullTranslationDebounceId !== null) {
+    clearTimeout(session.fullTranslationDebounceId);
+    patchTranscriptSession({ fullTranslationDebounceId: null });
   }
 
-  const result = await translateForLearning(text);
-  if (requestId !== getTranscriptSession().fullTranslationRequestId) {
+  const debounceId = setTimeout(() => {
+    patchTranscriptSession({ fullTranslationDebounceId: null });
+    void runTranslationWorker();
+  }, REALTIME_TRANSLATION_DEBOUNCE_MS);
+  patchTranscriptSession({ fullTranslationDebounceId: debounceId });
+}
+
+async function runTranslationWorker(): Promise<void> {
+  if (translationWorkerRunning) {
+    translationWorkerQueued = true;
     return;
   }
 
-  if (!result.ok) {
-    if (result.unavailable) {
-      if (getTranscriptSession().translationDisplayMode === "full") {
-        setTranscriptWordTranslation({ visible: false });
+  translationWorkerRunning = true;
+
+  try {
+    while (canRunRealtimeTranslation()) {
+      const text = getVisibleTranscriptText();
+      if (!text.trim()) {
+        pushRealtimeTranslationUi(false);
+        break;
       }
-      return;
-    }
 
-    if (getTranscriptSession().translationDisplayMode === "full") {
-      setTranscriptWordTranslation(
-        {
-          visible: true,
-          originalText: text,
-          translationText: result.error,
-          mode: "full",
-        },
-        showFullTranslation,
+      syncTranslationStateFromTranscript(text);
+      const state = readRealtimeTranslationState(getTranscriptSession());
+      const target = getNextTranslationTarget(state, {
+        catchupMode: translationCatchupMode,
+      });
+
+      if (!target) {
+        translationCatchupMode = false;
+        pushRealtimeTranslationUi(false);
+        break;
+      }
+
+      const displayBefore = buildRealtimeTranslationDisplay(state);
+      if (!displayBefore.trim()) {
+        pushRealtimeTranslationUi(true);
+      } else {
+        pushRealtimeTranslationUi(false);
+      }
+
+      const requestId = nextTranscriptRequestId("fullTranslationRequestId");
+      const result = await translateForLearning(target);
+
+      if (!canRunRealtimeTranslation()) {
+        break;
+      }
+
+      if (requestId !== getTranscriptSession().fullTranslationRequestId) {
+        continue;
+      }
+
+      if (!result.ok && result.unavailable) {
+        if (getTranscriptSession().translationDisplayMode === "full") {
+          setTranscriptWordTranslation({ visible: false });
+        }
+        break;
+      }
+
+      const visibleText = getVisibleTranscriptText();
+      const { applied, state: next } = applyActiveTranslationResult(
+        readRealtimeTranslationState(getTranscriptSession()),
+        target,
+        result.ok ? result.text : result.error,
+        visibleText,
       );
-    }
-    return;
-  }
 
-  patchTranscriptSession({
-    cachedFullTranslation: result.text,
-    cachedFullTranslationText: text,
-  });
-  if (getTranscriptSession().translationDisplayMode === "full") {
-    setTranscriptWordTranslation(
-      {
-        visible: true,
-        originalText: text,
-        translationText: result.text,
-        mode: "full",
-      },
-      showFullTranslation,
-    );
+      if (!applied) {
+        pushRealtimeTranslationUi(false);
+        queueTranslationWorker();
+        break;
+      }
+
+      patchTranscriptSession(writeRealtimeTranslationState(next));
+
+      if (
+        translationCatchupMode &&
+        !readRealtimeTranslationState(getTranscriptSession()).frozenTranslations.some(
+          (entry) => !entry.translation.trim(),
+        )
+      ) {
+        translationCatchupMode = false;
+      }
+
+      pushRealtimeTranslationUi(false);
+
+      if (!hasPendingTranslationWork(readRealtimeTranslationState(getTranscriptSession()))) {
+        break;
+      }
+    }
+  } finally {
+    translationWorkerRunning = false;
+
+    if (translationWorkerQueued) {
+      translationWorkerQueued = false;
+      void runTranslationWorker();
+    }
   }
 }
 
-function scheduleFullTranslationRefresh(immediate = false): void {
+/** Debounced retranslation of the active tail and backfill of frozen sentences. */
+function scheduleRealtimeTranslationRefresh(immediate = false): void {
   if (!getTranscriptSession().showRealtimeTranslation) {
     return;
   }
 
   const text = getVisibleTranscriptText();
   if (!text.trim()) {
-    const session = getTranscriptSession();
-    patchTranscriptSession({
-      fullTranslationRequestId: session.fullTranslationRequestId + 1,
-    });
-    setTranscriptWordTranslation({ visible: false });
+    pushRealtimeTranslationUi(false);
     return;
   }
 
@@ -324,79 +434,15 @@ function scheduleFullTranslationRefresh(immediate = false): void {
     return;
   }
 
-  const session = getTranscriptSession();
-  if (session.cachedFullTranslationText !== text) {
-    setTranscriptWordTranslation(
-      {
-        visible: true,
-        originalText: text,
-        translationText: "",
-        mode: "full",
-        loading: true,
-      },
-      showFullTranslation,
-    );
-  }
-
-  if (session.fullTranslationDebounceId !== null) {
-    clearTimeout(session.fullTranslationDebounceId);
-    patchTranscriptSession({ fullTranslationDebounceId: null });
-  }
+  syncTranslationStateFromTranscript(text);
+  pushRealtimeTranslationUi(false);
 
   if (immediate) {
-    const current = getTranscriptSession();
-    if (
-      current.cachedFullTranslation &&
-      current.cachedFullTranslationText === text
-    ) {
-      setTranscriptWordTranslation(
-        {
-          visible: true,
-          originalText: text,
-          translationText: current.cachedFullTranslation,
-          mode: "full",
-        },
-        showFullTranslation,
-      );
-      return;
-    }
-
-    void refreshFullTranslation(text);
+    queueTranslationWorker({ immediate: true });
     return;
   }
 
-  const debounceId = setTimeout(() => {
-    patchTranscriptSession({ fullTranslationDebounceId: null });
-    const currentText = getVisibleTranscriptText();
-    if (!currentText.trim()) {
-      setTranscriptWordTranslation({ visible: false });
-      return;
-    }
-
-    if (getTranscriptSession().translationDisplayMode !== "full") {
-      return;
-    }
-
-    const current = getTranscriptSession();
-    if (
-      current.cachedFullTranslation &&
-      current.cachedFullTranslationText === currentText
-    ) {
-      setTranscriptWordTranslation(
-        {
-          visible: true,
-          originalText: currentText,
-          translationText: current.cachedFullTranslation,
-          mode: "full",
-        },
-        showFullTranslation,
-      );
-      return;
-    }
-
-    void refreshFullTranslation(currentText);
-  }, FULL_TRANSLATION_DEBOUNCE_MS);
-  patchTranscriptSession({ fullTranslationDebounceId: debounceId });
+  queueTranslationWorker();
 }
 
 function startHighlightLoop(): void {
@@ -694,7 +740,7 @@ function startCaptureAndTranscribe(options: {
       overlayHandlers(),
     );
     updateTranscriptLoadingProgress(options.detail);
-    scheduleFullTranslationRefresh();
+    scheduleRealtimeTranslationRefresh();
   } else {
     patchTranscriptSession({
       finalizedLines: [],
@@ -772,12 +818,15 @@ function resetTranscriptContent(): void {
   stopTranscriptAudio();
   patchTranscriptSession({ translationDisplayMode: "full" });
   clearTranslationUi();
+  translationCatchupMode = false;
   patchTranscriptSession({
     finalizedLines: [],
     partialLine: "",
     cachedVisibleSpeechText: null,
-    cachedFullTranslation: null,
-    cachedFullTranslationText: null,
+    sentenceTranslationEntries: [],
+    cachedPendingSentence: null,
+    cachedPendingTranslation: null,
+    cachedActiveTranslationSource: null,
   });
   const { transcribing, finalizedLines, partialLine } = getTranscriptSession();
   if (transcribing) {
@@ -833,7 +882,7 @@ function applyEditedTranscript(text: string): void {
     refreshPausedTranscriptOverlay(next.finalizedLines, next.partialLine);
   }
 
-  scheduleFullTranslationRefresh(!next.transcribing);
+  scheduleRealtimeTranslationRefresh(!next.transcribing);
 }
 
 function overlayHandlers() {
@@ -897,7 +946,15 @@ function appendTranscript(text: string, isFinal: boolean): void {
 
   const next = getTranscriptSession();
   updateTranscriptOverlay(next.finalizedLines, next.partialLine);
-  scheduleFullTranslationRefresh();
+
+  const hasDisplay = buildRealtimeTranslationDisplay(
+    readRealtimeTranslationState(next),
+  ).trim();
+  const immediate =
+    next.showRealtimeTranslation &&
+    next.translationDisplayMode === "full" &&
+    !hasDisplay;
+  scheduleRealtimeTranslationRefresh(immediate);
 }
 
 function isEditableTarget(target: EventTarget | null): boolean {
@@ -1026,7 +1083,7 @@ export default defineContentScript({
             overlayHandlers(),
           );
           updateTranscriptLoadingProgress("Connecting to tab audio…");
-          scheduleFullTranslationRefresh();
+          scheduleRealtimeTranslationRefresh();
           return;
         }
 
@@ -1072,7 +1129,7 @@ export default defineContentScript({
             },
             overlayHandlers(),
           );
-          scheduleFullTranslationRefresh();
+          scheduleRealtimeTranslationRefresh();
           return;
         }
 
@@ -1141,7 +1198,7 @@ export default defineContentScript({
           },
           overlayHandlers(),
         );
-        scheduleFullTranslationRefresh(true);
+        scheduleRealtimeTranslationRefresh(true);
         return;
       }
 

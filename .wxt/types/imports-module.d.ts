@@ -64,5 +64,7 @@ declare module '#imports' {
   export { beginTabRequest, getTabRequestGeneration, isCurrentTabRequest, invalidateTabRequest, clearTabRequest } from '../utils/tab-requests';
   export { hideSelectionToast, showSelectionLimitToast } from '../utils/toast';
   export { isTranscribeShortcut } from '../utils/transcribe-shortcut';
+  export { REALTIME_TRANSLATION_DEBOUNCE_MS, emptyRealtimeTranslationState, readRealtimeTranslationState, writeRealtimeTranslationState, syncRealtimeTranslationState, getActiveTranslationTarget, shouldRetranslateActiveChunk, hasPendingTranslationWork, getNextTranslationTarget, isActiveTranslationStale, buildRealtimeTranslationDisplay, applyActiveTranslationResult, FrozenTranslation, RealtimeTranslationState, ApplyActiveTranslationResult } from '../utils/transcript-realtime-translation';
+  export { isCompleteTranscriptSentence, splitTranscriptSentences, partitionTranscriptSentences, getTranslatableLastSentence, normalizeTranslationSource, translationSourcesMatch } from '../utils/transcript-sentence';
   export { WordTiming, TtsAlignment, SynthesizeResult } from '../utils/tts-types';
 }

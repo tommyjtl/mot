@@ -1,4 +1,5 @@
 import type { TtsAlignment } from "../../utils/tts-types";
+import { REALTIME_TRANSLATION_DEBOUNCE_MS } from "../../utils/transcript-realtime-translation";
 import { createStore } from "../../lib/create-store";
 
 export type TranscriptSessionState = {
@@ -10,8 +11,10 @@ export type TranscriptSessionState = {
   finalizedLines: string[];
   partialLine: string;
   cachedVisibleSpeechText: string | null;
-  cachedFullTranslation: string | null;
-  cachedFullTranslationText: string | null;
+  sentenceTranslationEntries: Array<{ source: string; translation: string }>;
+  cachedPendingSentence: string | null;
+  cachedPendingTranslation: string | null;
+  cachedActiveTranslationSource: string | null;
   wordSynthRequestId: number;
   wordTranslationRequestId: number;
   fullTranslationRequestId: number;
@@ -28,7 +31,7 @@ export type TranscriptSessionState = {
   highlightLoopActive: boolean;
 };
 
-export const FULL_TRANSLATION_DEBOUNCE_MS = 600;
+export const FULL_TRANSLATION_DEBOUNCE_MS = REALTIME_TRANSLATION_DEBOUNCE_MS;
 
 export const initialTranscriptSessionState = (): TranscriptSessionState => ({
   transcribing: false,
@@ -39,8 +42,10 @@ export const initialTranscriptSessionState = (): TranscriptSessionState => ({
   finalizedLines: [],
   partialLine: "",
   cachedVisibleSpeechText: null,
-  cachedFullTranslation: null,
-  cachedFullTranslationText: null,
+  sentenceTranslationEntries: [],
+  cachedPendingSentence: null,
+  cachedPendingTranslation: null,
+  cachedActiveTranslationSource: null,
   wordSynthRequestId: 0,
   wordTranslationRequestId: 0,
   fullTranslationRequestId: 0,
