@@ -536,7 +536,7 @@ main:not(.home) h1 {
 }
 
 .feature-demo-btn .icon-pause,
-.feature-demo-btn .icon-volume-off {
+.feature-demo-btn .icon-volume {
   display: none;
 }
 
@@ -552,11 +552,11 @@ main:not(.home) h1 {
   color: var(--motif-yellow);
 }
 
-.feature-demo-btn.is-audio-on .icon-volume {
+.feature-demo-btn.is-audio-on .icon-volume-off {
   display: none;
 }
 
-.feature-demo-btn.is-audio-on .icon-volume-off {
+.feature-demo-btn.is-audio-on .icon-volume {
   display: block;
 }
 
