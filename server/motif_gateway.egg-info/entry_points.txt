@@ -1,0 +1,2 @@
+[console_scripts]
+motif-gateway = motif_gateway.main:main

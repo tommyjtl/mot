@@ -1,12 +1,29 @@
 import { chromeTranslatorProvider } from "./chrome-translator";
+import { remoteTranslatorProvider } from "./remote-translator";
+import {
+  getRuntimeMode,
+  initRuntimeModeStore,
+  isCloudRuntimeMode,
+  isPrivateRuntimeMode,
+  runtimeModeStore,
+} from "../runtime-mode-store";
+import { fetchRemoteHealth } from "../remote-api";
 import type { TranslationProvider, TranslationResponse } from "./types";
 
 const LEARNING_SOURCE = "fr" as const;
 const LEARNING_TARGET = "en" as const;
 
-/** Default on-device translation backend for Motif (Chrome today, swappable later). */
-export const learningTranslationProvider: TranslationProvider =
-  chromeTranslatorProvider;
+function resolveLearningTranslationProvider(): TranslationProvider {
+  if (isCloudRuntimeMode()) {
+    return remoteTranslatorProvider;
+  }
+
+  return chromeTranslatorProvider;
+}
+
+export function getLearningTranslationProvider(): TranslationProvider {
+  return resolveLearningTranslationProvider();
+}
 
 export type LearningTranslationReadiness =
   | "idle"
@@ -15,11 +32,21 @@ export type LearningTranslationReadiness =
   | "ready"
   | "unavailable";
 
-let readiness: LearningTranslationReadiness =
-  learningTranslationProvider.isSupported() ? "idle" : "unsupported";
+let readiness: LearningTranslationReadiness = "idle";
+let activeProviderId: string | null = null;
 
 let preparePromise: Promise<LearningTranslationReadiness> | null = null;
 const readinessListeners = new Set<() => void>();
+
+function syncProviderReadiness(): void {
+  const provider = resolveLearningTranslationProvider();
+
+  if (activeProviderId !== provider.id) {
+    activeProviderId = provider.id;
+    readiness = provider.isSupported() ? "idle" : "unsupported";
+    preparePromise = null;
+  }
+}
 
 function setReadiness(next: LearningTranslationReadiness): void {
   if (readiness === next) {
@@ -32,7 +59,15 @@ function setReadiness(next: LearningTranslationReadiness): void {
   }
 }
 
+export function resetLearningTranslationReadiness(): void {
+  syncProviderReadiness();
+  for (const listener of readinessListeners) {
+    listener();
+  }
+}
+
 export function getLearningTranslationReadiness(): LearningTranslationReadiness {
+  syncProviderReadiness();
   return readiness;
 }
 
@@ -45,18 +80,30 @@ export function subscribeLearningTranslationReadiness(
   };
 }
 
-/** Browser exposes the Translator API (sync check). */
+/** Translation is available for the active runtime mode. */
 export function isLearningTranslationSupported(): boolean {
-  return learningTranslationProvider.isSupported();
+  syncProviderReadiness();
+  return resolveLearningTranslationProvider().isSupported();
 }
 
-/** Translator model is loaded and usable. */
+/** Translator backend is loaded and usable. */
 export function isLearningTranslationReady(): boolean {
   return readiness === "ready";
 }
 
 export async function prepareLearningTranslation(): Promise<LearningTranslationReadiness> {
-  if (!learningTranslationProvider.isSupported()) {
+  await initRuntimeModeStore();
+  syncProviderReadiness();
+
+  const provider = resolveLearningTranslationProvider();
+  const mode = getRuntimeMode();
+
+  if (mode === null) {
+    setReadiness("unsupported");
+    return "unsupported";
+  }
+
+  if (!provider.isSupported()) {
     setReadiness("unsupported");
     return "unsupported";
   }
@@ -73,12 +120,20 @@ export async function prepareLearningTranslation(): Promise<LearningTranslationR
 
   preparePromise = (async () => {
     try {
-      const prepared = await learningTranslationProvider.prepare?.({
-        sourceLanguage: LEARNING_SOURCE,
-        targetLanguage: LEARNING_TARGET,
-      });
+      if (isPrivateRuntimeMode()) {
+        const prepared = await provider.prepare?.({
+          sourceLanguage: LEARNING_SOURCE,
+          targetLanguage: LEARNING_TARGET,
+        });
+        const next: LearningTranslationReadiness = prepared
+          ? "ready"
+          : "unavailable";
+        setReadiness(next);
+        return next;
+      }
 
-      const next: LearningTranslationReadiness = prepared ? "ready" : "unavailable";
+      const health = await fetchRemoteHealth();
+      const next: LearningTranslationReadiness = health ? "ready" : "unavailable";
       setReadiness(next);
       return next;
     } catch {
@@ -95,10 +150,25 @@ export async function prepareLearningTranslation(): Promise<LearningTranslationR
 export async function translateForLearning(
   text: string,
 ): Promise<TranslationResponse> {
-  if (!learningTranslationProvider.isSupported()) {
+  await initRuntimeModeStore();
+  syncProviderReadiness();
+
+  const provider = resolveLearningTranslationProvider();
+
+  if (getRuntimeMode() === null) {
     return {
       ok: false,
-      error: "On-device translation is not available in this browser.",
+      error: "Choose Private or Cloud mode in Motif Options first.",
+      unavailable: true,
+    };
+  }
+
+  if (!provider.isSupported()) {
+    return {
+      ok: false,
+      error: isCloudRuntimeMode()
+        ? "Remote translation is unavailable. Check your Motif server URL."
+        : "On-device translation is not available in this browser.",
       unavailable: true,
     };
   }
@@ -110,16 +180,22 @@ export async function translateForLearning(
         ok: false,
         error:
           state === "loading"
-            ? "Translation model is still loading."
-            : "Translation model is unavailable for this language pair.",
+            ? "Translation is still starting."
+            : isCloudRuntimeMode()
+              ? "Motif server is unreachable."
+              : "Translation model is unavailable for this language pair.",
         unavailable: true,
       };
     }
   }
 
-  return learningTranslationProvider.translate({
+  return provider.translate({
     text,
     sourceLanguage: LEARNING_SOURCE,
     targetLanguage: LEARNING_TARGET,
   });
 }
+
+runtimeModeStore.subscribe(() => {
+  resetLearningTranslationReadiness();
+});

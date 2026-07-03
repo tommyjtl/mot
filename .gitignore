@@ -143,6 +143,12 @@ models/
 # Local Python venv used during G2P investigation
 .venv-g2p/
 
+# Motif cloud gateway venv and logs
+server/.venv/
+server/logs/
+server/.env
+server/allowed_users.json
+
 # ONNX Runtime wasm assets (copied on postinstall)
 public/ort/
 public/tesseract/

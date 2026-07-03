@@ -2,6 +2,8 @@
 
 **Status:** planned — not implemented.
 
+**Auth:** Cloud-mode Google sign-in + allowlist is specified in [cloud-auth.md](./cloud-auth.md). This CDN doc reuses that session for signed cookie minting.
+
 Today Motif loads Supertonic TTS models from **Hugging Face** (production default) or a **local dev server** (`npm run models:serve`). This doc describes a future path: **Google sign-in + private S3/CloudFront** so only signed-in users can fetch models from our origin.
 
 ## Goals

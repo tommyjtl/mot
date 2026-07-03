@@ -1,0 +1,17 @@
+README.md
+pyproject.toml
+motif_gateway/__init__.py
+motif_gateway/config.py
+motif_gateway/main.py
+motif_gateway/translate.py
+motif_gateway.egg-info/PKG-INFO
+motif_gateway.egg-info/SOURCES.txt
+motif_gateway.egg-info/dependency_links.txt
+motif_gateway.egg-info/entry_points.txt
+motif_gateway.egg-info/requires.txt
+motif_gateway.egg-info/top_level.txt
+motif_gateway/auth/__init__.py
+motif_gateway/auth/deps.py
+motif_gateway/auth/google.py
+motif_gateway/auth/jwt.py
+motif_gateway/auth/routes.py

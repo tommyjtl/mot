@@ -51,6 +51,18 @@ import {
 } from "../utils/manifest-commands";
 import { formatKeyboardShortcut } from "../utils/keyboard-shortcut";
 import { motifLog, motifWarn } from "../utils/motif-log";
+import {
+  bindRuntimeModeSync,
+  initRuntimeModeStore,
+  isCloudRuntimeMode,
+  isPrivateRuntimeMode,
+  isRuntimeModeReady,
+} from "../utils/runtime-mode-store";
+import {
+  bindAuthSync,
+  initAuthStore,
+  isCloudAuthReady,
+} from "../utils/auth/auth-store";
 import type { Message, SelectionPayload } from "../utils/messages";
 import type { SelectionResult } from "../utils/selection";
 import { libraryPageUrl } from "../utils/open-library";
@@ -880,6 +892,18 @@ function handleTranscribeCommand(
   incomingTab: browser.tabs.Tab | undefined,
   source: string,
 ): void {
+  if (blockUntilRuntimeModeSelected(source)) {
+    return;
+  }
+
+  if (blockUntilCloudAuthReady(source)) {
+    return;
+  }
+
+  if (blockCloudShortcutUntilWired("stt", source)) {
+    return;
+  }
+
   motifLog("transcribe", "handleTranscribeCommand", {
     source,
     tabId: incomingTab?.id,
@@ -914,7 +938,60 @@ function handleTranscribeCommand(
   void beginTranscriptionCapture(tabId, streamIdPromise, source);
 }
 
+function openOptionsForRuntimeMode(): void {
+  void browser.runtime.openOptionsPage();
+}
+
+function blockUntilRuntimeModeSelected(source: string): boolean {
+  if (isRuntimeModeReady()) {
+    return false;
+  }
+
+  motifWarn("runtime-mode", "Blocked command until mode is selected", { source });
+  openOptionsForRuntimeMode();
+  return true;
+}
+
+function blockCloudShortcutUntilWired(
+  feature: "tts" | "stt",
+  source: string,
+): boolean {
+  if (!isCloudRuntimeMode()) {
+    return false;
+  }
+
+  motifWarn("runtime-mode", `Cloud ${feature} not wired yet`, { source });
+  openOptionsForRuntimeMode();
+  return true;
+}
+
+function blockUntilCloudAuthReady(source: string): boolean {
+  if (!isCloudRuntimeMode()) {
+    return false;
+  }
+
+  if (isCloudAuthReady()) {
+    return false;
+  }
+
+  motifWarn("runtime-mode", "Blocked cloud command until signed in", { source });
+  openOptionsForRuntimeMode();
+  return true;
+}
+
 function handleSpeakCommand(incomingTab: browser.tabs.Tab | undefined): void {
+  if (blockUntilRuntimeModeSelected("speak-command")) {
+    return;
+  }
+
+  if (blockUntilCloudAuthReady("speak-command")) {
+    return;
+  }
+
+  if (blockCloudShortcutUntilWired("tts", "speak-command")) {
+    return;
+  }
+
   motifLog("speak", "handleSpeakCommand", {
     tabId: incomingTab?.id,
     url: incomingTab?.url,
@@ -938,25 +1015,42 @@ export default defineBackground(() => {
   motifLog("background", "Service worker started");
 
   bindManifestCommandSync();
+  bindRuntimeModeSync();
+  bindAuthSync();
+  void initRuntimeModeStore();
+  void initAuthStore();
   void syncManifestCommands().then(() => {
     void logRegisteredCommands("Startup");
   });
 
-  void warmUpOffscreenTts().catch((error: unknown) => {
-    console.warn("[motif] Background TTS warm-up failed:", error);
-  });
-  void warmUpOffscreenOcr().catch((error: unknown) => {
-    console.warn("[motif] Background OCR warm-up failed:", error);
+  void initRuntimeModeStore().then(() => {
+    if (!isPrivateRuntimeMode()) {
+      motifLog("runtime-mode", "Skipping local TTS/OCR warm-up in cloud mode");
+      return;
+    }
+
+    void warmUpOffscreenTts().catch((error: unknown) => {
+      console.warn("[motif] Background TTS warm-up failed:", error);
+    });
+    void warmUpOffscreenOcr().catch((error: unknown) => {
+      console.warn("[motif] Background OCR warm-up failed:", error);
+    });
   });
 
   browser.runtime.onInstalled.addListener(() => {
     motifLog("background", "onInstalled — syncing manifest commands");
     void syncManifestCommands();
-    void warmUpOffscreenTts().catch((error: unknown) => {
-      console.warn("[motif] Install TTS warm-up failed:", error);
-    });
-    void warmUpOffscreenOcr().catch((error: unknown) => {
-      console.warn("[motif] Install OCR warm-up failed:", error);
+    void initRuntimeModeStore().then(() => {
+      if (!isPrivateRuntimeMode()) {
+        return;
+      }
+
+      void warmUpOffscreenTts().catch((error: unknown) => {
+        console.warn("[motif] Install TTS warm-up failed:", error);
+      });
+      void warmUpOffscreenOcr().catch((error: unknown) => {
+        console.warn("[motif] Install OCR warm-up failed:", error);
+      });
     });
   });
 

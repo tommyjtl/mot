@@ -1,4 +1,5 @@
 import { ModelsSection } from "./components/ModelsSection";
+import { RuntimeModeSection } from "./components/RuntimeModeSection";
 import { VoiceSettingsSection } from "./components/VoiceSettingsSection";
 import { libraryPageUrl } from "@/utils/open-library";
 
@@ -26,6 +27,7 @@ export function App() {
       </header>
 
       <div className="space-y-5">
+        <RuntimeModeSection />
         <ModelsSection />
         <VoiceSettingsSection />
       </div>
