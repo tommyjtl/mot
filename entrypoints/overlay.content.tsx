@@ -1,5 +1,9 @@
 import type { Message, SelectionRect } from "../utils/messages";
 import {
+  centerViewportSelectionRect,
+  setupOverlayMessage,
+} from "../utils/setup-overlay";
+import {
   highlightOverlayWord,
   hideOverlay,
   setOverlayPhraseRange,
@@ -577,6 +581,19 @@ export default defineContentScript({
     mountTtsOverlay();
 
     browser.runtime.onMessage.addListener((message: Message) => {
+      if (message.type === "show-tts-setup-overlay") {
+        showOverlay(
+          {
+            kind: "error",
+            message: setupOverlayMessage(message.reason, message.feature),
+            text: "Motif",
+          },
+          centerViewportSelectionRect(),
+          closeOverlay,
+        );
+        return;
+      }
+
       if (message.type === "speak-selection") {
         stopAudio();
         hideSelectionToast();

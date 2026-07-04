@@ -42,7 +42,7 @@ export function useRuntimeMode() {
   }, []);
 
   useEffect(() => {
-    if (!ready || mode !== "cloud") {
+    if (!ready || mode !== "cloud" || !auth.isSignedIn) {
       setRemoteHealth("unknown");
       return;
     }
@@ -50,7 +50,7 @@ export function useRuntimeMode() {
     let cancelled = false;
     setRemoteHealth("checking");
 
-    void fetchRemoteHealth(remoteApiBaseUrl, { authenticated: auth.isSignedIn }).then(
+    void fetchRemoteHealth(remoteApiBaseUrl, { authenticated: true }).then(
       (health) => {
         if (cancelled) {
           return;
@@ -64,26 +64,14 @@ export function useRuntimeMode() {
     };
   }, [auth.isSignedIn, mode, ready, remoteApiBaseUrl]);
 
-  const selectMode = useCallback(
-    async (next: RuntimeMode) => {
-      if (next === "cloud") {
-        const session = auth.isSignedIn
-          ? auth.session
-          : await auth.ensureSession();
+  const setMode = useCallback(async (next: RuntimeMode) => {
+    if (next === "private") {
+      await signOutFromCloud();
+    }
 
-        if (!session) {
-          return false;
-        }
-      } else {
-        await signOutFromCloud();
-      }
-
-      await setRuntimeMode(next);
-      resetLearningTranslationReadiness();
-      return true;
-    },
-    [auth],
-  );
+    await setRuntimeMode(next);
+    resetLearningTranslationReadiness();
+  }, []);
 
   const updateRemoteApiBaseUrl = useCallback((value: string) => {
     setRemoteApiBaseUrl(value);
@@ -97,7 +85,7 @@ export function useRuntimeMode() {
     remoteHealth,
     ready: ready && auth.ready,
     auth,
-    selectMode,
+    setMode,
     setRemoteApiBaseUrl: updateRemoteApiBaseUrl,
   };
 }

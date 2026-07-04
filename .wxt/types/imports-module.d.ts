@@ -59,6 +59,7 @@ declare module '#imports' {
   export { MAX_SELECTION_LENGTH, expandIndicesToWordBoundaries, evaluateSelection, getSelectionPayload, SelectionResult } from '../utils/selection';
   export { getTabSession, setTabSession, clearTabSession, TabSessionState } from '../utils/session';
   export { DEFAULT_SETTINGS, STORAGE_KEY, getSettings, saveSettings, Lang, MotSettings, Voice } from '../utils/settings';
+  export { setupOverlayMessage, centerViewportSelectionRect, SetupOverlayReason } from '../utils/setup-overlay';
   export { initShortcutRuntime, bindShortcutSettingsSync, getSpeakShortcut, getTranscribeShortcut, isShortcutRuntimeReady } from '../utils/shortcut-runtime';
   export { isSpeakSelectionShortcut } from '../utils/speak-shortcut';
   export { sendSpeakWordMessage, SpeakWordParams } from '../utils/speak-word-client';

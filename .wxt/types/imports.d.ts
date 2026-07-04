@@ -55,6 +55,7 @@ declare global {
   const cancelCaptureWait: typeof import('/Users/tommyjtl/Documents/Projects/mot/utils/capture-session').cancelCaptureWait
   const cancelTabTranscriptionInOffscreen: typeof import('/Users/tommyjtl/Documents/Projects/mot/utils/offscreen-stt').cancelTabTranscriptionInOffscreen
   const captureVisibleRegionBase64: typeof import('/Users/tommyjtl/Documents/Projects/mot/utils/capture-screenshot').captureVisibleRegionBase64
+  const centerViewportSelectionRect: typeof import('/Users/tommyjtl/Documents/Projects/mot/utils/setup-overlay').centerViewportSelectionRect
   const clampPanelPosition: typeof import('/Users/tommyjtl/Documents/Projects/mot/utils/overlay-layout').clampPanelPosition
   const clearPageUi: typeof import('/Users/tommyjtl/Documents/Projects/mot/utils/page-ui').clearPageUi
   const clearTabRequest: typeof import('/Users/tommyjtl/Documents/Projects/mot/utils/tab-requests').clearTabRequest
@@ -161,6 +162,7 @@ declare global {
   const setRuntimeMode: typeof import('/Users/tommyjtl/Documents/Projects/mot/utils/runtime-mode-store').setRuntimeMode
   const setTabSession: typeof import('/Users/tommyjtl/Documents/Projects/mot/utils/session').setTabSession
   const setupOffscreenDocument: typeof import('/Users/tommyjtl/Documents/Projects/mot/utils/offscreen-document').setupOffscreenDocument
+  const setupOverlayMessage: typeof import('/Users/tommyjtl/Documents/Projects/mot/utils/setup-overlay').setupOverlayMessage
   const shortcutsEqual: typeof import('/Users/tommyjtl/Documents/Projects/mot/utils/keyboard-shortcut').shortcutsEqual
   const shouldRetranslateActiveChunk: typeof import('/Users/tommyjtl/Documents/Projects/mot/utils/transcript-realtime-translation').shouldRetranslateActiveChunk
   const showCaptureOverlay: typeof import('/Users/tommyjtl/Documents/Projects/mot/utils/capture-region').showCaptureOverlay
@@ -286,6 +288,9 @@ declare global {
   // @ts-ignore
   export type { Lang, MotSettings, Voice } from '/Users/tommyjtl/Documents/Projects/mot/utils/settings'
   import('/Users/tommyjtl/Documents/Projects/mot/utils/settings')
+  // @ts-ignore
+  export type { SetupOverlayReason } from '/Users/tommyjtl/Documents/Projects/mot/utils/setup-overlay'
+  import('/Users/tommyjtl/Documents/Projects/mot/utils/setup-overlay')
   // @ts-ignore
   export type { SpeakWordParams } from '/Users/tommyjtl/Documents/Projects/mot/utils/speak-word-client'
   import('/Users/tommyjtl/Documents/Projects/mot/utils/speak-word-client')

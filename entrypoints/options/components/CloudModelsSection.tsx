@@ -60,7 +60,7 @@ function CloudServiceCard({
   );
 }
 
-export function CloudModelsSection() {
+export function CloudModelsSection({ authenticated = false }: { authenticated?: boolean }) {
   const [mode, setMode] = useState<RuntimeModeState>(null);
   const [baseUrl, setBaseUrl] = useState("");
   const [healthState, setHealthState] = useState<CloudServiceState>("checking");
@@ -92,7 +92,7 @@ export function CloudModelsSection() {
     let cancelled = false;
     setHealthState("checking");
 
-    void fetchRemoteHealth(baseUrl).then((health) => {
+    void fetchRemoteHealth(baseUrl, { authenticated }).then((health) => {
       if (cancelled) {
         return;
       }
@@ -110,7 +110,7 @@ export function CloudModelsSection() {
     return () => {
       cancelled = true;
     };
-  }, [mode, baseUrl]);
+  }, [authenticated, mode, baseUrl]);
 
   if (mode !== "cloud") {
     return null;

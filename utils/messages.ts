@@ -1,4 +1,5 @@
 import type { SelectionResult } from "./selection";
+import type { SetupOverlayReason } from "./setup-overlay";
 import type { TtsAlignment } from "./tts-types";
 import type { ViewportCaptureSelection } from "./capture-region";
 import type {
@@ -200,4 +201,14 @@ export type Message =
   | { type: "vocab-delete-entry"; normalized: string }
   | { type: "vocab-export" }
   | { type: "vocab-import"; data: VocabExport }
-  | { type: "open-library"; entry?: string };
+  | { type: "open-library"; entry?: string }
+  | {
+    type: "show-tts-setup-overlay";
+    reason: SetupOverlayReason;
+    feature?: "tts" | "stt";
+  }
+  | {
+    type: "show-transcript-setup-overlay";
+    reason: SetupOverlayReason;
+    feature?: "tts" | "stt";
+  };

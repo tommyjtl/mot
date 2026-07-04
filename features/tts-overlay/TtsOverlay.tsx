@@ -210,6 +210,16 @@ export function TtsOverlay() {
               <StatusFooter
                 message={derivedStatus.message ?? view.message}
                 error
+                actionLabel={
+                  (derivedStatus.message ?? view.message)?.includes("Motif Options")
+                    ? "Open Motif Options"
+                    : undefined
+                }
+                onAction={
+                  (derivedStatus.message ?? view.message)?.includes("Motif Options")
+                    ? () => void browser.runtime.openOptionsPage()
+                    : undefined
+                }
               />
             ) : null}
 

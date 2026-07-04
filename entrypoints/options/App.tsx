@@ -1,9 +1,27 @@
 import { ModelsSection } from "./components/ModelsSection";
-import { RuntimeModeSection } from "./components/RuntimeModeSection";
+import { ModeSection } from "./components/ModeSection";
+import { CloudSettingsSection } from "./components/CloudSettingsSection";
 import { VoiceSettingsSection } from "./components/VoiceSettingsSection";
 import { libraryPageUrl } from "@/utils/open-library";
+import { useEffect, useState } from "react";
+import { initRuntimeModeStore, runtimeModeStore } from "@/utils/runtime-mode-store";
+import type { RuntimeModeState } from "@/utils/runtime-mode";
 
 export function App() {
+  const [mode, setMode] = useState<RuntimeModeState>(null);
+
+  useEffect(() => {
+    void initRuntimeModeStore().then(() => {
+      setMode(runtimeModeStore.getState().mode);
+    });
+
+    return runtimeModeStore.subscribe(() => {
+      setMode(runtimeModeStore.getState().mode);
+    });
+  }, []);
+
+  const isCloud = mode === "cloud";
+
   return (
     <main className="mx-auto max-w-[560px] px-5 py-12">
       <header className="mb-7">
@@ -27,9 +45,15 @@ export function App() {
       </header>
 
       <div className="space-y-5">
-        <RuntimeModeSection />
-        <ModelsSection />
-        <VoiceSettingsSection />
+        <ModeSection />
+        {isCloud ? (
+          <CloudSettingsSection />
+        ) : (
+          <>
+            <ModelsSection />
+            <VoiceSettingsSection />
+          </>
+        )}
       </div>
     </main>
   );

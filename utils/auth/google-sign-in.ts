@@ -9,6 +9,15 @@ function parseIdTokenFromResponseUrl(responseUrl: string): string | null {
   return hashParams.get("id_token") ?? queryParams.get("id_token");
 }
 
+function assertGoogleClientId(clientId: string): void {
+  if (!clientId.endsWith(".apps.googleusercontent.com")) {
+    throw new AuthError(
+      "not_configured",
+      "WXT_GOOGLE_OAUTH_CLIENT_ID must be a Google OAuth client ID (…apps.googleusercontent.com). Check .env — do not use MOTIF_JWT_SECRET here.",
+    );
+  }
+}
+
 function buildGoogleAuthUrl(interactive: boolean): string {
   if (!GOOGLE_OAUTH_CLIENT_ID) {
     throw new AuthError(
@@ -16,6 +25,8 @@ function buildGoogleAuthUrl(interactive: boolean): string {
       "Google OAuth client ID is not configured. Set WXT_GOOGLE_OAUTH_CLIENT_ID in .env.",
     );
   }
+
+  assertGoogleClientId(GOOGLE_OAUTH_CLIENT_ID);
 
   const redirectUri = `https://${browser.runtime.id}.chromiumapp.org/`;
   const params = new URLSearchParams({

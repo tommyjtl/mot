@@ -162,3 +162,5 @@ vite.config.ts.timestamp-*
 
 .DS_Store
 .agents/
+
+client_secret.json

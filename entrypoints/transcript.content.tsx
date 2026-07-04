@@ -1,4 +1,5 @@
 import type { Message } from "../utils/messages";
+import { setupOverlayMessage } from "../utils/setup-overlay";
 import type { TtsAlignment } from "../utils/tts-types";
 import { estimateAlignmentFromAudio } from "../utils/alignment-from-audio";
 import { phraseFromWordRange } from "../utils/overlay-phrase";
@@ -1033,6 +1034,18 @@ export default defineContentScript({
       });
 
     browser.runtime.onMessage.addListener((message: Message) => {
+      if (message.type === "show-transcript-setup-overlay") {
+        patchTranscriptSession({ overlayDismissed: false });
+        showTranscriptOverlay(
+          {
+            kind: "error",
+            message: setupOverlayMessage(message.reason, message.feature),
+          },
+          overlayHandlers(),
+        );
+        return;
+      }
+
       if (getTranscriptSession().overlayDismissed) {
         if (
           message.type === "transcript-error" ||

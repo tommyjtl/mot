@@ -4,6 +4,8 @@ type StatusFooterProps = {
   loadingPhase?: "loading-model" | "generating" | "recognizing";
   loadingDetail?: string;
   loadingPercent?: number;
+  actionLabel?: string;
+  onAction?: () => void;
 };
 
 function openOptionsPage(): void {
@@ -16,6 +18,8 @@ export function StatusFooter({
   loadingPhase,
   loadingDetail,
   loadingPercent,
+  actionLabel,
+  onAction,
 }: StatusFooterProps) {
   if (loadingPhase) {
     let defaultLabel = "Recognizing text…";
@@ -65,11 +69,13 @@ export function StatusFooter({
   }
 
   return (
-    <output
-      className={`status${error ? " error" : ""}`}
-      aria-live="polite"
-    >
-      {message}
-    </output>
+    <div className="statusBlock" aria-live="polite">
+      <output className={`status${error ? " error" : ""}`}>{message}</output>
+      {actionLabel && onAction ? (
+        <button type="button" className="statusOptionsLink" onClick={onAction}>
+          {actionLabel}
+        </button>
+      ) : null}
+    </div>
   );
 }
