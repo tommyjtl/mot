@@ -14,6 +14,7 @@ const HERO_HEADLINE_INTERVAL_MS = 3000;
 const HERO_DIGIT_STAGGER_MS = 35;
 const HERO_DIGIT_DUR_MS = 500;
 const HERO_DIGIT_FADE_OUT_S = 0.22;
+const HERO_LINE_STAGGER_MS = 100;
 
 /** @param {HTMLElement} lineEl @param {string} text */
 function buildLineDigits(lineEl, text) {
@@ -141,6 +142,43 @@ async function replaceLineWithPopIn(lineEl, text) {
   lineEl.classList.remove("is-animating");
 }
 
+/** @param {HTMLElement} group @param {{ lang: string, lines: string[] }} phrase */
+async function animatePhraseIn(group, phrase) {
+  const lineEls = getHeadlineLines(group);
+
+  await Promise.all(
+    lineEls.map(
+      (lineEl, index) =>
+        new Promise((resolve) => {
+          window.setTimeout(async () => {
+            await replaceLineWithPopIn(lineEl, phrase.lines[index] ?? "");
+            resolve(undefined);
+          }, index * HERO_LINE_STAGGER_MS);
+        }),
+    ),
+  );
+}
+
+/** @param {HTMLElement} group @param {{ lang: string, lines: string[] }} phrase */
+async function transitionToPhrase(group, phrase) {
+  const lineEls = getHeadlineLines(group);
+  group.lang = phrase.lang;
+
+  await Promise.all(lineEls.map((lineEl) => fadeOutLineDigits(lineEl)));
+
+  await Promise.all(
+    lineEls.map(
+      (lineEl, index) =>
+        new Promise((resolve) => {
+          window.setTimeout(async () => {
+            await replaceLineWithPopIn(lineEl, phrase.lines[index] ?? "");
+            resolve(undefined);
+          }, index * HERO_LINE_STAGGER_MS);
+        }),
+    ),
+  );
+}
+
 function setupHeroHeadline() {
   const group = document.querySelector("[data-hero-headline]");
   if (!(group instanceof HTMLElement)) {
@@ -157,42 +195,26 @@ function setupHeroHeadline() {
 
   buildHeadlineRows(group, HERO_HEADLINE_PHRASES[0], false);
 
-  const animatePhraseIn = async (phrase) => {
-    const lineEls = getHeadlineLines(group);
-
-    for (let index = 0; index < lineEls.length; index += 1) {
-      await replaceLineWithPopIn(lineEls[index], phrase.lines[index] ?? "");
-    }
-  };
-
-  const transitionToPhrase = async (nextIndex) => {
+  const runTransition = async (nextIndex) => {
     if (transitioning || nextIndex === phraseIndex) {
       return;
     }
 
     transitioning = true;
-    const phrase = HERO_HEADLINE_PHRASES[nextIndex];
-    const lineEls = getHeadlineLines(group);
-    group.lang = phrase.lang;
-
-    for (let index = 0; index < lineEls.length; index += 1) {
-      await fadeOutLineDigits(lineEls[index]);
-      await replaceLineWithPopIn(lineEls[index], phrase.lines[index] ?? "");
-    }
-
+    await transitionToPhrase(group, HERO_HEADLINE_PHRASES[nextIndex]);
     phraseIndex = nextIndex;
     transitioning = false;
   };
 
   const scheduleNextTransition = () => {
     window.setTimeout(async () => {
-      await transitionToPhrase((phraseIndex + 1) % HERO_HEADLINE_PHRASES.length);
+      await runTransition((phraseIndex + 1) % HERO_HEADLINE_PHRASES.length);
       scheduleNextTransition();
     }, HERO_HEADLINE_INTERVAL_MS);
   };
 
   void (async () => {
-    await animatePhraseIn(HERO_HEADLINE_PHRASES[0]);
+    await animatePhraseIn(group, HERO_HEADLINE_PHRASES[0]);
     scheduleNextTransition();
   })();
 }
