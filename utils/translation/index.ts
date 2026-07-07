@@ -1,14 +1,16 @@
 export {
+  getLearningTranslationProvider,
   getLearningTranslationReadiness,
   isLearningTranslationReady,
   isLearningTranslationSupported,
-  learningTranslationProvider,
   prepareLearningTranslation,
+  resetLearningTranslationReadiness,
   subscribeLearningTranslationReadiness,
   translateForLearning,
 } from "./learning-translation";
 export type { LearningTranslationReadiness } from "./learning-translation";
 export { chromeTranslatorProvider } from "./chrome-translator";
+export { remoteTranslatorProvider } from "./remote-translator";
 export type {
   TranslationLanguage,
   TranslationProvider,

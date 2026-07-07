@@ -328,13 +328,24 @@ export function TranscriptOverlay() {
 
         <div className="transcriptFooter">
           {displayStatusMessage ? (
-            <p
-              className={`status${displayStatusError ? " error" : ""}`}
-              role="status"
-              aria-live="polite"
-            >
-              {displayStatusMessage}
-            </p>
+            <div className="statusBlock">
+              <p
+                className={`status${displayStatusError ? " error" : ""}`}
+                role="status"
+                aria-live="polite"
+              >
+                {displayStatusMessage}
+              </p>
+              {displayStatusMessage.includes("Motif Options") ? (
+                <button
+                  type="button"
+                  className="statusOptionsLink"
+                  onClick={() => void browser.runtime.openOptionsPage()}
+                >
+                  Open Motif Options
+                </button>
+              ) : null}
+            </div>
           ) : null}
 
           {showAllow ? (

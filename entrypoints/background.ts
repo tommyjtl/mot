@@ -51,8 +51,21 @@ import {
 } from "../utils/manifest-commands";
 import { formatKeyboardShortcut } from "../utils/keyboard-shortcut";
 import { motifLog, motifWarn } from "../utils/motif-log";
+import {
+  bindRuntimeModeSync,
+  initRuntimeModeStore,
+  isCloudRuntimeMode,
+  isPrivateRuntimeMode,
+  isRuntimeModeReady,
+} from "../utils/runtime-mode-store";
+import {
+  bindAuthSync,
+  initAuthStore,
+  isCloudAuthReady,
+} from "../utils/auth/auth-store";
 import type { Message, SelectionPayload } from "../utils/messages";
 import type { SelectionResult } from "../utils/selection";
+import type { SetupOverlayReason } from "../utils/setup-overlay";
 import { libraryPageUrl } from "../utils/open-library";
 import {
   addVocabContext,
@@ -880,6 +893,18 @@ function handleTranscribeCommand(
   incomingTab: browser.tabs.Tab | undefined,
   source: string,
 ): void {
+  if (blockUntilRuntimeModeSelected(source, incomingTab?.id)) {
+    return;
+  }
+
+  if (blockUntilCloudAuthReady(source, incomingTab?.id)) {
+    return;
+  }
+
+  if (blockCloudShortcutUntilWired("stt", source, incomingTab?.id)) {
+    return;
+  }
+
   motifLog("transcribe", "handleTranscribeCommand", {
     source,
     tabId: incomingTab?.id,
@@ -914,7 +939,109 @@ function handleTranscribeCommand(
   void beginTranscriptionCapture(tabId, streamIdPromise, source);
 }
 
+async function resolveTargetTabId(tabId?: number): Promise<number | undefined> {
+  if (tabId) {
+    return tabId;
+  }
+
+  const tabs = await browser.tabs.query({ active: true, currentWindow: true });
+  const webTab = tabs.find(
+    (tab) => tab.id && tab.url && /^https?:\/\//.test(tab.url),
+  );
+  return webTab?.id;
+}
+
+async function notifyTabSetupRequired(
+  tabId: number | undefined,
+  surface: "tts" | "stt",
+  reason: SetupOverlayReason,
+  feature?: "tts" | "stt",
+): Promise<void> {
+  const targetTabId = await resolveTargetTabId(tabId);
+  if (!targetTabId) {
+    return;
+  }
+
+  const type =
+    surface === "tts"
+      ? "show-tts-setup-overlay"
+      : "show-transcript-setup-overlay";
+
+  try {
+    await browser.tabs.sendMessage(targetTabId, {
+      type,
+      reason,
+      feature,
+    } satisfies Message);
+  } catch {
+    // Content script may not be available on this tab.
+  }
+}
+
+function setupSurfaceForSource(source: string): "tts" | "stt" {
+  return source.includes("transcribe") || source.includes("stt") ? "stt" : "tts";
+}
+
+function blockUntilRuntimeModeSelected(source: string, tabId?: number): boolean {
+  if (isRuntimeModeReady()) {
+    return false;
+  }
+
+  motifWarn("runtime-mode", "Blocked command until mode is selected", { source });
+  void notifyTabSetupRequired(tabId, setupSurfaceForSource(source), "mode-required");
+  return true;
+}
+
+function blockCloudShortcutUntilWired(
+  feature: "tts" | "stt",
+  source: string,
+  tabId?: number,
+): boolean {
+  if (!isCloudRuntimeMode()) {
+    return false;
+  }
+
+  motifWarn("runtime-mode", `Cloud ${feature} not wired yet`, { source });
+  void notifyTabSetupRequired(
+    tabId,
+    feature === "stt" ? "stt" : "tts",
+    "cloud-feature-pending",
+    feature,
+  );
+  return true;
+}
+
+function blockUntilCloudAuthReady(source: string, tabId?: number): boolean {
+  if (!isCloudRuntimeMode()) {
+    return false;
+  }
+
+  if (isCloudAuthReady()) {
+    return false;
+  }
+
+  motifWarn("runtime-mode", "Blocked cloud command until signed in", { source });
+  void notifyTabSetupRequired(
+    tabId,
+    setupSurfaceForSource(source),
+    "cloud-sign-in-required",
+  );
+  return true;
+}
+
 function handleSpeakCommand(incomingTab: browser.tabs.Tab | undefined): void {
+  if (blockUntilRuntimeModeSelected("speak-command", incomingTab?.id)) {
+    return;
+  }
+
+  if (blockUntilCloudAuthReady("speak-command", incomingTab?.id)) {
+    return;
+  }
+
+  if (blockCloudShortcutUntilWired("tts", "speak-command", incomingTab?.id)) {
+    return;
+  }
+
   motifLog("speak", "handleSpeakCommand", {
     tabId: incomingTab?.id,
     url: incomingTab?.url,
@@ -938,25 +1065,42 @@ export default defineBackground(() => {
   motifLog("background", "Service worker started");
 
   bindManifestCommandSync();
+  bindRuntimeModeSync();
+  bindAuthSync();
+  void initRuntimeModeStore();
+  void initAuthStore();
   void syncManifestCommands().then(() => {
     void logRegisteredCommands("Startup");
   });
 
-  void warmUpOffscreenTts().catch((error: unknown) => {
-    console.warn("[motif] Background TTS warm-up failed:", error);
-  });
-  void warmUpOffscreenOcr().catch((error: unknown) => {
-    console.warn("[motif] Background OCR warm-up failed:", error);
+  void initRuntimeModeStore().then(() => {
+    if (!isPrivateRuntimeMode()) {
+      motifLog("runtime-mode", "Skipping local TTS/OCR warm-up in cloud mode");
+      return;
+    }
+
+    void warmUpOffscreenTts().catch((error: unknown) => {
+      console.warn("[motif] Background TTS warm-up failed:", error);
+    });
+    void warmUpOffscreenOcr().catch((error: unknown) => {
+      console.warn("[motif] Background OCR warm-up failed:", error);
+    });
   });
 
   browser.runtime.onInstalled.addListener(() => {
     motifLog("background", "onInstalled — syncing manifest commands");
     void syncManifestCommands();
-    void warmUpOffscreenTts().catch((error: unknown) => {
-      console.warn("[motif] Install TTS warm-up failed:", error);
-    });
-    void warmUpOffscreenOcr().catch((error: unknown) => {
-      console.warn("[motif] Install OCR warm-up failed:", error);
+    void initRuntimeModeStore().then(() => {
+      if (!isPrivateRuntimeMode()) {
+        return;
+      }
+
+      void warmUpOffscreenTts().catch((error: unknown) => {
+        console.warn("[motif] Install TTS warm-up failed:", error);
+      });
+      void warmUpOffscreenOcr().catch((error: unknown) => {
+        console.warn("[motif] Install OCR warm-up failed:", error);
+      });
     });
   });
 

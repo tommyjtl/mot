@@ -41,7 +41,7 @@ export default defineConfig({
     theme_color: "#f1c057",
     description:
       "Hear it, save it, remember it. On-device French pronunciation and live tab transcription.",
-    permissions: ["storage", "activeTab", "tabs", "offscreen", "tabCapture"],
+    permissions: ["storage", "activeTab", "tabs", "offscreen", "tabCapture", "identity"],
     commands: {
       "speak-selection": {
         suggested_key: {
@@ -58,7 +58,10 @@ export default defineConfig({
         description: "Transcribe audio from the active tab",
       },
     },
-    host_permissions: ["https://huggingface.co/*"],
+    host_permissions: [
+      "https://huggingface.co/*",
+      "https://motif-cloud.tjtl.io/*",
+    ],
     web_accessible_resources: [
       {
         resources: ["ort/*", "tesseract/*", "tesseract/tessdata/*", "stt/*", "stt/pkg/*"],

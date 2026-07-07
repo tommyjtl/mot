@@ -1,6 +1,6 @@
 {
   "name": "motif",
-  "version": "1.0.1",
+  "version": "1.1.0",
   "description": "",
   "main": "index.js",
   "scripts": {
@@ -15,6 +15,12 @@
     "stt:download": "node scripts/copy-stt-assets.mjs",
     "models:download": "python3 scripts/models.py download",
     "models:serve": "python3 scripts/models.py serve --port 8091",
+    "server:start": "bash server/scripts/start-local.sh",
+    "server:stop": "bash server/scripts/stop.sh",
+    "server:restart": "bash server/scripts/restart.sh",
+    "server:health": "bash server/scripts/health.sh",
+    "server:status": "bash server/scripts/status.sh",
+    "server:log": "bash server/scripts/log.sh",
     "icons:generate": "node scripts/generate-icons.mjs",
     "doctor": "npx react-doctor@latest"
   },
