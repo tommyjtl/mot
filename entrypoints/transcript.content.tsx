@@ -3,6 +3,7 @@ import type { TtsAlignment } from "../utils/tts-types";
 import { estimateAlignmentFromAudio } from "../utils/alignment-from-audio";
 import { phraseFromWordRange } from "../utils/overlay-phrase";
 import { sendSpeakWordMessage } from "../utils/speak-word-client";
+import { sanitizeVocabOriginal } from "../utils/vocab/normalize";
 import { buildWordTranslationState } from "../utils/vocab/translation-vocab";
 import { overlayWordIndexAtTime } from "../utils/overlay-word-sync";
 import {
@@ -569,7 +570,9 @@ function speakWordRange(startIndex: number, endIndex: number): void {
   }
 
   patchTranscriptSession({ cachedVisibleSpeechText: text });
-  const phraseText = phraseFromWordRange(text, startIndex, endIndex);
+  const phraseText = sanitizeVocabOriginal(
+    phraseFromWordRange(text, startIndex, endIndex),
+  );
   if (!phraseText.trim()) {
     return;
   }

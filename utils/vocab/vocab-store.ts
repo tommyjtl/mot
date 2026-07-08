@@ -1,5 +1,5 @@
 import { browser } from "wxt/browser";
-import { normalizeVocabKey } from "./normalize";
+import { normalizeVocabKey, sanitizeVocabOriginal } from "./normalize";
 import type {
   VocabContextInput,
   VocabCreateInput,
@@ -73,7 +73,8 @@ export async function lookupVocabEntry(original: string): Promise<VocabEntry | n
 }
 
 export async function createVocabEntry(input: VocabCreateInput): Promise<VocabEntry> {
-  const normalized = normalizeVocabKey(input.original);
+  const original = sanitizeVocabOriginal(input.original);
+  const normalized = normalizeVocabKey(original);
   if (!normalized) {
     throw new Error("Could not normalize vocabulary entry.");
   }
@@ -87,7 +88,7 @@ export async function createVocabEntry(input: VocabCreateInput): Promise<VocabEn
   const now = Date.now();
   const entry: VocabEntry = {
     id: createEntryId(),
-    original: input.original,
+    original,
     normalized,
     translation: input.translation,
     note: "",
