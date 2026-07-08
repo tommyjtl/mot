@@ -1,0 +1,59 @@
+name: Release
+
+on:
+  push:
+    branches:
+      - main
+
+permissions:
+  contents: write
+
+jobs:
+  release:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+
+      - name: Determine release version
+        id: version
+        run: node scripts/release-version.mjs
+
+      - name: Skip when no new release is needed
+        if: steps.version.outputs.should_release != 'true'
+        run: echo "No release needed for version ${{ steps.version.outputs.version }}."
+
+      - name: Setup Node
+        if: steps.version.outputs.should_release == 'true'
+        uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: npm
+
+      - name: Install dependencies
+        if: steps.version.outputs.should_release == 'true'
+        run: npm ci
+
+      - name: Build extension zip
+        if: steps.version.outputs.should_release == 'true'
+        run: npm run zip
+
+      - name: Generate release notes
+        if: steps.version.outputs.should_release == 'true'
+        env:
+          OPENAI_API_KEY: ${{ secrets.OPENAI_API_KEY }}
+          RELEASE_VERSION: ${{ steps.version.outputs.version }}
+          FROM_TAG: ${{ steps.version.outputs.from_tag }}
+        run: node scripts/generate-release-notes.mjs > release-notes.md
+
+      - name: Publish GitHub Release
+        if: steps.version.outputs.should_release == 'true'
+        uses: softprops/action-gh-release@v2
+        with:
+          tag_name: v${{ steps.version.outputs.version }}
+          name: Motif v${{ steps.version.outputs.version }}
+          body_path: release-notes.md
+          files: .output/motif-${{ steps.version.outputs.version }}-chrome.zip
+          generate_release_notes: false
