@@ -9,9 +9,10 @@ import { defineConfig } from "wxt";
  * - https://www.instagram.com/p/DWrTxvjgv_g/
  * - https://www.youtube.com/watch?v=IVo5R2yaxB0
  * - https://youtu.be/tA3YBYYmIrg?t=18
+ * - @todo https://docs.google.com/document/d/1K0q-QhLSJNle0UnZtB-nFqWucxOfrN1zlFldCgnUz6Q/edit?usp=sharing
  */
 const DEV_START_URL =
-  "https://www.instagram.com/p/DVhOI4IDe30/";
+  "https://www.instagram.com/p/DWrTxvjgv_g/";
 
 /** Reuse one Chrome profile during dev instead of tmp-web-ext copies (~400 MB/model each). */
 const DEV_CHROME_PROFILE = resolve(".wxt/chrome-data");

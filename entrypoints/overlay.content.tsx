@@ -47,6 +47,7 @@ import {
 import type { TtsAlignment } from "../utils/tts-types";
 import { translateForLearning } from "../utils/translation";
 import { evaluateSelection } from "../utils/selection";
+import { isGoogleDocsDocumentPage } from "../utils/google-docs/page";
 import { sendSpeakWordMessage } from "../utils/speak-word-client";
 
 function estimateSessionAlignment(
@@ -600,7 +601,7 @@ export default defineContentScript({
 
         const evaluated = evaluateSelection();
         const result =
-          evaluated.status === "empty"
+          evaluated.status === "empty" && !isGoogleDocsDocumentPage()
             ? ({ status: "ocr" } as const)
             : evaluated;
 

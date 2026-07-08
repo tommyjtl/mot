@@ -1,4 +1,6 @@
 import type { SelectionPayload, SelectionRect } from "./messages";
+import { readGoogleDocsSelection } from "./google-docs/read-selection";
+import { isGoogleDocsDocumentPage } from "./google-docs/page";
 
 export const MAX_SELECTION_LENGTH = 300;
 
@@ -77,6 +79,13 @@ function rectFromActiveInput(
 }
 
 function readSelectedText(): { text: string; rect: SelectionRect } | null {
+  if (isGoogleDocsDocumentPage()) {
+    const googleDocsSelection = readGoogleDocsSelection();
+    if (googleDocsSelection) {
+      return googleDocsSelection;
+    }
+  }
+
   const activeElement = document.activeElement;
 
   if (
