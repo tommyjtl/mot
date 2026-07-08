@@ -70,6 +70,12 @@ npm run build
 
 Load the unpacked extension from `.output/chrome-mv3/` in `chrome://extensions`.
 
+## Releasing
+
+Version bumps, git tags, the pre-commit guard, GitHub Releases, and Chrome Web Store upload are documented in **[RELEASE.md](RELEASE.md)**.
+
+In short: bump `package.json` with `npm version patch|minor|major --no-git-tag-version` when shipping extension changes; merge via PR; CI creates `v{version}` and the zip when the version is higher than the latest tag.
+
 ## Usage
 
 **With a text selection**
