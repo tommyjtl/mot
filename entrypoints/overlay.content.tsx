@@ -20,6 +20,7 @@ import {
 import { mountTtsOverlay } from "../features/tts-overlay/mount";
 import { overlayWordIndexAtTime } from "../utils/overlay-word-sync";
 import { phraseFromWordRange } from "../utils/overlay-phrase";
+import { sanitizeVocabOriginal } from "../utils/vocab/normalize";
 import { buildWordTranslationState } from "../utils/vocab/translation-vocab";
 import {
   currentLatencyCompensationS,
@@ -438,10 +439,8 @@ function speakWordRange(startIndex: number, endIndex: number): void {
     return;
   }
 
-  const phraseText = phraseFromWordRange(
-    session.cachedSpeechText,
-    startIndex,
-    endIndex,
+  const phraseText = sanitizeVocabOriginal(
+    phraseFromWordRange(session.cachedSpeechText, startIndex, endIndex),
   );
   if (!phraseText.trim()) {
     return;
