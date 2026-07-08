@@ -11,7 +11,8 @@
     "dev:clean-profile": "node scripts/dev-storage.mjs --clean-profile",
     "build": "wxt build",
     "zip": "wxt zip",
-    "postinstall": "wxt prepare && node scripts/copy-ort-wasm.mjs && node scripts/copy-tesseract-assets.mjs && node scripts/copy-stt-assets.mjs",
+    "check-version": "node scripts/check-version.mjs",
+    "postinstall": "wxt prepare && node scripts/copy-ort-wasm.mjs && node scripts/copy-tesseract-assets.mjs && node scripts/copy-stt-assets.mjs && simple-git-hooks",
     "stt:download": "node scripts/copy-stt-assets.mjs",
     "models:download": "python3 scripts/models.py download",
     "models:serve": "python3 scripts/models.py serve --port 8091",
@@ -30,11 +31,16 @@
     "url": "https://github.com/tommyjtl/motif/issues"
   },
   "homepage": "https://github.com/tommyjtl/motif#readme",
+  "simple-git-hooks": {
+    "pre-commit": "npm run check-version"
+  },
   "devDependencies": {
     "@types/react": "^19.2.17",
     "@types/react-dom": "^19.2.3",
     "@wxt-dev/module-react": "^1.2.2",
     "react-doctor": "^0.5.8",
+    "semver": "^7.7.2",
+    "simple-git-hooks": "^2.13.1",
     "typescript": "^6.0.3",
     "wxt": "^0.20.26"
   },
