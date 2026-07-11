@@ -6,6 +6,7 @@ declare module "wxt/browser" {
     | ""
     | "/"
     | "/background.js"
+    | "/content-scripts/google-docs-annotate.js"
     | "/content-scripts/overlay.js"
     | "/content-scripts/transcript-edit-guard.js"
     | "/content-scripts/transcript.js"
